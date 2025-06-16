@@ -1,0 +1,464 @@
+/* components/common/health/PortsModal.css */
+.health-ports-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    backdrop-filter: blur(4px);
+  }
+  
+  .health-ports-modal-container {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 700px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    border: 1px solid #475569;
+    animation: health-ports-modal-slide-in 0.3s ease-out;
+  }
+  
+  @keyframes health-ports-modal-slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  .health-ports-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 24px 0 24px;
+    border-bottom: 1px solid #475569;
+    margin-bottom: 24px;
+  }
+  
+  .health-ports-modal-title-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .health-ports-modal-icon {
+    color: #3b82f6;
+    font-size: 20px;
+  }
+  
+  .health-ports-modal-title {
+    margin: 0;
+    color: #e2e8f0;
+    font-size: 20px;
+    font-weight: 700;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .health-ports-modal-close {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 18px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+  
+  .health-ports-modal-close:hover {
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .health-ports-modal-content {
+    padding: 0 24px 24px 24px;
+  }
+  
+  /* Stats Section */
+  .health-ports-modal-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .health-ports-stat-item {
+    text-align: center;
+  }
+  
+  .health-ports-stat-value {
+    display: block;
+    font-size: 24px;
+    font-weight: 700;
+    color: #e2e8f0;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    margin-bottom: 4px;
+  }
+  
+  .health-ports-stat-label {
+    font-size: 12px;
+    color: #94a3b8;
+    font-family: "Inter", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .health-ports-modal-subtitle {
+    color: #94a3b8;
+    font-size: 14px;
+    margin: 0 0 24px 0;
+    font-family: "Inter", sans-serif;
+    line-height: 1.5;
+  }
+  
+  /* Warning Section */
+  .health-ports-modal-warning {
+    display: flex;
+    gap: 12px;
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 24px;
+  }
+  
+  .health-ports-modal-warning-icon {
+    color: #ef4444;
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  
+  .health-ports-modal-warning-content h4 {
+    color: #fca5a5;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .health-ports-modal-warning-content p {
+    color: #fecaca;
+    font-size: 13px;
+    margin: 0;
+    line-height: 1.5;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .health-ports-modal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  
+  .health-ports-modal-item {
+    padding: 16px 12px;
+    border-radius: 12px;
+    text-align: center;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    position: relative;
+  }
+  
+  .health-ports-modal-item.critical {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+  
+  .health-ports-modal-item.standard {
+    background: rgba(100, 116, 139, 0.15);
+    border-color: rgba(100, 116, 139, 0.3);
+  }
+  
+  /* Duplicate Indicators */
+  .health-ports-modal-item.duplicate {
+    border-width: 2px;
+    border-style: dashed;
+  }
+  
+  .health-ports-modal-item.critical.duplicate {
+    border-color: rgba(239, 68, 68, 0.6);
+    background: rgba(239, 68, 68, 0.2);
+  }
+  
+  .health-ports-modal-item.standard.duplicate {
+    border-color: rgba(100, 116, 139, 0.6);
+    background: rgba(100, 116, 139, 0.2);
+  }
+  
+  .health-ports-modal-duplicate-indicator {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: #ef4444;
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  }
+  
+  .health-ports-modal-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .health-ports-modal-item.critical:hover {
+    border-color: rgba(239, 68, 68, 0.5);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+  }
+  
+  .health-ports-modal-item.standard:hover {
+    border-color: rgba(100, 116, 139, 0.5);
+    box-shadow: 0 4px 12px rgba(100, 116, 139, 0.2);
+  }
+  
+  .health-ports-modal-port-number {
+    display: block;
+    font-size: 20px;
+    font-weight: 700;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    margin-bottom: 4px;
+  }
+  
+  .health-ports-modal-item.critical .health-ports-modal-port-number {
+    color: #ef4444;
+  }
+  
+  .health-ports-modal-item.standard .health-ports-modal-port-number {
+    color: #64748b;
+  }
+  
+  .health-ports-modal-port-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .health-ports-modal-item.critical .health-ports-modal-port-label {
+    color: #fca5a5;
+  }
+  
+  .health-ports-modal-item.standard .health-ports-modal-port-label {
+    color: #94a3b8;
+  }
+  
+  /* Detailed Information */
+  .health-ports-modal-details {
+    margin-top: 24px;
+    padding: 20px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .health-ports-modal-details h4 {
+    color: #e2e8f0;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .health-ports-detail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .health-ports-detail-item {
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 8px;
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .health-ports-detail-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  
+  .health-ports-detail-port {
+    color: #e2e8f0;
+    font-weight: 600;
+    font-size: 14px;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .health-ports-detail-count {
+    color: #ef4444;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: "Inter", sans-serif;
+    background: rgba(239, 68, 68, 0.1);
+    padding: 2px 8px;
+    border-radius: 12px;
+  }
+  
+  .health-ports-detail-processes {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .health-ports-process-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 6px 10px;
+    background: rgba(15, 23, 42, 0.7);
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .health-ports-process-protocol {
+    color: #3b82f6;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    min-width: 40px;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  
+  .health-ports-process-name {
+    color: #94a3b8;
+    font-size: 12px;
+    font-family: "Inter", sans-serif;
+    word-break: break-all;
+    flex: 1;
+  }
+  
+  .health-ports-modal-notice {
+    display: flex;
+    gap: 12px;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  
+  .health-ports-modal-notice-icon {
+    color: #f59e0b;
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  
+  .health-ports-modal-notice-content h4 {
+    color: #fbbf24;
+    font-size: 14px;
+    font-weight: 600;
+    margin: 0 0 8px 0;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .health-ports-modal-notice-content p {
+    color: #fcd34d;
+    font-size: 13px;
+    margin: 0;
+    line-height: 1.5;
+    font-family: "Inter", sans-serif;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .health-ports-modal-container {
+      width: 95%;
+      margin: 20px;
+      max-height: 90vh;
+    }
+    
+    .health-ports-modal-header,
+    .health-ports-modal-content {
+      padding-left: 16px;
+      padding-right: 16px;
+    }
+    
+    .health-ports-modal-stats {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    
+    .health-ports-modal-grid {
+      grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+      gap: 8px;
+    }
+    
+    .health-ports-modal-item {
+      padding: 12px 8px;
+    }
+    
+    .health-ports-modal-port-number {
+      font-size: 18px;
+    }
+    
+    .health-ports-detail-header {
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-start;
+    }
+    
+    .health-ports-process-item {
+      flex-direction: column;
+      gap: 4px;
+      align-items: flex-start;
+    }
+    
+    .health-ports-process-protocol {
+      min-width: auto;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .health-ports-modal-grid {
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    }
+    
+    .health-ports-modal-port-number {
+      font-size: 16px;
+    }
+    
+    .health-ports-modal-port-label {
+      font-size: 10px;
+    }
+    
+    .health-ports-modal-details {
+      padding: 16px;
+    }
+    
+    .health-ports-process-item {
+      padding: 4px 8px;
+    }
+    
+    .health-ports-process-protocol {
+      font-size: 10px;
+    }
+    
+    .health-ports-process-name {
+      font-size: 11px;
+    }
+  }
+  

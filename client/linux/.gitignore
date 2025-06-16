@@ -1,0 +1,42 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Output of the go coverage tool
+*.coverprofile
+
+# Dependency directories (remove the comment below if you use Go vendor)
+# /vendor/
+
+# Go workspace file
+go.work
+
+# IDE/editor settings
+.vscode/
+.idea/
+*.swp
+*.swo
+*.bak
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Auth tokens or secrets
+./auth/token.hash
+
+# Test/build artifacts
+/test/*.out
+/test/*.tmp
+
+# Logs (if any)
+*.log
+
+# Ignore by pattern (uncomment if you have generated files elsewhere)
+# *.gen.go
+

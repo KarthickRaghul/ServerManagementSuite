@@ -1,0 +1,203 @@
+/* pages/settings/UserManagement/UserModal.css */
+.settings-usermgmt-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(16, 23, 58, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+}
+
+.settings-usermgmt-modal-container {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  border: 1px solid #475569;
+  animation: settings-usermgmt-modal-slide-in 0.3s ease-out;
+}
+
+@keyframes settings-usermgmt-modal-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.settings-usermgmt-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0 24px;
+  border-bottom: 1px solid #475569;
+  margin-bottom: 24px;
+}
+
+.settings-usermgmt-modal-title {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: "Inter", sans-serif;
+}
+
+.settings-usermgmt-modal-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.settings-usermgmt-modal-close:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.settings-usermgmt-modal-form {
+  padding: 0 24px 24px 24px;
+}
+
+.settings-usermgmt-form-group {
+  margin-bottom: 20px;
+}
+
+.settings-usermgmt-form-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 8px;
+  font-family: "Inter", sans-serif;
+}
+
+.settings-usermgmt-form-icon {
+  color: #3b82f6;
+  font-size: 14px;
+}
+
+.settings-usermgmt-form-input,
+.settings-usermgmt-form-select {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  border: 2px solid #475569;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.settings-usermgmt-form-input:focus,
+.settings-usermgmt-form-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+}
+
+.settings-usermgmt-form-input::placeholder {
+  color: #64748b;
+}
+
+.settings-usermgmt-form-input.error,
+.settings-usermgmt-form-select.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+}
+
+.settings-usermgmt-form-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+  font-family: "Inter", sans-serif;
+}
+
+.settings-usermgmt-modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #475569;
+}
+
+.settings-usermgmt-btn-cancel,
+.settings-usermgmt-btn-submit {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-family: "Inter", sans-serif;
+  min-width: 100px;
+}
+
+.settings-usermgmt-btn-cancel {
+  background: rgba(75, 85, 99, 0.8);
+  color: #d1d5db;
+  border: 1px solid #4b5563;
+}
+
+.settings-usermgmt-btn-cancel:hover {
+  background: rgba(107, 114, 128, 0.9);
+  border-color: #6b7280;
+  transform: translateY(-1px);
+}
+
+.settings-usermgmt-btn-submit {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  color: white;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.settings-usermgmt-btn-submit:hover {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .settings-usermgmt-modal-container {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .settings-usermgmt-modal-header,
+  .settings-usermgmt-modal-form {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  
+  .settings-usermgmt-modal-actions {
+    flex-direction: column;
+  }
+  
+  .settings-usermgmt-btn-cancel,
+  .settings-usermgmt-btn-submit {
+    width: 100%;
+  }
+}

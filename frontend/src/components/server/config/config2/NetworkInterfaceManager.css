@@ -1,0 +1,410 @@
+/* components/server/config2/NetworkInterfaceManager.css */
+.network-interface-manager-card {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid #475569;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    min-height: 400px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+  }
+  
+  .network-interface-manager-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  }
+  
+  .network-interface-manager-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #94a3b8;
+    font-family: "Inter", sans-serif;
+    flex: 1;
+  }
+  
+  .network-interface-manager-loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(245, 158, 11, 0.3);
+    border-radius: 50%;
+    border-top-color: #f59e0b;
+    animation: network-interface-manager-spin 1s ease-in-out infinite;
+    margin-bottom: 16px;
+  }
+  
+  @keyframes network-interface-manager-spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  .network-interface-manager-header {
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #475569;
+    width: 100%;
+  }
+  
+  .network-interface-manager-title-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+  }
+  
+  .network-interface-manager-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+  }
+  
+  .network-interface-manager-icon {
+    color: white;
+    font-size: 20px;
+  }
+  
+  .network-interface-manager-title {
+    color: #e2e8f0;
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .network-interface-manager-description {
+    color: #94a3b8;
+    font-size: 14px;
+    margin: 0;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .network-interface-manager-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    flex: 1;
+    width: 100%;
+  }
+  
+  .network-interface-manager-section-title {
+    color: #e2e8f0;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .network-interface-manager-interfaces-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  
+  .network-interface-manager-no-interfaces {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 20px;
+    color: #64748b;
+    font-family: "Inter", sans-serif;
+    background: rgba(15, 23, 42, 0.3);
+    border-radius: 8px;
+    border: 1px dashed #475569;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .network-interface-manager-no-interfaces-icon {
+    font-size: 24px;
+    margin-bottom: 8px;
+    opacity: 0.5;
+  }
+  
+  .network-interface-manager-interface-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .network-interface-manager-interface-item:hover {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(245, 158, 11, 0.3);
+    transform: translateX(2px);
+  }
+  
+  .network-interface-manager-interface-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+  }
+  
+  .network-interface-manager-interface-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  
+  .network-interface-manager-interface-details {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  
+  .network-interface-manager-interface-name {
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .network-interface-manager-interface-status {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-family: "Inter", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    width: fit-content;
+  }
+  
+  .network-interface-manager-interface-status.active {
+    background: rgba(34, 197, 94, 0.2);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+  }
+  
+  .network-interface-manager-interface-status.inactive {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+  }
+  
+  .network-interface-manager-interface-controls {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  
+  .network-interface-manager-control-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "Inter", sans-serif;
+    min-width: 60px;
+  }
+  
+  .network-interface-manager-control-btn.enable {
+    background: rgba(75, 85, 99, 0.8);
+    color: #d1d5db;
+    border: 1px solid #4b5563;
+  }
+  
+  .network-interface-manager-control-btn.enabled {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
+  }
+  
+  .network-interface-manager-control-btn.disable {
+    background: rgba(75, 85, 99, 0.8);
+    color: #d1d5db;
+    border: 1px solid #4b5563;
+  }
+  
+  .network-interface-manager-control-btn.disabled {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    color: white;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  }
+  
+  .network-interface-manager-control-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+  }
+  
+  .network-interface-manager-control-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  
+  .network-interface-manager-status-section {
+    background: rgba(15, 23, 42, 0.3);
+    border-radius: 8px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .network-interface-manager-status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+  }
+  
+  .network-interface-manager-status-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .network-interface-manager-status-icon-wrapper {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+  
+  .network-interface-manager-status-icon-wrapper.status {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+  }
+  
+  .network-interface-manager-status-icon-wrapper.uptime {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  }
+  
+  .network-interface-manager-status-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+  }
+  
+  .network-interface-manager-status-content label {
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: "Inter", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .network-interface-manager-status-value {
+    color: #e2e8f0;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .network-interface-manager-status-value.online {
+    color: #22c55e;
+  }
+  
+  .network-interface-manager-status-value.offline {
+    color: #ef4444;
+  }
+  
+  .network-interface-manager-restart-btn {
+    width: 100%;
+    padding: 12px 20px;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    font-family: "Inter", sans-serif;
+    box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+    margin-top: auto;
+    box-sizing: border-box;
+  }
+  
+  .network-interface-manager-restart-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #d97706, #b45309);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(245, 158, 11, 0.4);
+  }
+  
+  .network-interface-manager-restart-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .network-interface-manager-restart-btn.loading {
+    background: linear-gradient(135deg, #6b7280, #4b5563);
+  }
+  
+  .network-interface-manager-restart-icon {
+    font-size: 14px;
+  }
+  
+  .network-interface-manager-restart-icon.spinning {
+    animation: network-interface-manager-restart-spin 1s linear infinite;
+  }
+  
+  @keyframes network-interface-manager-restart-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .network-interface-manager-interface-item {
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    
+    .network-interface-manager-interface-controls {
+      width: 100%;
+      justify-content: space-between;
+    }
+    
+    .network-interface-manager-control-btn {
+      flex: 1;
+    }
+    
+    .network-interface-manager-status-grid {
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+  }
+  

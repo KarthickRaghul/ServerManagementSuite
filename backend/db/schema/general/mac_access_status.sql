@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS mac_access_status (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    mac VARCHAR(17) NOT NULL,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('BLACKLISTED', 'WHITELISTED')),
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+

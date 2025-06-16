@@ -1,0 +1,437 @@
+/* servermanagement.css */
+.config1-servermgmt-card-container {
+  background: #0f1c3b;
+  border-radius: 20px;
+  padding: 28px;
+  width: 260px;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 1px solid rgba(59, 130, 246, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.config1-servermgmt-card-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(59, 130, 246, 0.05);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.config1-servermgmt-card-container:hover::before {
+  opacity: 1;
+}
+
+.config1-servermgmt-card-container:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(59, 130, 246, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.config1-servermgmt-card-container h3 {
+  color: #e2e8f0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-servermgmt-card-container p {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  flex-grow: 1;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-servermgmt-icon-wrapper {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Add specific styling for the icon inside the wrapper */
+.config1-servermgmt-icon-wrapper img,
+.config1-servermgmt-icon-wrapper svg,
+.config1-servermgmt-icon-wrapper i {
+  width: 24px;
+  height: 24px;
+  color: white !important;
+  filter: brightness(0) invert(1);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* For React Icons (FaServer) */
+.config1-servermgmt-icon-wrapper > * {
+  color: white !important;
+  font-size: 20px !important;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* If you're using font icons like FontAwesome */
+.config1-servermgmt-icon-wrapper .fa,
+.config1-servermgmt-icon-wrapper [class*="icon-"] {
+  font-size: 20px;
+  color: white !important;
+  line-height: 1;
+}
+
+.config1-servermgmt-card-container:hover .config1-servermgmt-icon-wrapper {
+  transform: scale(1.05);
+  box-shadow: 0 12px 30px rgba(59, 130, 246, 0.4);
+}
+
+/* Modal Content Styling */
+.config1-servermgmt-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.config1-servermgmt-subtitle {
+  color: #9ca3af;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-servermgmt-input-section {
+  background: rgba(30, 41, 59, 0.3);
+  border: 1px solid #475569;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.config1-servermgmt-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.config1-servermgmt-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.config1-servermgmt-input-label {
+  color: #e5e7eb;
+  font-weight: 500;
+  font-size: 13px;
+  font-family: "Inter", sans-serif;
+  margin-bottom: 4px;
+}
+
+.config1-servermgmt-input,
+.config1-servermgmt-select {
+  padding: 10px 12px;
+  border-radius: 6px;
+  background: #374151;
+  color: #e5e7eb;
+  border: 1px solid #4b5563;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+.config1-servermgmt-input:focus,
+.config1-servermgmt-select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  background: #4b5563;
+}
+
+.config1-servermgmt-input::placeholder {
+  color: #9ca3af;
+}
+
+.config1-servermgmt-btn-add {
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  color: white;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 120px;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-family: "Inter", sans-serif;
+  height: 40px;
+}
+
+.config1-servermgmt-btn-add:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #2563eb, #1e40af);
+}
+
+.config1-servermgmt-btn-add:disabled {
+  background: #4b5563;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.config1-servermgmt-btn-icon {
+  font-size: 12px;
+}
+
+/* Table Styling */
+.config1-servermgmt-table-container {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.config1-servermgmt-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #e5e7eb;
+  font-family: "Inter", sans-serif;
+  background: transparent;
+}
+
+.config1-servermgmt-table thead {
+  background: transparent;
+}
+
+.config1-servermgmt-table thead th {
+  padding: 12px 8px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 12px;
+  color: #9ca3af;
+  border-bottom: 1px solid #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.config1-servermgmt-table tbody td {
+  padding: 12px 8px;
+  border-bottom: 1px solid #374151;
+  font-size: 13px;
+  vertical-align: middle;
+  color: #e5e7eb;
+}
+
+.config1-servermgmt-table tbody tr {
+  transition: background-color 0.2s ease;
+  background: transparent;
+}
+
+.config1-servermgmt-table tbody tr:hover {
+  background: rgba(55, 65, 81, 0.3);
+}
+
+.config1-servermgmt-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Server Type Badges */
+.config1-servermgmt-type-badge {
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-family: "Inter", sans-serif;
+  display: inline-block;
+  text-align: center;
+}
+
+.config1-servermgmt-type-web {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+}
+
+.config1-servermgmt-type-database {
+  background: rgba(168, 85, 247, 0.2);
+  color: #a855f7;
+}
+
+.config1-servermgmt-type-api {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+}
+
+.config1-servermgmt-type-file {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+}
+
+/* Status Badges */
+.config1-servermgmt-status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: capitalize;
+  font-family: "Inter", sans-serif;
+  display: inline-block;
+  min-width: 60px;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.config1-servermgmt-status-online {
+  background: #10b981;
+  color: white;
+}
+
+.config1-servermgmt-status-offline {
+  background: #ef4444;
+  color: white;
+}
+
+.config1-servermgmt-status-maintenance {
+  background: #f59e0b;
+  color: white;
+}
+
+.config1-servermgmt-status-badge:hover {
+  transform: scale(1.05);
+}
+
+/* Action Buttons */
+.config1-servermgmt-action-buttons {
+  display: flex;
+  gap: 6px;
+  justify-content: center;
+}
+
+.config1-servermgmt-btn-edit {
+  background: #3b82f6;
+  border: none;
+  color: white;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  width: 28px;
+  height: 28px;
+}
+
+.config1-servermgmt-btn-edit:hover {
+  background: #2563eb;
+  transform: scale(1.05);
+}
+
+.config1-servermgmt-btn-delete {
+  background: #ef4444;
+  border: none;
+  color: white;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  width: 28px;
+  height: 28px;
+}
+
+.config1-servermgmt-btn-delete:hover {
+  background: #dc2626;
+  transform: scale(1.05);
+}
+
+/* Empty State */
+.config1-servermgmt-empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  font-style: italic;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-servermgmt-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .config1-servermgmt-card-container {
+    width: 100%;
+    max-width: 280px;
+    padding: 24px;
+  }
+  
+  .config1-servermgmt-input-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .config1-servermgmt-btn-add {
+    width: 100%;
+  }
+  
+  .config1-servermgmt-table-container {
+    overflow-x: auto;
+  }
+  
+  .config1-servermgmt-table {
+    min-width: 800px;
+  }
+}
+
+@media (max-width: 480px) {
+  .config1-servermgmt-card-container {
+    height: auto;
+    min-height: 200px;
+  }
+  
+  .config1-servermgmt-input-section {
+    padding: 16px;
+  }
+  
+  .config1-servermgmt-table thead th,
+  .config1-servermgmt-table tbody td {
+    padding: 8px 4px;
+    font-size: 11px;
+  }
+  
+  .config1-servermgmt-status-badge,
+  .config1-servermgmt-type-badge {
+    padding: 2px 6px;
+    font-size: 9px;
+  }
+}

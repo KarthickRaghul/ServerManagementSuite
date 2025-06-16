@@ -1,0 +1,68 @@
+/* ========== GLOBAL RESET ========== */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Will be used to store Colors */
+:root {
+  --header: #1b2537;
+  --sidebar: #131c2e;
+  --content: #0f172a;
+  --header-height: 60px;
+  --sidebar-width: 280px;
+}
+
+#root {
+  height: 100vh;
+  width: 100vw;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  overflow: hidden;
+}
+
+.container {
+  height: calc(100vh - var(--header-height));
+  margin-top: var(--header-height);
+  display: flex;
+  overflow: hidden;
+  background-color: white;
+}
+
+.content {
+  flex: 1;
+  margin-left: var(--sidebar-width);
+  padding: 20px;
+  background-color: var(--content);
+  border-left: 1px solid #334155;
+  overflow-x: hidden;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  :root {
+    --sidebar-width: 240px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 200px;
+  }
+
+  .content {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --sidebar-width: 100%;
+    --header-height: 50px;
+  }
+
+  .content {
+    margin-left: 0;
+    padding: 10px;
+  }
+}

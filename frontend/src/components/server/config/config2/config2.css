@@ -1,0 +1,65 @@
+/* components/server/config2/config2.css */
+.network-config2-main-container {
+  padding: 32px;
+  background: transparent;
+  min-height: 100vh;
+  font-family: "Inter", sans-serif;
+}
+
+.network-config2-header {
+  margin-bottom: 32px;
+}
+
+.network-config2-title {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  color: #e2e8f0;
+  font-family: "Inter", sans-serif;
+}
+
+.network-config2-subtitle {
+  color: #94a3b8;
+  font-size: 16px;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+}
+
+.network-config2-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  width: 100%;
+  margin: 0 auto;
+  align-items: stretch;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .network-config2-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .network-config2-main-container {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .network-config2-main-container {
+    padding: 16px;
+  }
+  
+  .network-config2-title {
+    font-size: 24px;
+  }
+  
+  .network-config2-subtitle {
+    font-size: 14px;
+  }
+  
+  .network-config2-cards-grid {
+    gap: 16px;
+  }
+}

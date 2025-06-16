@@ -1,0 +1,418 @@
+/* components/common/health/HealthDashboard.css */
+.health-dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    width: 100%;
+  }
+  
+  /* Header Section */
+  .health-header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+  
+  .health-title-section {
+    flex: 1;
+  }
+  
+  .health-page-title {
+    color: #e2e8f0;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .health-page-subtitle {
+    color: #94a3b8;
+    font-size: 16px;
+    margin: 0;
+    font-family: "Inter", sans-serif;
+    line-height: 1.5;
+  }
+  
+  .health-header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+  }
+  
+  .health-btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    font-family: "Inter", sans-serif;
+    min-width: 140px;
+    justify-content: center;
+  }
+  
+  .health-btn-primary {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  }
+  
+  .health-btn-primary:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+  }
+  
+  .health-btn-secondary {
+    background: rgba(75, 85, 99, 0.8);
+    color: #d1d5db;
+    border: 1px solid #4b5563;
+  }
+  
+  .health-btn-secondary:hover {
+    background: rgba(107, 114, 128, 0.9);
+    border-color: #6b7280;
+    transform: translateY(-1px);
+  }
+  
+  .health-btn-icon {
+    font-size: 12px;
+  }
+  
+  .spinning {
+    animation: health-spin 1s linear infinite;
+  }
+  
+  @keyframes health-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  
+  /* Error Banner */
+  .health-error-banner {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 12px;
+    padding: 16px;
+    color: #ef4444;
+    margin-bottom: 24px;
+    font-family: "Inter", sans-serif;
+  }
+  
+  /* Main Metrics Grid */
+  .health-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+  
+  /* Metric Cards */
+  .health-metric-card {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .health-metric-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+  
+  .health-metric-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  
+  .health-metric-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: white;
+    margin-right: 16px;
+  }
+  
+  .health-cpu-icon {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  }
+  
+  .health-memory-icon {
+    background: linear-gradient(135deg, #22c55e, #4ade80);
+  }
+  
+  .health-storage-icon {
+    background: linear-gradient(135deg, #a855f7, #c084fc);
+  }
+  
+  .health-network-icon {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  }
+  
+  .health-ports-icon {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  }
+  
+  .health-metric-title {
+    flex: 1;
+  }
+  
+  .health-metric-title h3 {
+    color: #e2e8f0;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0 0 4px 0;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .health-metric-title p {
+    color: #94a3b8;
+    font-size: 13px;
+    margin: 0;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .health-expand-btn {
+    background: none;
+    border: none;
+    color: #64748b;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+    font-size: 12px;
+  }
+  
+  .health-expand-btn:hover {
+    color: #e2e8f0;
+    background: rgba(255, 255, 255, 0.1);
+  }
+  
+  .health-metric-value {
+    margin-bottom: 20px;
+  }
+  
+  .health-value-main {
+    display: block;
+    font-size: 36px;
+    font-weight: 700;
+    color: #e2e8f0;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+    line-height: 1;
+  }
+  
+  .health-cpu-card .health-value-main {
+    color: #3b82f6;
+  }
+  
+  .health-memory-card .health-value-main {
+    color: #22c55e;
+  }
+  
+  .health-storage-card .health-value-main {
+    color: #a855f7;
+  }
+  
+  .health-value-label {
+    color: #94a3b8;
+    font-size: 14px;
+    font-family: "Inter", sans-serif;
+    margin-left: 8px;
+  }
+  
+  .health-metric-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .health-detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  
+  .health-detail-label {
+    color: #64748b;
+    font-size: 12px;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .health-detail-value {
+    color: #94a3b8;
+    font-size: 13px;
+    font-weight: 500;
+    font-family: "Inter", sans-serif;
+  }
+  
+  /* Network Card Specific */
+  .health-network-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .health-network-stat {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .health-network-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+  }
+  
+  .health-network-indicator.transmit {
+    background: #f59e0b;
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.5);
+  }
+  
+  .health-network-indicator.receive {
+    background: #06b6d4;
+    box-shadow: 0 0 8px rgba(6, 182, 212, 0.5);
+  }
+  
+  .health-network-label {
+    color: #94a3b8;
+    font-size: 13px;
+    font-family: "Inter", sans-serif;
+    min-width: 60px;
+  }
+  
+  .health-network-value {
+    color: #e2e8f0;
+    font-size: 24px;
+    font-weight: 700;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  }
+  
+  .health-network-unit {
+    color: #64748b;
+    font-size: 13px;
+    font-family: "Inter", sans-serif;
+  }
+  
+  /* Ports Card Specific */
+  .health-ports-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 16px;
+  }
+  
+  .health-port-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  }
+  
+  .health-ports-more {
+    grid-column: span 2;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(100, 116, 139, 0.3);
+    color: #94a3b8;
+    font-size: 12px;
+    text-align: center;
+    font-family: "Inter", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .health-ports-loading {
+    grid-column: span 4;
+    text-align: center;
+    color: #64748b;
+    font-size: 14px;
+    padding: 20px;
+    font-family: "Inter", sans-serif;
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 1200px) {
+    .health-metrics-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .health-header-section {
+      flex-direction: column;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    
+    .health-header-actions {
+      width: 100%;
+      flex-direction: column;
+    }
+    
+    .health-btn {
+      width: 100%;
+    }
+    
+    .health-metrics-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    
+    .health-metric-card {
+      padding: 20px;
+    }
+    
+    .health-value-main {
+      font-size: 28px;
+    }
+    
+    .health-ports-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .health-page-title {
+      font-size: 24px;
+    }
+    
+    .health-metric-header {
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    
+    .health-expand-btn {
+      align-self: flex-end;
+    }
+    
+    .health-metric-details {
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    
+    .health-ports-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }

@@ -1,0 +1,123 @@
+/* components/server/ResourceOptimization/resourceCard.css */
+.resource-optimization-card {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(10px);
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.resource-optimization-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.2);
+  border-color: rgba(16, 185, 129, 0.3);
+  z-index: 2;
+}
+
+.resource-optimization-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.resource-optimization-icon {
+  font-size: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+  color: white;
+}
+
+.resource-optimization-info {
+  flex: 1;
+}
+
+.resource-optimization-title {
+  color: #e2e8f0;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  font-family: "Inter", sans-serif;
+}
+
+.resource-optimization-description {
+  color: #94a3b8;
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.5;
+  font-family: "Inter", sans-serif;
+}
+
+.resource-optimization-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  padding: 16px;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.resource-optimization-stat {
+  text-align: center;
+}
+
+.resource-optimization-stat-value {
+  display: block;
+  color: #22c55e;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+}
+
+.resource-optimization-stat-label {
+  color: #64748b;
+  font-size: 12px;
+  font-family: "Inter", sans-serif;
+}
+
+.resource-optimization-action-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-family: "Inter", sans-serif;
+}
+
+.resource-optimization-action-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+}
+
+.resource-optimization-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.resource-optimization-action-icon {
+  font-size: 12px;
+}

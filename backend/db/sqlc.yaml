@@ -1,0 +1,41 @@
+version: "1"
+packages:
+  - name: "generaldb"
+    path: "./gen/general"
+    queries: "./query/general"
+    schema:
+      - "./schema/general/*.sql"
+    engine: "postgresql"
+    emit_prepared_queries: false
+    emit_interface: false
+    emit_json_tags: true
+    emit_empty_slices: true
+    emit_db_tags: true
+    emit_exact_table_names: false
+
+  - name: "serverdb"
+    path: "./gen/server"
+    queries: "./query/server"
+    schema:
+      - "./schema/server/*.sql"
+    engine: "postgresql"
+    emit_prepared_queries: false
+    emit_interface: false
+    emit_json_tags: true
+    emit_empty_slices: true
+    emit_db_tags: true
+    emit_exact_table_names: false
+
+  #
+  # - name: "networkdb"
+  #   path: "./gen/network"
+  #   queries: "./query/network"
+  #   schema:
+  #    - "./schema/network/*.sql"
+  #   engine: "postgresql"
+  #   emit_prepared_queries: false
+  #   emit_interface: false
+  #   emit_json_tags: true
+  #   emit_empty_slices: true
+  #   emit_db_tags: true
+  #   emit_exact_table_names: false

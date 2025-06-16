@@ -1,0 +1,303 @@
+/* pages/settings/settings.css */
+.settings-main-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.settings-header-section {
+  margin-bottom: 20px;
+}
+
+.settings-page-title {
+  color: #e2e8f0;
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 8px 0;
+  font-family: "Inter", sans-serif;
+}
+
+.settings-page-subtitle {
+  color: #94a3b8;
+  font-size: 16px;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+  line-height: 1.5;
+}
+
+/* User Management Section */
+.settings-usermgmt-container {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #475569;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.settings-usermgmt-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #475569;
+}
+
+.settings-usermgmt-title {
+  color: #e2e8f0;
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+}
+
+.settings-usermgmt-add-btn {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-family: "Inter", sans-serif;
+}
+
+.settings-usermgmt-add-btn:hover {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.settings-usermgmt-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.settings-usermgmt-add-icon {
+  font-size: 12px;
+}
+
+/* Table Styles */
+.settings-usermgmt-table-container {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid #475569;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.settings-usermgmt-table {
+  width: 100%;
+  border-collapse: collapse;
+  color: #e2e8f0;
+  font-family: "Inter", sans-serif;
+}
+
+.settings-usermgmt-table thead {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.settings-usermgmt-table thead th {
+  padding: 16px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  color: #94a3b8;
+  border-bottom: 1px solid #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settings-usermgmt-table tbody td {
+  padding: 16px 12px;
+  border-bottom: 1px solid #374151;
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.settings-usermgmt-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.settings-usermgmt-table tbody tr:hover {
+  background: rgba(55, 65, 81, 0.3);
+}
+
+.settings-usermgmt-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Role Badge */
+.settings-usermgmt-role-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-family: "Inter", sans-serif;
+  display: inline-block;
+  min-width: 60px;
+  text-align: center;
+}
+
+.settings-usermgmt-role-admin {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+}
+
+.settings-usermgmt-role-viewer {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+}
+
+/* Action Buttons */
+.settings-usermgmt-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.settings-usermgmt-btn-edit,
+.settings-usermgmt-btn-delete {
+  padding: 6px 8px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+}
+
+.settings-usermgmt-btn-edit {
+  background: rgba(59, 130, 246, 0.1);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.settings-usermgmt-btn-edit:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.settings-usermgmt-btn-delete {
+  background: rgba(239, 68, 68, 0.1);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.settings-usermgmt-btn-delete:hover {
+  background: rgba(239, 68, 68, 0.2);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+.settings-usermgmt-btn-edit:disabled,
+.settings-usermgmt-btn-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Loading and Error States */
+.settings-usermgmt-loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+  font-family: "Inter", sans-serif;
+}
+
+.settings-usermgmt-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 8px;
+  padding: 16px;
+  color: #ef4444;
+  text-align: center;
+  margin-bottom: 20px;
+  font-family: "Inter", sans-serif;
+}
+
+.settings-usermgmt-empty {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  font-style: italic;
+  font-family: "Inter", sans-serif;
+}
+
+.settings-usermgmt-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .settings-main-content {
+    gap: 16px;
+  }
+  
+  .settings-usermgmt-container {
+    padding: 16px;
+  }
+  
+  .settings-usermgmt-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  
+  .settings-usermgmt-add-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .settings-usermgmt-table-container {
+    overflow-x: auto;
+  }
+  
+  .settings-usermgmt-table {
+    min-width: 600px;
+  }
+  
+  .settings-usermgmt-table thead th,
+  .settings-usermgmt-table tbody td {
+    padding: 12px 8px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .settings-page-title {
+    font-size: 24px;
+  }
+  
+  .settings-page-subtitle {
+    font-size: 14px;
+  }
+  
+  .settings-usermgmt-table thead th,
+  .settings-usermgmt-table tbody td {
+    padding: 8px 6px;
+    font-size: 11px;
+  }
+  
+  .settings-usermgmt-role-badge {
+    padding: 2px 8px;
+    font-size: 10px;
+  }
+  
+  .settings-usermgmt-actions {
+    flex-direction: column;
+    gap: 4px;
+  }
+}

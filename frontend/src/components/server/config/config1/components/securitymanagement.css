@@ -1,0 +1,419 @@
+/* securitymanagement.css */
+.config1-security-card-container {
+  background: #0f1c3b;
+  border-radius: 20px;
+  padding: 28px;
+  width: 260px;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 1px solid rgba(239, 68, 68, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.config1-security-card-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(239, 68, 68, 0.05);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.config1-security-card-container:hover::before {
+  opacity: 1;
+}
+
+.config1-security-card-container:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.config1-security-card-container h3 {
+  color: #e2e8f0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-security-card-container p {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  flex-grow: 1;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-security-icon-wrapper {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 20px rgba(239, 68, 68, 0.3);
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Add specific styling for the icon inside the wrapper */
+.config1-security-icon-wrapper img,
+.config1-security-icon-wrapper svg,
+.config1-security-icon-wrapper i {
+  width: 24px;
+  height: 24px;
+  color: white !important;
+  filter: brightness(0) invert(1);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* For React Icons (FaShieldAlt) */
+.config1-security-icon-wrapper > * {
+  color: white !important;
+  font-size: 20px !important;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* If you're using font icons like FontAwesome */
+.config1-security-icon-wrapper .fa,
+.config1-security-icon-wrapper [class*="icon-"] {
+  font-size: 20px;
+  color: white !important;
+  line-height: 1;
+}
+
+.config1-security-card-container:hover .config1-security-icon-wrapper {
+  transform: scale(1.05);
+  box-shadow: 0 12px 30px rgba(239, 68, 68, 0.4);
+}
+
+/* Modal Content Styling */
+.config1-security-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.config1-security-subtitle {
+  color: #94a3b8;
+  font-size: 15px;
+  line-height: 1.6;
+  margin: 0 0 20px 0;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-security-section {
+  background: rgba(30, 41, 59, 0.3);
+  border: 1px solid #475569;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 16px;
+}
+
+.config1-security-label {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-security-label-icon {
+  color: #ef4444;
+  font-size: 14px;
+}
+
+.config1-security-ssh-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.config1-security-textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  border: 2px solid #475569;
+  border-radius: 12px;
+  resize: vertical;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.config1-security-textarea:focus {
+  outline: none;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+}
+
+.config1-security-textarea::placeholder {
+  color: #64748b;
+  font-style: italic;
+}
+
+.config1-security-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.config1-security-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.config1-security-input {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  border: 2px solid #475569;
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.config1-security-input:focus {
+  outline: none;
+  border-color: #ef4444;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+}
+
+.config1-security-input::placeholder {
+  color: #64748b;
+}
+
+.config1-security-btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  transition: all 0.3s ease;
+  font-family: "Inter", sans-serif;
+  min-width: 140px;
+}
+
+.config1-security-btn-upload {
+  background: linear-gradient(135deg, #f97316, #ef4444);
+  color: white;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.config1-security-btn-upload:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+  background: linear-gradient(135deg, #ea580c, #dc2626);
+}
+
+.config1-security-btn-upload:disabled {
+  background: #374151;
+  color: #6b7280;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.config1-security-btn-update {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.config1-security-btn-update:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+}
+
+.config1-security-btn-update:disabled {
+  background: #374151;
+  color: #6b7280;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.config1-security-btn-icon {
+  font-size: 12px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .config1-security-card-container {
+    width: 100%;
+    max-width: 280px;
+    padding: 24px;
+  }
+  
+  .config1-security-section {
+    padding: 16px;
+  }
+  
+  .config1-security-btn {
+    width: 100%;
+  }
+  
+  .config1-security-textarea {
+    min-height: 80px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .config1-security-card-container {
+    height: auto;
+    min-height: 200px;
+  }
+  
+  .config1-security-input {
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  
+  .config1-security-textarea {
+    min-height: 70px;
+    padding: 12px 14px;
+  }
+  
+  .config1-security-section {
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+}
+
+
+/* Add to securitymanagement.css */
+
+/* Error Banner */
+.config1-security-error-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  color: #ef4444;
+}
+
+.config1-security-error-banner p {
+  margin: 0;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+}
+
+/* Validation Errors */
+.config1-security-validation-error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-security-textarea-error,
+.config1-security-input-error {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+}
+
+/* Disabled States */
+.config1-security-textarea:disabled,
+.config1-security-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-color: #374151;
+  color: #6b7280;
+}
+
+.config1-security-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Actions Section */
+.config1-security-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 20px;
+  border-top: 1px solid #374151;
+}
+
+.config1-security-btn-secondary {
+  background: rgba(75, 85, 99, 0.8);
+  color: #d1d5db;
+  border: 1px solid #4b5563;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-family: "Inter", sans-serif;
+  min-width: 100px;
+  justify-content: center;
+}
+
+.config1-security-btn-secondary:hover:not(:disabled) {
+  background: rgba(107, 114, 128, 0.9);
+  border-color: #6b7280;
+  transform: translateY(-1px);
+}
+
+/* Enhanced Button States */
+.config1-security-btn-upload:disabled,
+.config1-security-btn-update:disabled {
+  background: #374151;
+  color: #6b7280;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .config1-security-actions {
+    justify-content: center;
+  }
+  
+  .config1-security-btn-secondary {
+    width: 100%;
+  }
+}

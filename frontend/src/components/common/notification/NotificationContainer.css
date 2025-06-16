@@ -1,0 +1,26 @@
+/* components/common/notification/NotificationContainer.css */
+.notification-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 10000;
+    pointer-events: none;
+  }
+  
+  .notification-container .notification {
+    pointer-events: all;
+  }
+  
+  @media (max-width: 768px) {
+    .notification-container {
+      bottom: 10px;
+      right: 10px;
+      left: 10px;
+    }
+    
+    .notification {
+      max-width: none;
+      min-width: auto;
+    }
+  }
+  

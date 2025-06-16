@@ -1,0 +1,125 @@
+/* config1.css */
+.config1-main-container {
+  padding: 40px;
+  background-color: #0f172a;
+  color: #fff;
+  font-family: "Inter", sans-serif;
+  flex-direction: column;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.config1-header-section {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.config1-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 20px;
+  background: linear-gradient(to right, #3b82f6, #8b5cf6);
+  border-radius: 16px;
+}
+
+.config1-icon-wrapper svg {
+  height: 2rem;
+  width: 2rem;
+}
+
+.config1-header-section h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 10px;
+  color: #fff;
+}
+
+.config1-header-section p {
+  max-width: 600px;
+  margin: 0 auto;
+  color: #94a3b8;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+/* Horizontal 1-row layout for 4 components */
+.config1-cards-row-horizontal {
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+  gap: 24px;
+  padding: 0 20px;
+  margin-bottom: 40px;
+  flex-wrap: wrap;
+}
+
+.config1-overview-wrapper {
+  display: flex;
+  align-items: center;
+  width: 70%;
+  justify-content: center;
+  padding: 0 20px;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .config1-main-container {
+    padding: 30px 20px;
+  }
+
+  .config1-cards-row-horizontal {
+    gap: 20px;
+  }
+
+  .config1-overview-wrapper {
+    width: 90%;
+  }
+}
+
+@media (max-width: 768px) {
+  .config1-main-container {
+    padding: 20px 15px;
+  }
+
+  .config1-header-section h1 {
+    font-size: 24px;
+  }
+
+  .config1-header-section p {
+    font-size: 14px;
+  }
+
+  .config1-cards-row-horizontal {
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .config1-overview-wrapper {
+    width: 100%;
+    padding: 0 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .config1-main-container {
+    padding: 15px 10px;
+  }
+
+  .config1-icon-wrapper {
+    width: 50px;
+    height: 50px;
+  }
+
+  .config1-header-section h1 {
+    font-size: 20px;
+  }
+
+  .config1-header-section p {
+    font-size: 13px;
+  }
+}

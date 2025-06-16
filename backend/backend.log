@@ -1,0 +1,7 @@
+nohup: ignoring input
+2025/06/16 19:34:56 ✅ Connected to General database
+2025/06/16 19:34:56 ✅ Connected to Sever database
+2025/06/16 19:34:56 🔍 Health Monitor started
+2025/06/16 19:34:56 ✅ SNSMS backend running on port 8000...
+2025/06/16 19:34:56 ❌ Server failed: listen tcp 0.0.0.0:8000: bind: address already in use
+exit status 1

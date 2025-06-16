@@ -1,0 +1,420 @@
+/* commandexecution.css */
+.config1-cmdexec-card-container {
+  background: #0f1c3b;
+  border-radius: 20px;
+  padding: 28px;
+  width: 260px;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.config1-cmdexec-card-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(16, 185, 129, 0.05);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.config1-cmdexec-card-container:hover::before {
+  opacity: 1;
+}
+
+.config1-cmdexec-card-container:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(16, 185, 129, 0.15);
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.config1-cmdexec-card-container h3 {
+  color: #e2e8f0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-top: 20px;
+  margin-bottom: 8px;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-cmdexec-card-container p {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  flex-grow: 1;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-cmdexec-icon-wrapper {
+  background: linear-gradient(135deg, #10b981, #059669);
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Add specific styling for the icon inside the wrapper */
+.config1-cmdexec-icon-wrapper img,
+.config1-cmdexec-icon-wrapper svg,
+.config1-cmdexec-icon-wrapper i {
+  width: 24px;
+  height: 24px;
+  color: white !important;
+  filter: brightness(0) invert(1);
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* For React Icons (FaTerminal) */
+.config1-cmdexec-icon-wrapper > * {
+  color: white !important;
+  font-size: 20px !important;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+/* If you're using font icons like FontAwesome */
+.config1-cmdexec-icon-wrapper .fa,
+.config1-cmdexec-icon-wrapper [class*="icon-"] {
+  font-size: 20px;
+  color: white !important;
+  line-height: 1;
+}
+
+.config1-cmdexec-card-container:hover .config1-cmdexec-icon-wrapper {
+  transform: scale(1.05);
+  box-shadow: 0 12px 30px rgba(16, 185, 129, 0.4);
+}
+
+/* Modal Content Styling */
+.config1-cmdexec-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.config1-cmdexec-warning-section {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.config1-cmdexec-warning-icon {
+  color: #f59e0b;
+  font-size: 18px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.config1-cmdexec-warning-text {
+  color: #fbbf24;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+}
+
+/* Error Banner */
+.config1-cmdexec-error-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  color: #ef4444;
+}
+
+.config1-cmdexec-error-banner p {
+  margin: 0;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-cmdexec-input-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.config1-cmdexec-label {
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "Inter", sans-serif;
+}
+
+.config1-cmdexec-label-icon {
+  color: #10b981;
+  font-size: 14px;
+}
+
+.config1-cmdexec-textarea-wrapper {
+  position: relative;
+}
+
+.config1-cmdexec-textarea {
+  width: 100%;
+  min-height: 140px;
+  padding: 16px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  border: 2px solid #475569;
+  border-radius: 12px;
+  resize: vertical;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.config1-cmdexec-textarea:focus {
+  outline: none;
+  border-color: #10b981;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.1);
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+}
+
+.config1-cmdexec-textarea::placeholder {
+  color: #64748b;
+  font-style: italic;
+}
+
+.config1-cmdexec-textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border-color: #374151;
+  color: #6b7280;
+}
+
+.config1-cmdexec-counter {
+  position: absolute;
+  bottom: 8px;
+  right: 12px;
+  color: #64748b;
+  font-size: 12px;
+  font-family: "Inter", sans-serif;
+  background: rgba(15, 23, 42, 0.8);
+  padding: 4px 8px;
+  border-radius: 6px;
+  backdrop-filter: blur(4px);
+}
+
+/* Output Section */
+.config1-cmdexec-output-section {
+  margin-top: 20px;
+}
+
+.config1-cmdexec-output-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.config1-cmdexec-output-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.config1-cmdexec-output-btn {
+  background: rgba(75, 85, 99, 0.8);
+  border: 1px solid #4b5563;
+  color: #d1d5db;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.config1-cmdexec-output-btn:hover {
+  background: rgba(107, 114, 128, 0.9);
+  border-color: #6b7280;
+}
+
+.config1-cmdexec-output-wrapper {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  border: 2px solid #475569;
+  border-radius: 12px;
+  padding: 16px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.config1-cmdexec-output {
+  color: #e2e8f0;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.config1-cmdexec-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.config1-cmdexec-btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-family: "Inter", sans-serif;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.config1-cmdexec-btn-primary {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.config1-cmdexec-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+  background: linear-gradient(135deg, #059669, #047857);
+}
+
+.config1-cmdexec-btn-primary:disabled {
+  background: #374151;
+  color: #6b7280;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.config1-cmdexec-btn-secondary {
+  background: rgba(75, 85, 99, 0.8);
+  color: #d1d5db;
+  border: 1px solid #4b5563;
+}
+
+.config1-cmdexec-btn-secondary:hover {
+  background: rgba(107, 114, 128, 0.9);
+  border-color: #6b7280;
+  transform: translateY(-1px);
+}
+
+/* New Command Button */
+.config1-cmdexec-btn-info {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  color: white;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.config1-cmdexec-btn-info:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+}
+
+.config1-cmdexec-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.config1-cmdexec-btn-icon {
+  font-size: 12px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .config1-cmdexec-card-container {
+    width: 100%;
+    max-width: 280px;
+    padding: 24px;
+  }
+  
+  .config1-cmdexec-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .config1-cmdexec-btn {
+    width: 100%;
+  }
+  
+  .config1-cmdexec-textarea {
+    min-height: 120px;
+    font-size: 13px;
+  }
+  
+  .config1-cmdexec-output-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .config1-cmdexec-output-wrapper {
+    max-height: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .config1-cmdexec-card-container {
+    height: auto;
+    min-height: 200px;
+  }
+  
+  .config1-cmdexec-textarea {
+    min-height: 100px;
+    padding: 12px;
+  }
+  
+  .config1-cmdexec-counter {
+    font-size: 11px;
+    padding: 3px 6px;
+  }
+  
+  .config1-cmdexec-output-wrapper {
+    max-height: 150px;
+    padding: 12px;
+  }
+  
+  .config1-cmdexec-output {
+    font-size: 12px;
+  }
+  
+  .config1-cmdexec-output-btn {
+    padding: 4px 6px;
+    font-size: 11px;
+  }
+}
