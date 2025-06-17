@@ -1,0 +1,110 @@
+/* components/server/logs/LogVolumeCard.css */
+.server-logs-volume-card {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #475569;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  position: relative;
+  overflow: hidden;
+}
+
+.server-logs-volume-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.server-logs-volume-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #8b5cf6, #a855f7);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(139, 92, 246, 0.3);
+}
+
+.server-logs-volume-icon {
+  color: white;
+  font-size: 20px;
+}
+
+.server-logs-volume-trend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.server-logs-trend-icon {
+  font-size: 10px;
+}
+
+.server-logs-volume-content {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.server-logs-volume-title {
+  color: #e2e8f0;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  font-family: "Inter", sans-serif;
+}
+
+.server-logs-volume-count {
+  color: #e2e8f0;
+  font-size: 36px;
+  font-weight: 700;
+  margin: 8px 0;
+  font-family: "Inter", sans-serif;
+}
+
+.server-logs-volume-subtitle {
+  color: #94a3b8;
+  font-size: 14px;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+}
+
+.server-logs-volume-chart {
+  height: 60px;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+}
+
+.server-logs-chart-bars {
+  display: flex;
+  align-items: end;
+  gap: 4px;
+  height: 100%;
+}
+
+.server-logs-chart-bar {
+  width: 8px;
+  background: linear-gradient(to top, #8b5cf6, #a855f7);
+  border-radius: 4px 4px 0 0;
+  min-height: 8px;
+  animation: server-logs-bar-grow 0.8s ease-out;
+}
+
+@keyframes server-logs-bar-grow {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--height);
+  }
+}

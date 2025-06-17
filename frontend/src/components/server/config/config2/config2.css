@@ -71,3 +71,14 @@
     margin-top: 16px;
   }
 }
+
+/* Add this to your existing config2.css */
+.network-config2-firewall-section {
+  margin-top: 24px;
+}
+
+@media (max-width: 768px) {
+  .network-config2-firewall-section {
+    margin-top: 16px;
+  }
+}

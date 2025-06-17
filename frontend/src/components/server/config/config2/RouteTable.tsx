@@ -1,15 +1,13 @@
 // components/server/config2/RouteTable.tsx
 import React, { useState } from 'react';
-import { FaRoute, FaTrash, FaPlus } from 'react-icons/fa';
+import { FaRoute, FaTrash, FaPlus, FaFlag } from 'react-icons/fa';
 import { useConfig2 } from '../../../../hooks/server/useConfig2';
-import { useNotification } from '../../../../context/NotificationContext';
 import RouteModal from './RouteModal';
 import './RouteTable.css';
 
 const RouteTable: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const { routeTable, loading, updateRoute, fetchRouteTable } = useConfig2();
-  const { addNotification } = useNotification();
 
   const handleAddRoute = async (routeData: {
     action: string;
@@ -18,59 +16,101 @@ const RouteTable: React.FC = () => {
     interface?: string;
     metric?: string;
   }) => {
-    try {
-      const success = await updateRoute(routeData);
-      if (success) {
-        addNotification({
-          title: 'Route Added',
-          message: 'Route has been added successfully',
-          type: 'success',
-          duration: 3000
-        });
-        await fetchRouteTable();
-        return true;
-      }
-      return false;
-    } catch (err) {
-      addNotification({
-        title: 'Add Route Failed',
-        message: err instanceof Error ? err.message : 'Failed to add route',
-        type: 'error',
-        duration: 5000
+    const success = await updateRoute(routeData);
+    if (success) {
+      await fetchRouteTable();
+      return true;
+    }
+    return false;
+  };
+
+  interface Route {
+    destination: string;
+    gateway: string;
+    iface?: string;
+    metric?: string;
+    genmask?: string;
+    flags?: string;
+  }
+
+  const handleDeleteRoute = async (route: Route) => {
+    if (window.confirm(`Are you sure you want to delete route to ${route.destination}?`)) {
+      const success = await updateRoute({
+        action: 'delete',
+        destination: route.destination,
+        gateway: route.gateway === '*' ? '0.0.0.0' : route.gateway,
+        interface: route.iface,
+        metric: route.metric
       });
-      return false;
+      
+      if (success) {
+        await fetchRouteTable();
+      }
     }
   };
 
-  const handleDeleteRoute = async (route: { destination: string; gateway: string; interface?: string; metric?: string }) => {
-    if (window.confirm(`Are you sure you want to delete route to ${route.destination}?`)) {
-      try {
-        const success = await updateRoute({
-          action: 'delete',
-          destination: route.destination,
-          gateway: route.gateway,
-          interface: route.interface,
-          metric: route.metric
-        });
-        
-        if (success) {
-          addNotification({
-            title: 'Route Deleted',
-            message: 'Route has been deleted successfully',
-            type: 'success',
-            duration: 3000
-          });
-          await fetchRouteTable();
-        }
-      } catch (err) {
-        addNotification({
-          title: 'Delete Route Failed',
-          message: err instanceof Error ? err.message : 'Failed to delete route',
-          type: 'error',
-          duration: 5000
-        });
-      }
+  const formatDestination = (destination: string, genmask: string) => {
+    if (destination === '0.0.0.0' && genmask === '0.0.0.0') {
+      return 'default';
     }
+    
+    const cidr = netmaskToCidr(genmask);
+    return cidr ? `${destination}/${cidr}` : destination;
+  };
+
+  const netmaskToCidr = (netmask: string): number | null => {
+    const netmaskMap: { [key: string]: number } = {
+      '255.255.255.255': 32,
+      '255.255.255.254': 31,
+      '255.255.255.252': 30,
+      '255.255.255.248': 29,
+      '255.255.255.240': 28,
+      '255.255.255.224': 27,
+      '255.255.255.192': 26,
+      '255.255.255.128': 25,
+      '255.255.255.0': 24,
+      '255.255.254.0': 23,
+      '255.255.252.0': 22,
+      '255.255.248.0': 21,
+      '255.255.240.0': 20,
+      '255.255.224.0': 19,
+      '255.255.192.0': 18,
+      '255.255.128.0': 17,
+      '255.255.0.0': 16,
+      '255.254.0.0': 15,
+      '255.252.0.0': 14,
+      '255.248.0.0': 13,
+      '255.240.0.0': 12,
+      '255.224.0.0': 11,
+      '255.192.0.0': 10,
+      '255.128.0.0': 9,
+      '255.0.0.0': 8,
+      '254.0.0.0': 7,
+      '252.0.0.0': 6,
+      '248.0.0.0': 5,
+      '240.0.0.0': 4,
+      '224.0.0.0': 3,
+      '192.0.0.0': 2,
+      '128.0.0.0': 1,
+      '0.0.0.0': 0
+    };
+    return netmaskMap[netmask] ?? null;
+  };
+
+  const getFlagDescription = (flags: string) => {
+    const flagMap: { [key: string]: string } = {
+      'U': 'Up',
+      'G': 'Gateway',
+      'H': 'Host',
+      'R': 'Reinstate',
+      'D': 'Dynamic',
+      'M': 'Modified',
+      'A': 'Addrconf',
+      'C': 'Cache',
+      '!': 'Reject'
+    };
+    
+    return flags.split('').map(flag => flagMap[flag] || flag).join(', ');
   };
 
   return (
@@ -112,6 +152,7 @@ const RouteTable: React.FC = () => {
                     <th>Destination</th>
                     <th>Gateway</th>
                     <th>Interface</th>
+                    <th>Flags</th>
                     <th>Metric</th>
                     <th>Actions</th>
                   </tr>
@@ -119,10 +160,23 @@ const RouteTable: React.FC = () => {
                 <tbody>
                   {routeTable.map((route, index) => (
                     <tr key={index} className="route-table-row">
-                      <td className="route-table-destination">{route.destination}</td>
-                      <td className="route-table-gateway">{route.gateway}</td>
-                      <td className="route-table-interface">{route.interface || 'N/A'}</td>
-                      <td className="route-table-metric">{route.metric || 'N/A'}</td>
+                      <td className="route-table-destination">
+                        {formatDestination(route.destination, route.genmask)}
+                      </td>
+                      <td className="route-table-gateway">
+                        {route.gateway === '*' ? 'Direct' : route.gateway}
+                      </td>
+                      <td className="route-table-interface">{route.iface}</td>
+                      <td className="route-table-flags">
+                        <span 
+                          className="route-flags-badge" 
+                          title={getFlagDescription(route.flags)}
+                        >
+                          <FaFlag className="route-flags-icon" />
+                          {route.flags}
+                        </span>
+                      </td>
+                      <td className="route-table-metric">{route.metric}</td>
                       <td>
                         <button 
                           className="route-table-delete-btn" 

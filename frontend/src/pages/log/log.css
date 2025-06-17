@@ -1,0 +1,61 @@
+/* pages/logs/logs.css */
+.server-logs-main-container {
+  padding: 32px;
+  background: transparent;
+  min-height: 100vh;
+  font-family: "Inter", sans-serif;
+  color: #e2e8f0;
+}
+
+.server-logs-filter-section {
+  margin-bottom: 24px;
+}
+
+.server-logs-content-section {
+  display: flex;
+  gap: 24px;
+}
+
+.server-logs-left-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 0;
+}
+
+.server-logs-right-panel {
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  flex-shrink: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .server-logs-content-section {
+    flex-direction: column;
+  }
+  
+  .server-logs-right-panel {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+  
+  .server-logs-main-container {
+    padding: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .server-logs-main-container {
+    padding: 16px;
+  }
+  
+  .server-logs-right-panel {
+    flex-direction: column;
+  }
+}

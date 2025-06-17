@@ -1,0 +1,237 @@
+/* components/server/logs/LogTable.css */
+.server-logs-table-container {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #475569;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.server-logs-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #475569;
+}
+
+.server-logs-table-title {
+  color: #e2e8f0;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+}
+
+.server-logs-table-count {
+  color: #94a3b8;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+}
+
+.server-logs-table-wrapper {
+  overflow-x: auto;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.5);
+}
+
+.server-logs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "Inter", sans-serif;
+}
+
+.server-logs-table thead {
+  background: rgba(30, 41, 59, 0.8);
+}
+
+.server-logs-table th {
+  padding: 16px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #475569;
+}
+
+.server-logs-table td {
+  padding: 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 14px;
+  vertical-align: middle;
+}
+
+.server-logs-table-row {
+  transition: background-color 0.2s ease;
+}
+
+.server-logs-table-row:hover {
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.server-logs-timestamp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e2e8f0;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.server-logs-timestamp-icon {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.server-logs-source {
+  color: #e2e8f0;
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+}
+
+.server-logs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.server-logs-badge.error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.server-logs-badge.warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.server-logs-badge.info {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.server-logs-badge.debug {
+  background: rgba(107, 114, 128, 0.2);
+  color: #6b7280;
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.server-logs-level-icon {
+  font-size: 10px;
+}
+
+.server-logs-message {
+  color: #e2e8f0;
+  max-width: 400px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+}
+
+.server-logs-table-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #94a3b8;
+  font-family: "Inter", sans-serif;
+}
+
+.server-logs-loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(59, 130, 246, 0.3);
+  border-radius: 50%;
+  border-top-color: #3b82f6;
+  animation: server-logs-loading-spin 1s ease-in-out infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes server-logs-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+.server-logs-table-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #ef4444;
+  font-family: "Inter", sans-serif;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.server-logs-error-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.server-logs-error-message {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-top: 8px;
+  text-align: center;
+}
+
+.server-logs-table-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #64748b;
+  font-family: "Inter", sans-serif;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 8px;
+  border: 1px dashed #475569;
+}
+
+.server-logs-empty-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.server-logs-empty-subtitle {
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 8px;
+  text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .server-logs-table {
+    min-width: 700px;
+  }
+  
+  .server-logs-table-header {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .server-logs-message {
+    max-width: 200px;
+  }
+}

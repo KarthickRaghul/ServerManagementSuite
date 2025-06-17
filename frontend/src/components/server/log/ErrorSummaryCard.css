@@ -1,0 +1,72 @@
+/* components/server/logs/ErrorSummaryCard.css */
+.server-logs-error-card {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  border-radius: 16px;
+  padding: 24px;
+  color: white;
+  box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.server-logs-error-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 100px;
+  height: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  transform: translate(30px, -30px);
+}
+
+.server-logs-error-header {
+  display: flex;
+  justify-content: flex-start;
+  margin-bottom: 16px;
+}
+
+.server-logs-error-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+}
+
+.server-logs-error-icon {
+  color: white;
+  font-size: 20px;
+}
+
+.server-logs-error-content {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.server-logs-error-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  font-family: "Inter", sans-serif;
+}
+
+.server-logs-error-count {
+  font-size: 48px;
+  font-weight: 700;
+  margin: 12px 0;
+  font-family: "Inter", sans-serif;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.server-logs-error-subtitle {
+  font-size: 14px;
+  margin: 0;
+  opacity: 0.9;
+  font-family: "Inter", sans-serif;
+}

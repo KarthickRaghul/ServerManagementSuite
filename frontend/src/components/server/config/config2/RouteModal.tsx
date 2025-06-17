@@ -1,5 +1,6 @@
 // components/server/config2/RouteModal.tsx
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { FaTimes, FaRoute, FaPlus } from 'react-icons/fa';
 import './RouteModal.css';
 
@@ -55,12 +56,12 @@ const RouteModal: React.FC<RouteModalProps> = ({
     e.preventDefault();
     if (!validateForm()) return;
 
-    const routeData: {
-      action: string;
-      destination: string;
-      gateway: string;
-      interface?: string;
-      metric?: string;
+    const routeData: { 
+      action: string; 
+      destination: string; 
+      gateway: string; 
+      interface?: string; 
+      metric?: string; 
     } = {
       action: 'add',
       destination: formData.destination.trim(),
@@ -89,7 +90,8 @@ const RouteModal: React.FC<RouteModalProps> = ({
     }
   };
 
-  return (
+  // Render modal using Portal to document.body
+  return createPortal(
     <div className="route-modal-overlay" onClick={handleBackdropClick}>
       <div className="route-modal-container">
         <div className="route-modal-header">
@@ -192,7 +194,8 @@ const RouteModal: React.FC<RouteModalProps> = ({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body // Render to document.body instead of parent container
   );
 };
 

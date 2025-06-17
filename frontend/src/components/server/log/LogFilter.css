@@ -1,0 +1,202 @@
+/* components/server/logs/LogFilter.css */
+.server-logs-filter-container {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #475569;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+}
+
+.server-logs-filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.server-logs-filter-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.server-logs-filter-icon-wrapper {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.server-logs-filter-icon {
+  color: white;
+  font-size: 16px;
+}
+
+.server-logs-filter-title h3 {
+  color: #e2e8f0;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+}
+
+.server-logs-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.server-logs-refresh-btn,
+.server-logs-clear-btn {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  color: white;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.server-logs-clear-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+}
+
+.server-logs-refresh-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.server-logs-clear-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+
+.server-logs-refresh-btn:disabled,
+.server-logs-clear-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.server-logs-refresh-icon {
+  font-size: 14px;
+}
+
+.server-logs-refresh-icon.spinning {
+  animation: server-logs-spin 1s linear infinite;
+}
+
+@keyframes server-logs-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.server-logs-filter-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  align-items: end;
+}
+
+.server-logs-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.server-logs-filter-label {
+  display: block;
+  color: #94a3b8;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: "Inter", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.server-logs-search-wrapper,
+.server-logs-date-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.server-logs-search-icon,
+.server-logs-date-icon {
+  position: absolute;
+  left: 12px;
+  color: #94a3b8;
+  font-size: 14px;
+  z-index: 1;
+}
+
+.server-logs-filter-search,
+.server-logs-filter-select,
+.server-logs-filter-date {
+  width: 100%;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  border: 2px solid #475569;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+  transition: all 0.3s ease;
+  box-sizing: border-box;
+}
+
+.server-logs-filter-search {
+  padding-left: 40px;
+}
+
+.server-logs-filter-date {
+  padding-left: 40px;
+}
+
+.server-logs-filter-search:focus,
+.server-logs-filter-select:focus,
+.server-logs-filter-date:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.server-logs-filter-search::placeholder {
+  color: #64748b;
+}
+
+.server-logs-filter-search:disabled,
+.server-logs-filter-select:disabled,
+.server-logs-filter-date:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .server-logs-filter-fields {
+    grid-template-columns: 1fr;
+  }
+  
+  .server-logs-filter-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  
+  .server-logs-filter-actions {
+    align-self: flex-end;
+  }
+}

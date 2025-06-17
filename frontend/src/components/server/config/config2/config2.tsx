@@ -3,6 +3,7 @@ import React from 'react';
 import NetworkBasicInfo from './NetworkBasicInfo';
 import NetworkInterfaceManager from './NetworkInterfaceManager';
 import RouteTable from './RouteTable';
+import FirewallTable from './FirewallTable';
 import './config2.css';
 
 const Config2: React.FC = () => {
@@ -20,6 +21,10 @@ const Config2: React.FC = () => {
 
       <div className="network-config2-route-section">
         <RouteTable />
+      </div>
+
+      <div className="network-config2-firewall-section">
+        <FirewallTable />
       </div>
     </div>
   );
