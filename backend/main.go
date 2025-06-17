@@ -34,11 +34,6 @@ func main() {
 	server.RegisterAlertRoutes(protectedMux, serverqueries)
 	server.RegisterLogRoutes(protectedMux, serverqueries)
 
-	//  Network Protected Routes
-
-	//	network.RegisterHealthRoutes(protectedMux, queries)
-	//	network.RegisterLogRoutes(protectedMux, queries)
-
 	// 👑 Admin-only routes
 
 	//  Common Admin Routes
@@ -49,11 +44,6 @@ func main() {
 	server.RegisterConfig2Routes(adminMux, serverqueries)
 	server.RegisterOptimisation(adminMux, serverqueries)
 	//	server.RegisterBackupRoutes(adminMux, queries)
-
-	//  Network Admin Routes
-
-	//	network.RegisterConfigRoutes(adminMux, queries)
-	//	network.RegisterBackupRoutes(adminMux, queries)
 
 	// Create main mux and apply appropriate middlewares
 	mainMux := http.NewServeMux()

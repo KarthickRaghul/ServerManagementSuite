@@ -21,8 +21,16 @@ interface NetworkBasics {
   };
 }
 
+interface RouteEntry {
+  destination: string;
+  gateway: string;
+  interface: string;
+  metric: string;
+}
+
 export const useConfig2 = () => {
   const [networkBasics, setNetworkBasics] = useState<NetworkBasics | null>(null);
+  const [routeTable, setRouteTable] = useState<RouteEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const { activeDevice } = useAppContext();
@@ -36,7 +44,7 @@ export const useConfig2 = () => {
 
     try {
       const response = await AuthService.makeAuthenticatedRequest(
-        `${BACKEND_URL}/api/admin/server/getnetworkbasics`,
+        `${BACKEND_URL}/api/admin/server/config2/getnetworkbasics`,
         {
           method: 'POST',
           headers: {
@@ -55,6 +63,39 @@ export const useConfig2 = () => {
     } catch (err) {
       console.error('Error fetching network basics:', err);
       setError(err instanceof Error ? err.message : 'Failed to fetch network basics');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch Route Table
+  const fetchRouteTable = async () => {
+    if (!activeDevice) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await AuthService.makeAuthenticatedRequest(
+        `${BACKEND_URL}/api/admin/server/config2/getroute`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ host: activeDevice.ip })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setRouteTable(data.routes || []);
+      } else {
+        throw new Error(`Failed to fetch route table: ${response.status}`);
+      }
+    } catch (err) {
+      console.error('Error fetching route table:', err);
+      setError(err instanceof Error ? err.message : 'Failed to fetch route table');
     } finally {
       setLoading(false);
     }
@@ -91,7 +132,6 @@ export const useConfig2 = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.status === 'success') {
-          // Refresh network basics after successful update
           await fetchNetworkBasics();
           return true;
         }
@@ -108,7 +148,7 @@ export const useConfig2 = () => {
     }
   };
 
-  // Update Interface - Fixed to use 'disable'/'enable' instead of 'down'/'up'
+  // Update Interface
   const updateInterface = async (interfaceName: string, status: string): Promise<boolean> => {
     if (!activeDevice) return false;
 
@@ -117,7 +157,7 @@ export const useConfig2 = () => {
 
     try {
       const response = await AuthService.makeAuthenticatedRequest(
-        `${BACKEND_URL}/api/admin/server/postinterface`,
+        `${BACKEND_URL}/api/admin/server/config2/postinterface`,
         {
           method: 'POST',
           headers: {
@@ -126,7 +166,7 @@ export const useConfig2 = () => {
           body: JSON.stringify({
             host: activeDevice.ip,
             interface: interfaceName,
-            status: status // This should be 'disable' or 'enable'
+            status: status
           })
         }
       );
@@ -134,7 +174,7 @@ export const useConfig2 = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.status === 'success') {
-          await fetchNetworkBasics(); // Refresh to get updated interface status
+          await fetchNetworkBasics();
           return true;
         }
         return false;
@@ -159,7 +199,7 @@ export const useConfig2 = () => {
 
     try {
       const response = await AuthService.makeAuthenticatedRequest(
-        `${BACKEND_URL}/api/admin/server/postrestartinterface`,
+        `${BACKEND_URL}/api/admin/server/config2/postrestartinterface`,
         {
           method: 'POST',
           headers: {
@@ -172,7 +212,7 @@ export const useConfig2 = () => {
       if (response.ok) {
         const data = await response.json();
         if (data.status === 'success') {
-          await fetchNetworkBasics(); // Refresh after restart
+          await fetchNetworkBasics();
           return true;
         }
         return false;
@@ -188,20 +228,71 @@ export const useConfig2 = () => {
     }
   };
 
+  // Update Route
+  const updateRoute = async (routeData: {
+    action: string;
+    destination: string;
+    gateway: string;
+    interface?: string;
+    metric?: string;
+  }): Promise<boolean> => {
+    if (!activeDevice) return false;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await AuthService.makeAuthenticatedRequest(
+        `${BACKEND_URL}/api/admin/server/config2/postupdateroute`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            host: activeDevice.ip,
+            ...routeData
+          })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'success') {
+          await fetchRouteTable(); // Refresh route table
+          return true;
+        }
+        return false;
+      } else {
+        throw new Error(`Failed to update route: ${response.status}`);
+      }
+    } catch (err) {
+      console.error('Error updating route:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update route');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Fetch all data on mount
   useEffect(() => {
     if (activeDevice) {
       fetchNetworkBasics();
+      fetchRouteTable();
     }
   }, [activeDevice]);
 
   return {
     networkBasics,
+    routeTable,
     loading,
     error,
     fetchNetworkBasics,
+    fetchRouteTable,
     updateInterface,
     updateNetwork,
-    restartInterface
+    restartInterface,
+    updateRoute
   };
 };

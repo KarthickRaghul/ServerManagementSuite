@@ -2,6 +2,7 @@
 import React from 'react';
 import NetworkBasicInfo from './NetworkBasicInfo';
 import NetworkInterfaceManager from './NetworkInterfaceManager';
+import RouteTable from './RouteTable';
 import './config2.css';
 
 const Config2: React.FC = () => {
@@ -15,6 +16,10 @@ const Config2: React.FC = () => {
       <div className="network-config2-cards-grid">
         <NetworkBasicInfo />
         <NetworkInterfaceManager />
+      </div>
+
+      <div className="network-config2-route-section">
+        <RouteTable />
       </div>
     </div>
   );

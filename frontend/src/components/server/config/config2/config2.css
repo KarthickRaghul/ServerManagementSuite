@@ -34,6 +34,10 @@
   align-items: stretch;
 }
 
+.network-config2-route-section {
+  margin-top: 24px;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .network-config2-cards-grid {
@@ -61,5 +65,9 @@
   
   .network-config2-cards-grid {
     gap: 16px;
+  }
+  
+  .network-config2-route-section {
+    margin-top: 16px;
   }
 }
