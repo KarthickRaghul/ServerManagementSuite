@@ -28,7 +28,7 @@ func main() {
 	api.RegisterLogRoutes(mux)
 
 	log.Println("Starting client server on port 80...")
-	if err := http.ListenAndServe("0.0.0.0:80", mux); err != nil {
+	if err := http.ListenAndServe("0.0.0.0:2210", mux); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
 }

@@ -5,10 +5,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
+	"backend/config"
 	serverdb "backend/db/gen/server"
 )
 
@@ -55,7 +55,9 @@ func PostRestartService(queries *serverdb.Queries) http.HandlerFunc {
 			return
 		}
 
-		clientURL := fmt.Sprintf("http://%s/client/restartservice", req.Host)
+		// ✅ Use config for client URL (reads from .env file)
+		clientURL := config.GetClientURL(req.Host, "/client/restartservice")
+
 		clientReq, err := http.NewRequest("POST", clientURL, bytes.NewReader(bodyBytes))
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -80,6 +82,5 @@ func PostRestartService(queries *serverdb.Queries) http.HandlerFunc {
 			return
 		}
 		w.Write(body)
-
 	}
 }

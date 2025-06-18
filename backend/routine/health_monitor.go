@@ -1,13 +1,15 @@
 package routine
 
 import (
-	serverdb "backend/db/gen/server"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"time"
+
+	"backend/config"
+	serverdb "backend/db/gen/server"
+	"fmt"
 )
 
 type HealthMonitor struct {
@@ -96,7 +98,8 @@ func (hm *HealthMonitor) checkDeviceHealth(host, accessToken string) {
 }
 
 func (hm *HealthMonitor) getHealthData(host, accessToken string) (*HealthResponse, error) {
-	url := fmt.Sprintf("http://%s/client/health", host)
+	// ✅ Use config for client URL (reads from .env file)
+	url := config.GetClientURL(host, "/client/health")
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

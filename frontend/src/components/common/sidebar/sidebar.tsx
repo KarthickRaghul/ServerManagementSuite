@@ -4,7 +4,6 @@ import "./sidebar.css";
 import icons from "../../../assets/icons";
 import { useRole } from "../../../hooks";
 import { useHealthMetrics } from "../../../hooks";
-import { useAppContext } from "../../../context/AppContext";
 import { 
   formatPercentage, 
   formatBytes, 
@@ -14,6 +13,7 @@ import {
   calculateChange 
 } from "../../../utils/metricsUtils";
 import { useEffect, useState } from "react";
+import React from "react";
 
 interface Metric {
   icon: string;
@@ -30,23 +30,20 @@ interface MenuItem {
   count?: number;
   alert?: boolean;
   roles: ('admin' | 'viewer')[];
-  modes: ('server' | 'network')[];
 }
 
 const allMenuItems: MenuItem[] = [
-  { label: 'Configuration', icon: 'config', path: '/', count: 12, roles: ['admin'], modes: ['server', 'network'] },
-  { label: 'Health', icon: 'health', path: '/health', roles: ['admin', 'viewer'], modes: ['server', 'network'] },
-  { label: 'Monitoring & Alerts', icon: 'reports', path: '/alert', count: 3, alert: true, roles: ['admin', 'viewer'], modes: ['server', 'network'] },
-  { label: 'Resource Optimization', icon: 'resource', path: '/resource', count: 8, roles: ['admin'], modes: ['server'] }, // Only for server
-  { label: 'Logging Systems', icon: 'logg', path: '/log', count: 156, roles: ['admin', 'viewer'], modes: ['server', 'network'] },
-  { label: 'Backup Management', icon: 'backup', path: '/backup', count: 5, roles: ['admin'], modes: ['network'] }, // Only for network
+  { label: 'Configuration', icon: 'config', path: '/', roles: ['admin'] },
+  { label: 'Health', icon: 'health', path: '/health', roles: ['admin', 'viewer'] },
+  { label: 'Monitoring & Alerts', icon: 'reports', path: '/alert', alert: true, roles: ['admin', 'viewer'] },
+  { label: 'Resource Optimization', icon: 'resource', path: '/resource', roles: ['admin'] },
+  { label: 'Logging Systems', icon: 'logg', path: '/log', roles: ['admin', 'viewer'] },
 ];
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { role, isAdmin } = useRole();
-  const { activeMode } = useAppContext();
   const { metrics, healthData, loading, error, refreshMetrics } = useHealthMetrics();
   
   // Store previous values for change calculation
@@ -70,9 +67,9 @@ const Sidebar = () => {
     }
   }, [metrics, previousMetrics]);
 
-  // Filter menu items based on user role AND active mode
+  // Filter menu items based on user role only (no mode filtering needed)
   const menuItems = allMenuItems.filter(item => 
-    role && item.roles.includes(role) && item.modes.includes(activeMode)
+    role && item.roles.includes(role)
   );
 
   // Generate dynamic metrics based on health data
@@ -146,19 +143,17 @@ const Sidebar = () => {
   return (
     <div className="sidebar-container">
       <div className="metrics-header">
-          <button 
-            className="metrics-refresh-btn"
-            onClick={refreshMetrics}
-            disabled={loading}
-            title="Refresh metrics"
-          >
-            Refresh
-          </button>
-        </div>
+        <button 
+          className="metrics-refresh-btn"
+          onClick={refreshMetrics}
+          disabled={loading}
+          title="Refresh metrics"
+        >
+          Refresh
+        </button>
+      </div>
+      
       <div className="metrics-section">
-        {/* Refresh button for metrics */}
-        
-        
         {dynamicMetrics.map((metric, index) => (
           <div key={index} className={`metric-card metric-${index}`}>
             <div className="metric-change" data-type={metric.changeType}>

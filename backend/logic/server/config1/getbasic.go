@@ -1,6 +1,7 @@
 package config1
 
 import (
+	"backend/config"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -48,8 +49,9 @@ func HandleBasic(queries *serverdb.Queries) http.HandlerFunc {
 			return
 		}
 
-		// Prepare request to remote client
-		clientURL := fmt.Sprintf("http://%s/client/config1/basic", req.Host)
+		// ✅ Use config for client URL (reads from .env file)
+		clientURL := config.GetClientURL(req.Host, "/client/config1/basic")
+
 		clientReq, err := http.NewRequest("GET", clientURL, nil)
 		if err != nil {
 			http.Error(w, "Failed to create request", http.StatusInternalServerError)

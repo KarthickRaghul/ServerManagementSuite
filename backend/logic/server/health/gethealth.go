@@ -4,10 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 
+	"backend/config"
 	serverdb "backend/db/gen/server"
 )
 
@@ -37,7 +37,9 @@ func GetHealth(queries *serverdb.Queries) http.HandlerFunc {
 			return
 		}
 
-		clientURL := fmt.Sprintf("http://%s/client/health", req.Host)
+		// ✅ Use config for client URL (reads from .env file)
+		clientURL := config.GetClientURL(req.Host, "/client/health")
+
 		clientReq, err := http.NewRequest("GET", clientURL, nil)
 		if err != nil {
 			http.Error(w, "Failed to create request to client", http.StatusInternalServerError)

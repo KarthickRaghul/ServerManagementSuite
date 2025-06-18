@@ -1,7 +1,6 @@
-// context/AppContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { ModeType, Device, AppContextType } from '../types/app';
+import type { Device, AppContextType } from '../types/app';
 import AuthService from '../auth/auth';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -9,11 +8,6 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [activeMode, setActiveMode] = useState<ModeType>(() => {
-    const storedMode = localStorage.getItem('active_mode') as ModeType | null;
-    return (storedMode === 'server' || storedMode === 'network') ? storedMode : 'server';
-  });
-
   const [activeDevice, setActiveDevice] = useState<Device | null>(null);
   const [devices, setDevices] = useState<Device[]>([]);
   const [devicesLoading, setDevicesLoading] = useState<boolean>(false);
@@ -45,12 +39,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     checkAuth();
   }, []);
 
-  // Reset active device when mode changes
-  useEffect(() => {
-    setActiveDevice(null);
-  }, [activeMode]);
-
-  // Fetch devices only when authenticated and mode changes
+  // Fetch devices only when authenticated
   useEffect(() => {
     // Don't fetch if auth not checked yet, not authenticated, or on login page
     if (!authChecked || !isAuthenticated || window.location.pathname === '/login') {
@@ -62,13 +51,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       setDevicesError(null);
       
       try {
-        const endpoint = activeMode === 'server' 
-          ? '/api/admin/server/config1/device' 
-          : '/api/admin/network/config1/device';
-          
-        
         const response = await AuthService.makeAuthenticatedRequest(
-          `${BACKEND_URL}${endpoint}`,
+          `${BACKEND_URL}/api/admin/server/config1/device`,
           { method: 'GET' },
           false // Don't retry to avoid loops
         );
@@ -82,12 +66,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             // Auto-select device using functional update
             setActiveDevice(currentDevice => {
               if (!currentDevice && data.devices.length > 0) {
-                const storedDeviceId = localStorage.getItem(`active_device_id_${activeMode}`);
+                const storedDeviceId = localStorage.getItem('active_device_id');
                 const deviceToSet = storedDeviceId 
                   ? data.devices.find((d: Device) => d.id === storedDeviceId) || data.devices[0]
                   : data.devices[0];
                 
-                localStorage.setItem(`active_device_id_${activeMode}`, deviceToSet.id);
+                localStorage.setItem('active_device_id', deviceToSet.id);
                 return deviceToSet;
               }
               return currentDevice;
@@ -114,16 +98,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
 
     fetchDevices();
-  }, [activeMode, isAuthenticated, authChecked]);
-
-  const updateActiveMode = (mode: ModeType) => {
-    setActiveMode(mode);
-    localStorage.setItem('active_mode', mode);
-  };
+  }, [isAuthenticated, authChecked]);
 
   const updateActiveDevice = (device: Device) => {
     setActiveDevice(device);
-    localStorage.setItem(`active_device_id_${activeMode}`, device.id);
+    localStorage.setItem('active_device_id', device.id);
   };
 
   const refreshDevices = async () => {
@@ -131,17 +110,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.log('Not authenticated, cannot refresh devices');
       return [];
     }
-
-    const endpoint = activeMode === 'server' 
-      ? '/api/admin/server/config1/device' 
-      : '/api/admin/network/config1/device';
       
     try {
       setDevicesLoading(true);
       setDevicesError(null);
       
       const response = await AuthService.makeAuthenticatedRequest(
-        `${BACKEND_URL}${endpoint}`,
+        `${BACKEND_URL}/api/admin/server/config1/device`,
         { method: 'GET' },
         false
       );
@@ -161,7 +136,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
             
             if (data.devices.length > 0) {
               const newDevice = data.devices[0];
-              localStorage.setItem(`active_device_id_${activeMode}`, newDevice.id);
+              localStorage.setItem('active_device_id', newDevice.id);
               return newDevice;
             }
             
@@ -184,8 +159,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   return (
     <AppContext.Provider value={{
-      activeMode,
-      updateActiveMode,
       activeDevice,
       updateActiveDevice,
       devices,

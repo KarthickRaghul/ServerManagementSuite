@@ -1,7 +1,7 @@
 // components/common/header/header.tsx
 import React, { useState, useRef, useEffect } from "react";
 import "./header.css";
-import { FaBell, FaNetworkWired, FaServer, FaSignOutAlt, FaUser } from "react-icons/fa";
+import { FaBell, FaServer, FaSignOutAlt, FaUser } from "react-icons/fa";
 import { IoIosArrowDown } from "react-icons/io";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../../hooks";
@@ -15,8 +15,6 @@ const Header: React.FC = () => {
   const { logout } = useAuth();
   const { isAdmin, userInfo } = useRole();
   const { 
-    activeMode, 
-    updateActiveMode, 
     activeDevice, 
     updateActiveDevice,
     devices,
@@ -37,7 +35,6 @@ const Header: React.FC = () => {
       "/login": "Login",
       "/health": "System Health",
       "/log": "Logging Systems",
-      "/backup": "Backup Management",
       "/alert": "Monitoring & Alerts",
       "/resource": "Resource Optimization",
       "/settings": "Settings",
@@ -67,12 +64,6 @@ const Header: React.FC = () => {
 
   const handleDeviceSelect = (device: Device) => {
     updateActiveDevice(device);
-    setDropdownOpen(false);
-  };
-
-  const handleModeChange = (mode: 'server' | 'network') => {
-    console.log('Header: Changing mode to', mode);
-    updateActiveMode(mode);
     setDropdownOpen(false);
   };
 
@@ -109,8 +100,8 @@ const Header: React.FC = () => {
           <span className="header-component-status-indicator" />
         </div>
         <div className="header-component-brand-info">
-          <div className="header-component-brand-title">SNMS</div>
-          <div className="header-component-brand-subtitle">Server And Network Management Suite</div>
+          <div className="header-component-brand-title">SMS</div>
+          <div className="header-component-brand-subtitle">Server Management Suite</div>
         </div>
 
         <div className="header-component-page-title-section">
@@ -143,7 +134,7 @@ const Header: React.FC = () => {
                 )}
                 {!devicesLoading && !devicesError && devices.length === 0 && (
                   <div className="header-component-server-dropdown-item">
-                    No devices registered for {activeMode} mode
+                    No server devices registered
                   </div>
                 )}
                 {!devicesLoading && !devicesError && devices.map((device) => (
@@ -162,31 +153,17 @@ const Header: React.FC = () => {
           </div>
         )}
 
+        {/* Server Status Indicator */}
+        <div className="header-component-server-status">
+          <FaServer className="header-component-server-icon" />
+          <span className="header-component-server-text">Server Mode</span>
+        </div>
+
         {/* Alerts */}
         <div className="header-component-alert-icon" onClick={() => navigate("/alert")}>
           <FaBell className="header-component-bell-icon" />
           <span className="header-component-alert-text">Alerts</span>
         </div>
-
-        {/* Network/Server Mode Toggle - Only for Admin */}
-        {isAdmin && (
-          <div className="header-component-toggle-switch">
-            <div
-              className={`header-component-toggle-option ${activeMode === "network" ? "header-component-active-network" : ""}`}
-              onClick={() => handleModeChange("network")}
-            >
-              <FaNetworkWired />
-              <span>Network</span>
-            </div>
-            <div
-              className={`header-component-toggle-option ${activeMode === "server" ? "header-component-active-server" : ""}`}
-              onClick={() => handleModeChange("server")}
-            >
-              <FaServer />
-              <span>Server</span>
-            </div>
-          </div>
-        )}
 
         {/* User Dropdown */}
         <div className="header-component-user-dropdown-wrapper" ref={userDropdownRef}>
