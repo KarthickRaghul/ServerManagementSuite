@@ -9,23 +9,24 @@ import { useRole } from "../../../hooks";
 import type { Device } from "../../../types/app";
 import { useAppContext } from "../../../context/AppContext";
 import { useConnectionOverlay } from "../../../context/ConnectionOverlayContext";
+import img from "../../../assets/img";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
   const { isAdmin, userInfo } = useRole();
-  const { 
-    activeDevice, 
+  const {
+    activeDevice,
     updateActiveDevice,
     devices,
     devicesLoading,
     devicesError,
-    refreshDevices
+    refreshDevices,
   } = useAppContext();
-  
+
   const { checkConnection } = useConnectionOverlay();
-  
+
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
@@ -48,10 +49,16 @@ const Header: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setDropdownOpen(false);
       }
-      if (userDropdownRef.current && !userDropdownRef.current.contains(event.target as Node)) {
+      if (
+        userDropdownRef.current &&
+        !userDropdownRef.current.contains(event.target as Node)
+      ) {
         setUserDropdownOpen(false);
       }
     };
@@ -68,7 +75,7 @@ const Header: React.FC = () => {
   const handleDeviceSelect = async (device: Device) => {
     updateActiveDevice(device);
     setDropdownOpen(false);
-    
+
     // Trigger connection check when device is manually selected
     if (device.ip) {
       await checkConnection(device.ip, false);
@@ -80,7 +87,7 @@ const Header: React.FC = () => {
       await logout();
       setUserDropdownOpen(false);
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
     }
   };
 
@@ -89,39 +96,48 @@ const Header: React.FC = () => {
   };
 
   const getDeviceDisplayText = () => {
-    if (devicesLoading) return 'Loading...';
-    if (devicesError) return 'Error loading devices';
-    if (devices.length === 0) return 'No devices found';
+    if (devicesLoading) return "Loading...";
+    if (devicesError) return "Error loading devices";
+    if (devices.length === 0) return "No devices found";
     if (activeDevice) return activeDevice.tag;
-    return 'Select device';
+    return "Select device";
   };
 
   const getUserDisplayName = () => {
-    return userInfo.username || (isAdmin ? 'Admin' : 'Viewer');
+    return userInfo.username || (isAdmin ? "Admin" : "Viewer");
   };
 
   return (
     <div className="header-component-container">
       <div className="header-component-left">
-        <div className="header-component-logo-circle">
-          <span className="header-component-logo-letter">S</span>
-          <span className="header-component-status-indicator" />
+        <div className="header-component-logo">
+          <img src={img.citbif} alt="CITBIF LOGO" />
         </div>
         <div className="header-component-brand-info">
           <div className="header-component-brand-title">SMS</div>
-          <div className="header-component-brand-subtitle">Server Management Suite</div>
+          <div className="header-component-brand-subtitle">
+            Server Management Suite
+          </div>
         </div>
 
         <div className="header-component-page-title-section">
-          <div className="header-component-page-title">{getPageTitle(location.pathname)}</div>
+          <div className="header-component-page-title">
+            {getPageTitle(location.pathname)}
+          </div>
         </div>
       </div>
 
       <div className="header-component-right">
         {/* Device Dropdown - Only for Admin */}
         {isAdmin && (
-          <div className="header-component-server-dropdown-wrapper" ref={dropdownRef}>
-            <div className="header-component-server-dropdown" onClick={() => setDropdownOpen(!dropdownOpen)}>
+          <div
+            className="header-component-server-dropdown-wrapper"
+            ref={dropdownRef}
+          >
+            <div
+              className="header-component-server-dropdown"
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+            >
               {getDeviceDisplayText()}
               <IoIosArrowDown
                 className={`header-component-dropdown-icon ${dropdownOpen ? "header-component-rotated" : ""}`}
@@ -130,12 +146,17 @@ const Header: React.FC = () => {
             {dropdownOpen && (
               <div className="header-component-server-dropdown-menu">
                 {devicesLoading && (
-                  <div className="header-component-server-dropdown-item">Loading devices...</div>
+                  <div className="header-component-server-dropdown-item">
+                    Loading devices...
+                  </div>
                 )}
                 {devicesError && (
                   <div className="header-component-server-dropdown-item">
                     <span>Error: {devicesError}</span>
-                    <button onClick={handleRefreshDevices} style={{ marginLeft: '8px', fontSize: '12px' }}>
+                    <button
+                      onClick={handleRefreshDevices}
+                      style={{ marginLeft: "8px", fontSize: "12px" }}
+                    >
                       Retry
                     </button>
                   </div>
@@ -145,17 +166,21 @@ const Header: React.FC = () => {
                     No server devices registered
                   </div>
                 )}
-                {!devicesLoading && !devicesError && devices.map((device) => (
-                  <div
-                    key={device.id}
-                    className={`header-component-server-dropdown-item ${
-                      activeDevice?.id === device.id ? 'header-component-active-device' : ''
-                    }`}
-                    onClick={() => handleDeviceSelect(device)}
-                  >
-                    {device.tag} ({device.ip})
-                  </div>
-                ))}
+                {!devicesLoading &&
+                  !devicesError &&
+                  devices.map((device) => (
+                    <div
+                      key={device.id}
+                      className={`header-component-server-dropdown-item ${
+                        activeDevice?.id === device.id
+                          ? "header-component-active-device"
+                          : ""
+                      }`}
+                      onClick={() => handleDeviceSelect(device)}
+                    >
+                      {device.tag} ({device.ip})
+                    </div>
+                  ))}
               </div>
             )}
           </div>
@@ -168,16 +193,27 @@ const Header: React.FC = () => {
         </div>
 
         {/* Alerts */}
-        <div className="header-component-alert-icon" onClick={() => navigate("/alert")}>
+        <div
+          className="header-component-alert-icon"
+          onClick={() => navigate("/alert")}
+        >
           <FaBell className="header-component-bell-icon" />
           <span className="header-component-alert-text">Alerts</span>
         </div>
 
         {/* User Dropdown */}
-        <div className="header-component-user-dropdown-wrapper" ref={userDropdownRef}>
-          <div className="header-component-user-dropdown" onClick={() => setUserDropdownOpen(!userDropdownOpen)}>
+        <div
+          className="header-component-user-dropdown-wrapper"
+          ref={userDropdownRef}
+        >
+          <div
+            className="header-component-user-dropdown"
+            onClick={() => setUserDropdownOpen(!userDropdownOpen)}
+          >
             <FaUser className="header-component-user-icon" />
-            <span className="header-component-user-text">{getUserDisplayName()}</span>
+            <span className="header-component-user-text">
+              {getUserDisplayName()}
+            </span>
             <IoIosArrowDown
               className={`header-component-dropdown-icon ${userDropdownOpen ? "header-component-rotated" : ""}`}
             />
@@ -187,7 +223,7 @@ const Header: React.FC = () => {
               {/* Profile Settings - Only for Admin */}
               {isAdmin && (
                 <>
-                  <div 
+                  <div
                     className="header-component-user-dropdown-item"
                     onClick={() => {
                       navigate("/settings");
@@ -200,7 +236,7 @@ const Header: React.FC = () => {
                   <div className="header-component-dropdown-divider"></div>
                 </>
               )}
-              <div 
+              <div
                 className="header-component-user-dropdown-item header-component-logout-item"
                 onClick={handleLogout}
               >

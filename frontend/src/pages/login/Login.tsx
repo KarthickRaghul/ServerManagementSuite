@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./login.css";
 import { FaUser, FaLock, FaShieldAlt } from "react-icons/fa";
+import img from "../../assets/img"; // Adjust the path as necessary
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -83,18 +84,15 @@ const Login: React.FC = () => {
   return (
     <div className="login-page-wrapper">
       <div className="login-page-background">
-        <div className="login-page-logo-outside">
-          <FaShieldAlt className="login-page-logo-icon" />
-        </div>
 
         <div className="login-page-container">
           <div className="login-page-card">
             <div className="login-page-header">
-              <div className="login-page-brand-icon">
-                <FaLock />
+              <div className="login-page-icon">
+                 <img src={img.citbif} alt="" />
               </div>
-              <h1 className="login-page-title">SNSMS</h1>
-              <p className="login-page-subtitle">Network Management Suite</p>
+              <h1 className="login-page-title">SMS</h1>
+              <p className="login-page-subtitle">Server Management Suite</p>
             </div>
 
             <form
