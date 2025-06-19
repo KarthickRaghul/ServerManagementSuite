@@ -1,19 +1,24 @@
 // components/server/config2/NetworkInterfaceManager.tsx
 import React from 'react';
-import { FaCog, FaEthernet, FaWifi, FaSync, FaClock } from 'react-icons/fa';
+import { FaCog, FaEthernet, FaWifi, FaSync, FaClock, FaSpinner } from 'react-icons/fa';
 import { FiRefreshCw } from 'react-icons/fi';
 import { useConfig2 } from '../../../../hooks/server/useConfig2';
 import { useNotification } from '../../../../context/NotificationContext';
 import './NetworkInterfaceManager.css';
 
+interface NetworkInterface {
+  id: string;
+  name: string;
+  status: string;
+  type: 'wifi' | 'ethernet';
+}
+
 const NetworkInterfaceManager: React.FC = () => {
   const { networkBasics, loading, updateInterface, restartInterface } = useConfig2();
   const { addNotification } = useNotification();
 
-  // In NetworkInterfaceManager.tsx, update the handleToggle function:
   const handleToggle = async (iface: string, action: 'enable' | 'disable') => {
     try {
-      // Now correctly sends 'disable' or 'enable' instead of 'up' or 'down'
       const success = await updateInterface(iface, action);
       if (success) {
         addNotification({
@@ -34,7 +39,6 @@ const NetworkInterfaceManager: React.FC = () => {
       });
     }
   };
-  
 
   const handleRestart = async () => {
     try {
@@ -59,7 +63,7 @@ const NetworkInterfaceManager: React.FC = () => {
     }
   };
 
-  const getInterfaceArray = () => {
+  const getInterfaceArray = (): NetworkInterface[] => {
     if (!networkBasics?.interface) return [];
     return Object.entries(networkBasics.interface).map(([key, value]) => ({
       id: key,
@@ -71,11 +75,13 @@ const NetworkInterfaceManager: React.FC = () => {
 
   const interfaces = getInterfaceArray();
 
-  if (loading && !networkBasics) {
+  if (loading.networkBasics && !networkBasics) {
     return (
       <div className="network-interface-manager-card">
         <div className="network-interface-manager-loading">
-          <div className="network-interface-manager-loading-spinner"></div>
+          <div className="network-interface-manager-loading-spinner">
+            <FaSpinner className="spinning" />
+          </div>
           <p>Loading interface information...</p>
         </div>
       </div>
@@ -127,16 +133,16 @@ const NetworkInterfaceManager: React.FC = () => {
                     <button
                       className={`network-interface-manager-control-btn ${iface.status === 'active' ? 'enabled' : 'enable'}`}
                       onClick={() => handleToggle(iface.name, 'enable')}
-                      disabled={loading || iface.status === 'active'}
+                      disabled={loading.updating || iface.status === 'active'}
                     >
-                      Enable
+                      {loading.updating ? <FaSpinner className="spinning" /> : 'Enable'}
                     </button>
                     <button
                       className={`network-interface-manager-control-btn ${iface.status === 'inactive' ? 'disabled' : 'disable'}`}
                       onClick={() => handleToggle(iface.name, 'disable')}
-                      disabled={loading || iface.status === 'inactive'}
+                      disabled={loading.updating || iface.status === 'inactive'}
                     >
-                      Disable
+                      {loading.updating ? <FaSpinner className="spinning" /> : 'Disable'}
                     </button>
                   </div>
                 </div>
@@ -175,12 +181,12 @@ const NetworkInterfaceManager: React.FC = () => {
 
         {/* Restart Button */}
         <button
-          className={`network-interface-manager-restart-btn ${loading ? 'loading' : ''}`}
+          className={`network-interface-manager-restart-btn ${loading.updating ? 'loading' : ''}`}
           onClick={handleRestart}
-          disabled={loading}
+          disabled={loading.updating}
         >
-          <FiRefreshCw className={`network-interface-manager-restart-icon ${loading ? 'spinning' : ''}`} />
-          {loading ? 'Restarting Network...' : 'Restart Network Service'}
+          <FiRefreshCw className={`network-interface-manager-restart-icon ${loading.updating ? 'spinning' : ''}`} />
+          {loading.updating ? 'Restarting Network...' : 'Restart Network Service'}
         </button>
       </div>
     </div>

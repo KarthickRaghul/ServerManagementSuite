@@ -35,6 +35,7 @@ func main() {
 	server.RegisterHealthRoutes(protectedMux, serverqueries)
 	server.RegisterAlertRoutes(protectedMux, serverqueries)
 	server.RegisterLogRoutes(protectedMux, serverqueries)
+	common.RegisterCheckRoutes(protectedMux, serverqueries)
 
 	// 👑 Admin-only routes
 	//  Common Admin Routes
@@ -51,7 +52,6 @@ func main() {
 	// Mount with different middleware chains
 	mainMux.Handle("/api/auth/", config.ApplyPublicMiddlewares(publicMux))
 	mainMux.Handle("/api/server/", config.ApplyProtectedMiddlewares(protectedMux))
-	mainMux.Handle("/api/network/", config.ApplyProtectedMiddlewares(protectedMux))
 	mainMux.Handle("/api/admin/", config.ApplyAdminMiddlewares(adminMux))
 
 	log.Printf("✅ SNSMS backend running on port %s...", config.AppConfig.ServerPort)

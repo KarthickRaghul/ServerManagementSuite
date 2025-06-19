@@ -1,21 +1,34 @@
 // components/server/config2/RouteTable.tsx
 import React, { useState } from 'react';
-import { FaRoute, FaTrash, FaPlus, FaFlag } from 'react-icons/fa';
+import { FaRoute, FaTrash, FaPlus, FaFlag, FaSpinner } from 'react-icons/fa';
 import { useConfig2 } from '../../../../hooks/server/useConfig2';
 import RouteModal from './RouteModal';
 import './RouteTable.css';
+
+interface Route {
+  destination: string;
+  gateway: string;
+  iface: string;
+  metric: string;
+  genmask: string;
+  flags: string;
+  ref: string;
+  use: string;
+}
+
+interface RouteUpdateData {
+  action: string;
+  destination: string;
+  gateway: string;
+  interface?: string;
+  metric?: string;
+}
 
 const RouteTable: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const { routeTable, loading, updateRoute, fetchRouteTable } = useConfig2();
 
-  const handleAddRoute = async (routeData: {
-    action: string;
-    destination: string;
-    gateway: string;
-    interface?: string;
-    metric?: string;
-  }) => {
+  const handleAddRoute = async (routeData: RouteUpdateData) => {
     const success = await updateRoute(routeData);
     if (success) {
       await fetchRouteTable();
@@ -23,15 +36,6 @@ const RouteTable: React.FC = () => {
     }
     return false;
   };
-
-  interface Route {
-    destination: string;
-    gateway: string;
-    iface?: string;
-    metric?: string;
-    genmask?: string;
-    flags?: string;
-  }
 
   const handleDeleteRoute = async (route: Route) => {
     if (window.confirm(`Are you sure you want to delete route to ${route.destination}?`)) {
@@ -49,7 +53,7 @@ const RouteTable: React.FC = () => {
     }
   };
 
-  const formatDestination = (destination: string, genmask: string) => {
+  const formatDestination = (destination: string, genmask: string): string => {
     if (destination === '0.0.0.0' && genmask === '0.0.0.0') {
       return 'default';
     }
@@ -97,7 +101,7 @@ const RouteTable: React.FC = () => {
     return netmaskMap[netmask] ?? null;
   };
 
-  const getFlagDescription = (flags: string) => {
+  const getFlagDescription = (flags: string): string => {
     const flagMap: { [key: string]: string } = {
       'U': 'Up',
       'G': 'Gateway',
@@ -128,16 +132,19 @@ const RouteTable: React.FC = () => {
         <button 
           className="route-table-add-btn"
           onClick={() => setShowModal(true)}
-          disabled={loading}
+          disabled={loading.updating}
         >
-          <FaPlus className="route-table-add-icon" />
+          {loading.updating ? <FaSpinner className="spinning" /> : <FaPlus className="route-table-add-icon" />}
           Add Route
         </button>
       </div>
 
       <div className="route-table-content">
-        {loading ? (
-          <div className="route-table-loading">Loading routes...</div>
+        {loading.routeTable ? (
+          <div className="route-table-loading">
+            <FaSpinner className="spinning" />
+            Loading routes...
+          </div>
         ) : (
           <div className="route-table-container">
             {routeTable.length === 0 ? (
@@ -181,10 +188,10 @@ const RouteTable: React.FC = () => {
                         <button 
                           className="route-table-delete-btn" 
                           onClick={() => handleDeleteRoute(route)}
-                          disabled={loading}
+                          disabled={loading.updating}
                           title="Delete Route"
                         >
-                          <FaTrash />
+                          {loading.updating ? <FaSpinner className="spinning" /> : <FaTrash />}
                         </button>
                       </td>
                     </tr>
@@ -200,7 +207,7 @@ const RouteTable: React.FC = () => {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onAddRoute={handleAddRoute}
-        isLoading={loading}
+        isLoading={loading.updating}
       />
     </div>
   );
