@@ -1,236 +1,141 @@
-# 🔧 SNSMS - Server and Network System Management Suite
+# Server Management Suite (SMS)
 
-<div align="center">
-
-**A centralized web-based system for monitoring, configuring, and managing servers and network devices across enterprise environments**
-
-</div>
+A centralized, secure, and scalable platform for managing Linux servers across institutional networks, data centers, and enterprises.
 
 ---
 
-## 🌟 What is SNSMS?
+## 🧭 Overview
 
-SNSMS is a comprehensive management platform that provides centralized control over your IT infrastructure. Whether you're managing servers or network devices, SNSMS offers a unified interface for monitoring, configuration, and maintenance tasks across your entire enterprise environment.
+**Server Management Suite (SMS)** is an all-in-one server management solution designed to simplify and centralize the administration of multiple Linux-based and Windows-based servers. Through a modern web interface, SMS allows system administrators to:
 
----
+- Monitor server health in real time
+- Configure system and network settings remotely
+- Manage users and roles
+- Receive proactive alerts
+- Streamline operations across fleets of servers
 
-## 🎯 Key Features
-
-### 🖥️ **Server Management**
-
-- **Health Monitoring**: Real-time system metrics and performance tracking
-- **Log Management**: Centralized log collection and analysis
-- **Configuration Control**: Remote system configuration and service management
-- **Alert System**: Proactive monitoring with customizable alerts
-- **Backup Management**: Automated backup scheduling and monitoring
-- **Optimization Tools**: Performance analysis and improvement recommendations
-
-### 🌐 **Network Management**
-
-- **Device Control**: Router and firewall configuration management
-- **Network Monitoring**: SNMP-based device health and performance tracking
-- **Configuration Backup**: Version-controlled network device configurations
-- **Alert Management**: Network-specific alerts for connectivity and performance
-- **VLAN Management**: Campus-wide network segmentation control
-- **Health Metrics**: Real-time network device status and diagnostics
-
-### 🔐 **Security \& Access Control**
-
-- **Role-Based Access**: Admin and viewer roles with appropriate permissions
-- **Secure Authentication**: JWT-based authentication with refresh token support
-- **Session Management**: Secure session handling with automatic cleanup
-- **Audit Trail**: Comprehensive logging of user actions and system changes
-
-### 🎨 **User Experience**
-
-- **Dual-Mode Interface**: Seamlessly switch between server and network management
-- **Real-Time Updates**: Live monitoring dashboards with instant updates
-- **Responsive Design**: Works across desktop and mobile devices
-- **Intuitive Navigation**: Clean, organized interface for efficient workflow
+Built with a modular architecture and robust security, SMS is ideal for universities, enterprises, and data centers seeking to reduce downtime and improve operational efficiency.
 
 ---
 
-## 🏗️ Architecture
+## 🔑 Key Features
 
-SNSMS follows a modern, scalable architecture designed for enterprise environments:
-
-- **Backend**: Go-based REST API with clean separation of concerns
-- **Database**: PostgreSQL for reliable data persistence
-- **Frontend**: SPA-ready with dynamic routing and role-based rendering
-- **Security**: Multi-layer security with JWT tokens and secure session management
-- **Scalability**: Modular design supporting horizontal scaling
+- **Centralized Dashboard:** Manage all servers from a unified portal—no more individual SSH sessions.
+- **Real-time Monitoring:** Live metrics for CPU, memory, disk, and network I/O, updated every 30 seconds with historical graphs.
+- **Configuration Management:** Remotely edit hostnames, network interfaces, firewall rules, and more.
+- **Alert System:** Automated notifications for resource thresholds (CPU, RAM, disk, network), with severity levels.
+- **Role-Based Access Control:** Admin (full access) and Viewer (read-only) roles, with UI tailored to each.
+- **Secure Communication:** JWT authentication, access tokens, input validation, and encrypted protocols (HTTPS).
+- **Modular Architecture:** Easily extensible for new features and scalable to large server fleets.
 
 ---
 
-## 🚀 Getting Started
+## 🛠️ Installation Guide
 
 ### Prerequisites
 
-- Go 1.21 or higher
-- PostgreSQL 13 or higher
-- Modern web browser
+- Go 1.19+ (backend, client)
+- PostgreSQL (database)
+- Node.js & npm (frontend)
+- Linux or Windows servers for client agents
 
-### Quick Installation
+
+### Backend Setup (Go + PostgreSQL)
 
 ```bash
-# Clone the repository
-https://github.com/kishore-001/Server-Network-Management-Suite.git
-cd Server-Network-Management-Suite
-
-# Install dependencies
-go mod tidy
-
-# Set up your environment
-cp .env.example .env
-# Edit .env with your database credentials
-
-# Initialize the database
-go run temp/dbinit.go
-
-# Start the server
-go run main.go
+git clone <repository-url>
+cd backend
+go mod download
+cp .env.example .env # Edit with your DB credentials and secrets
+go run temp/dbinit.go # Initialize database
+go run main.go # Start backend server
 ```
 
-The server will start on `http://localhost:8000` with default admin credentials:
+### Frontend Setup (React + Vite)
 
-- **Username**: admin
-- **Password**: admin
+```bash
+cd frontend
+npm install
+cp .env.example .env # Set backend URL
+npm run dev # Start frontend (dev mode)
+npm run build # Build for production
+```
 
----
+### Client Deployment (Go Agent)
 
-## 🎛️ Management Capabilities
+On each managed Linux server:
 
-### Server Operations
+```bash
+sudo ./client-executable --port 2210
+```
 
-- **Service Control**: Start, stop, and restart system services
-- **Resource Monitoring**: CPU, memory, disk, and network usage tracking
-- **Log Analysis**: Real-time log streaming and historical analysis
-- **Configuration Management**: System settings and service configuration
-- **Backup Operations**: Schedule and monitor backup tasks
-- **Performance Optimization**: System tuning recommendations
+On each managed Windows server:
+use admin powershell or command prompt to run the exe file
 
-### Network Operations
 
-- **Device Configuration**: Remote configuration of network equipment
-- **Topology Mapping**: Visual network topology and device relationships
-- **Performance Monitoring**: Bandwidth utilization and latency tracking
-- **Configuration Versioning**: Track and rollback configuration changes
-- **Alert Management**: Network-specific alerting and notification
-- **Compliance Reporting**: Network security and compliance monitoring
 
----
-
-## 🔒 Security Features
-
-- **Multi-Factor Authentication**: Support for enhanced security protocols
-- **Encrypted Communications**: All data transmission secured with TLS
-- **Access Logging**: Comprehensive audit trails for compliance
-- **Role-Based Permissions**: Granular control over user capabilities
-- **Session Security**: Automatic session timeout and secure token handling
-- **Data Protection**: Encrypted storage of sensitive configuration data
+- Registers with backend using access token
+- Collects and sends metrics every 30 seconds
 
 ---
 
-## 📊 Monitoring \& Alerting
+## 📐 System Architecture
 
-### Real-Time Monitoring
+| Component | Technology      | Role                                         |
+|-----------|----------------|----------------------------------------------|
+| Frontend  | React + Vite   | User dashboard, real-time monitoring         |
+| Backend   | Go + PostgreSQL| API, logic, authentication, data storage     |
+| Client    | Go             | Runs on each server, collects metrics, executes commands |
 
-- **Dashboard Views**: Customizable dashboards for different roles
-- **Metric Collection**: Automated collection of system and network metrics
-- **Trend Analysis**: Historical data analysis and trend identification
-- **Capacity Planning**: Resource utilization forecasting
-
-### Alert Management
-
-- **Threshold-Based Alerts**: Configurable thresholds for all monitored metrics
-- **Escalation Policies**: Multi-level alert escalation procedures
-- **Notification Channels**: Email, SMS, and webhook notification support
-- **Alert Correlation**: Intelligent alert grouping and correlation
+- **Communication:** All interactions secured via JWT, HTTPS, and access tokens
+- **Database:** Stores users, sessions, server devices, alerts, logs
 
 ---
 
-## 🛠️ Use Cases
+## 📦 Modules & Capabilities
 
-### Enterprise IT Teams
-
-- Centralized management of distributed server infrastructure
-- Unified network device configuration and monitoring
-- Compliance reporting and audit trail maintenance
-- Incident response and troubleshooting
-
-### MSPs (Managed Service Providers)
-
-- Multi-tenant infrastructure management
-- Client-specific monitoring and reporting
-- Automated maintenance and optimization
-- SLA monitoring and reporting
-
-### Educational Institutions
-
-- Campus-wide network management
-- Student lab and classroom system administration
-- Research infrastructure monitoring
-- IT resource optimization
+- **Configuration Management:** Register/remove devices, execute commands, manage SSH keys, update server info
+- **Network Configuration:** Interface management, routing, firewall, service restart
+- **Health Monitoring:** CPU, RAM, disk, network I/O with visualizations and thresholds
+- **Alert System:** Auto-detection, severity levels, filtering, admin actions
+- **Log Management:** Aggregated logs, real-time streaming, filters, search
+- **Resource Optimization:** Service/process management, cleanup utilities, performance suggestions
+- **User Management:** Add/delete users, assign roles, profile updates
 
 ---
 
-## 📈 Benefits
+## 🔒 Security
 
-### Operational Efficiency
+- **JWT Authentication:** Secure login and API access
+- **Role-Based Access:** Admins and viewers with granular permissions
+- **Input & Command Validation:** Prevents injection and misuse
+- **Internal Network Deployment:** Designed for secure LAN environments
+- **Password Hashing & Audit Logging:** Protects credentials and tracks sensitive actions
 
-- **Reduced Downtime**: Proactive monitoring prevents issues before they impact users
-- **Centralized Control**: Single interface for all infrastructure management tasks
-- **Automated Tasks**: Reduce manual work through automation and scheduling
-- **Faster Response**: Quick identification and resolution of problems
+---
 
-### Cost Savings
+## ⚙️ Configuration
 
-- **Resource Optimization**: Better utilization of existing infrastructure
-- **Reduced Complexity**: Simplified management reduces training and operational costs
-- **Preventive Maintenance**: Avoid costly emergency repairs through proactive monitoring
-- **Scalability**: Grow your infrastructure without proportional management overhead
+Environment variables managed via `.env` files for backend, frontend, and client agents. Sensitive data (secrets, DB credentials) should be kept secure and excluded from version control.
 
-### Security \& Compliance
+---
 
-- **Audit Readiness**: Comprehensive logging and reporting for compliance requirements
-- **Security Monitoring**: Real-time security event detection and response
-- **Access Control**: Granular permissions ensure appropriate access levels
-- **Data Protection**: Secure handling of sensitive configuration and monitoring data
+## 🚀 Deployment Strategy
+
+- Deploy backend and frontend on a central server within your secure network
+- Distribute the client agent to each Linux or Windows server to be managed
+- All communication is secured and access-controlled
+
+---
+
+## 🎯 Conclusion
+
+SMS empowers IT teams to manage, monitor, and secure large-scale Linux server environments from a single, intuitive interface. Its modular, secure, and extensible design makes it a practical choice for institutions and enterprises seeking operational excellence.
 
 ---
 
 ## 🤝 Contributing
 
-We welcome contributions from the community! Whether you're fixing bugs, adding features, or improving documentation, your help makes SNSMS better for everyone.
-
-### How to Contribute
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+Contributions are welcome! Please submit issues or pull requests for new features, bug fixes, or documentation improvements.
 
 ---
-
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Support
-
-- **Documentation**: Comprehensive guides and API documentation
-- **Community**: Active community support and discussions
-- **Issues**: Bug reports and feature requests via GitHub Issues
-- **Updates**: Regular updates and security patches
-
----
-
-<div align="center">
-
-**Transform your infrastructure management with SNSMS**
-
-[⭐ Star this repo](https://github.com/yourusername/snsms) - [🐛 Report Bug](https://github.com/yourusername/snsms/issues) - [💡 Request Feature](https://github.com/yourusername/snsms/issues)
-
-Made with ❤️ for enterprise infrastructure management
