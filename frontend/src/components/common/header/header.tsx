@@ -8,6 +8,7 @@ import { useAuth } from "../../../hooks";
 import { useRole } from "../../../hooks";
 import type { Device } from "../../../types/app";
 import { useAppContext } from "../../../context/AppContext";
+import { useConnectionOverlay } from "../../../context/ConnectionOverlayContext";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -23,6 +24,8 @@ const Header: React.FC = () => {
     refreshDevices
   } = useAppContext();
   
+  const { checkConnection } = useConnectionOverlay();
+  
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
 
@@ -34,7 +37,7 @@ const Header: React.FC = () => {
       "/": "Configuration",
       "/login": "Login",
       "/health": "System Health",
-      "/log": "Logging Systems",
+      "/logs": "Logging Systems",
       "/alert": "Monitoring & Alerts",
       "/resource": "Resource Optimization",
       "/settings": "Settings",
@@ -62,9 +65,14 @@ const Header: React.FC = () => {
     };
   }, [dropdownOpen, userDropdownOpen]);
 
-  const handleDeviceSelect = (device: Device) => {
+  const handleDeviceSelect = async (device: Device) => {
     updateActiveDevice(device);
     setDropdownOpen(false);
+    
+    // Trigger connection check when device is manually selected
+    if (device.ip) {
+      await checkConnection(device.ip, false);
+    }
   };
 
   const handleLogout = async () => {

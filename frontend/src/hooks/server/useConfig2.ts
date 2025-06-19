@@ -6,7 +6,7 @@ import { useNotification } from '../../context/NotificationContext';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-// Updated Types based on your API response
+// Proper TypeScript interfaces
 interface NetworkBasics {
   ip_method: string;
   ip_address: string;
@@ -22,18 +22,6 @@ interface NetworkBasics {
   };
 }
 
-interface FirewallChain {
-  name: string;
-  policy: string;
-  rules: FirewallRule[];
-}
-
-interface FirewallData {
-  type: string;
-  chains: FirewallChain[];
-  active: boolean;
-}
-
 interface FirewallRule {
   chain: string;
   number: number;
@@ -45,7 +33,29 @@ interface FirewallRule {
   state?: string;
 }
 
-// Updated RouteEntry interface to match your API response
+interface FirewallChain {
+  name: string;
+  policy: string;
+  rules: FirewallRule[];
+}
+
+interface LinuxFirewallData {
+  type: 'iptables';
+  chains: FirewallChain[];
+  active: boolean;
+}
+
+interface WindowsFirewallRule {
+  Name: string;
+  DisplayName: string;
+  Direction: 'Inbound' | 'Outbound';
+  Action: 'Allow' | 'Block';
+  Enabled: 'True' | 'False';
+  Profile: 'Public' | 'Private' | 'Domain' | 'Any';
+}
+
+type FirewallData = LinuxFirewallData | WindowsFirewallRule[];
+
 interface RouteEntry {
   destination: string;
   gateway: string;
@@ -57,20 +67,76 @@ interface RouteEntry {
   iface: string;
 }
 
+interface NetworkUpdateData {
+  method: string;
+  ip?: string;
+  subnet?: string;
+  gateway?: string;
+  dns?: string;
+}
+
+interface RouteUpdateData {
+  action: string;
+  destination: string;
+  gateway: string;
+  interface?: string;
+  metric?: string;
+}
+
+interface LinuxFirewallUpdateData {
+  action: string;
+  rule: string;
+  protocol: string;
+  port: string;
+  source?: string;
+  destination?: string;
+}
+
+interface WindowsFirewallUpdateData {
+  action: string;
+  name?: string;
+  displayName?: string;
+  direction?: 'Inbound' | 'Outbound';
+  action?: 'Allow' | 'Block';
+  enabled?: 'True' | 'False';
+  profile?: 'Public' | 'Private' | 'Domain' | 'Any';
+  protocol?: 'TCP' | 'UDP' | 'Any';
+  localPort?: string;
+  remotePort?: string;
+  localAddress?: string;
+  remoteAddress?: string;
+  program?: string;
+  service?: string;
+}
+
+type FirewallUpdateData = LinuxFirewallUpdateData | WindowsFirewallUpdateData;
+
+interface LoadingStates {
+  networkBasics: boolean;
+  routeTable: boolean;
+  firewallData: boolean;
+  updating: boolean;
+}
+
 export const useConfig2 = () => {
   const [networkBasics, setNetworkBasics] = useState<NetworkBasics | null>(null);
   const [routeTable, setRouteTable] = useState<RouteEntry[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [firewallData, setFirewallData] = useState<FirewallData | null>(null);
+  const [loading, setLoading] = useState<LoadingStates>({
+    networkBasics: false,
+    routeTable: false,
+    firewallData: false,
+    updating: false
+  });
   const [error, setError] = useState<string | null>(null);
   const { activeDevice } = useAppContext();
   const { addNotification } = useNotification();
-  const [firewallData, setFirewallData] = useState<FirewallData | null>(null);
 
   // Fetch Network Basics
   const fetchNetworkBasics = async () => {
     if (!activeDevice) return;
 
-    setLoading(true);
+    setLoading(prev => ({ ...prev, networkBasics: true }));
     setError(null);
 
     try {
@@ -102,7 +168,7 @@ export const useConfig2 = () => {
         duration: 5000
       });
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, networkBasics: false }));
     }
   };
 
@@ -110,7 +176,7 @@ export const useConfig2 = () => {
   const fetchRouteTable = async () => {
     if (!activeDevice) return;
 
-    setLoading(true);
+    setLoading(prev => ({ ...prev, routeTable: true }));
     setError(null);
 
     try {
@@ -146,18 +212,52 @@ export const useConfig2 = () => {
         duration: 5000
       });
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, routeTable: false }));
+    }
+  };
+
+  // Fetch Firewall Rules
+  const fetchFirewallRules = async () => {
+    if (!activeDevice) return;
+
+    setLoading(prev => ({ ...prev, firewallData: true }));
+    setError(null);
+
+    try {
+      const response = await AuthService.makeAuthenticatedRequest(
+        `${BACKEND_URL}/api/admin/server/config2/getfirewall`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ host: activeDevice.ip })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setFirewallData(data);
+      } else {
+        throw new Error(`Failed to fetch firewall rules: ${response.status}`);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch firewall rules';
+      console.error('Error fetching firewall rules:', err);
+      setError(errorMessage);
+      addNotification({
+        title: 'Firewall Fetch Error',
+        message: errorMessage,
+        type: 'error',
+        duration: 5000
+      });
+    } finally {
+      setLoading(prev => ({ ...prev, firewallData: false }));
     }
   };
 
   // Update Network Configuration
-  const updateNetwork = async (networkData: {
-    method: string;
-    ip?: string;
-    subnet?: string;
-    gateway?: string;
-    dns?: string;
-  }): Promise<boolean> => {
+  const updateNetwork = async (networkData: NetworkUpdateData): Promise<boolean> => {
     if (!activeDevice) {
       addNotification({
         title: 'Network Update Error',
@@ -168,7 +268,7 @@ export const useConfig2 = () => {
       return false;
     }
 
-    setLoading(true);
+    setLoading(prev => ({ ...prev, updating: true }));
     setError(null);
 
     try {
@@ -215,7 +315,7 @@ export const useConfig2 = () => {
       });
       return false;
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, updating: false }));
     }
   };
 
@@ -231,7 +331,7 @@ export const useConfig2 = () => {
       return false;
     }
 
-    setLoading(true);
+    setLoading(prev => ({ ...prev, updating: true }));
     setError(null);
 
     try {
@@ -279,7 +379,7 @@ export const useConfig2 = () => {
       });
       return false;
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, updating: false }));
     }
   };
 
@@ -295,7 +395,7 @@ export const useConfig2 = () => {
       return false;
     }
 
-    setLoading(true);
+    setLoading(prev => ({ ...prev, updating: true }));
     setError(null);
 
     try {
@@ -339,131 +439,12 @@ export const useConfig2 = () => {
       });
       return false;
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, updating: false }));
     }
   };
 
-
-  // Add these functions to your existing hook
-
-// Fetch Firewall Rules
-const fetchFirewallRules = async () => {
-  if (!activeDevice) return;
-
-  setLoading(true);
-  setError(null);
-
-  try {
-    const response = await AuthService.makeAuthenticatedRequest(
-      `${BACKEND_URL}/api/admin/server/config2/getfirewall`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ host: activeDevice.ip })
-      }
-    );
-
-    if (response.ok) {
-      const data: FirewallData = await response.json();
-      setFirewallData(data);
-    } else {
-      throw new Error(`Failed to fetch firewall rules: ${response.status}`);
-    }
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : 'Failed to fetch firewall rules';
-    console.error('Error fetching firewall rules:', err);
-    setError(errorMessage);
-    addNotification({
-      title: 'Firewall Fetch Error',
-      message: errorMessage,
-      type: 'error',
-      duration: 5000
-    });
-  } finally {
-    setLoading(false);
-  }
-};
-
-// Update Firewall Rule
-const updateFirewallRule = async (firewallData: {
-  action: string;
-  rule: string;
-  protocol: string;
-  port: string;
-  source?: string;
-  destination?: string;
-}): Promise<boolean> => {
-  if (!activeDevice) {
-    addNotification({
-      title: 'Firewall Update Error',
-      message: 'No active device selected',
-      type: 'error',
-      duration: 5000
-    });
-    return false;
-  }
-
-  setLoading(true);
-  setError(null);
-
-  try {
-    const response = await AuthService.makeAuthenticatedRequest(
-      `${BACKEND_URL}/api/admin/server/config2/postupdatefirewall`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          host: activeDevice.ip,
-          ...firewallData
-        })
-      }
-    );
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.status === 'success') {
-        await fetchFirewallRules();
-        addNotification({
-          title: 'Firewall Rule Updated',
-          message: `Firewall rule has been ${firewallData.action}ed successfully`,
-          type: 'success',
-          duration: 3000
-        });
-        return true;
-      } else {
-        throw new Error(data.message || `Failed to ${firewallData.action} firewall rule`);
-      }
-    } else {
-      throw new Error(`Failed to update firewall rule: ${response.status}`);
-    }
-  } catch (err) {
-    const errorMessage = err instanceof Error ? err.message : `Failed to ${firewallData.action} firewall rule`;
-    console.error('Error updating firewall rule:', err);
-    setError(errorMessage);
-    addNotification({
-      title: 'Firewall Update Failed',
-      message: errorMessage,
-      type: 'error',
-      duration: 5000
-    });
-    return false;
-  } finally {
-    setLoading(false);
-  }
-};
-
   // Update Route
-  const updateRoute = async (routeData: {
-    action: string;
-    destination: string;
-    gateway: string;
-    interface?: string;
-    metric?: string;
-  }): Promise<boolean> => {
+  const updateRoute = async (routeData: RouteUpdateData): Promise<boolean> => {
     if (!activeDevice) {
       addNotification({
         title: 'Route Update Error',
@@ -474,7 +455,7 @@ const updateFirewallRule = async (firewallData: {
       return false;
     }
 
-    setLoading(true);
+    setLoading(prev => ({ ...prev, updating: true }));
     setError(null);
 
     try {
@@ -521,7 +502,70 @@ const updateFirewallRule = async (firewallData: {
       });
       return false;
     } finally {
-      setLoading(false);
+      setLoading(prev => ({ ...prev, updating: false }));
+    }
+  };
+
+  // Update Firewall Rule
+  const updateFirewallRule = async (firewallUpdateData: FirewallUpdateData): Promise<boolean> => {
+    if (!activeDevice) {
+      addNotification({
+        title: 'Firewall Update Error',
+        message: 'No active device selected',
+        type: 'error',
+        duration: 5000
+      });
+      return false;
+    }
+
+    setLoading(prev => ({ ...prev, updating: true }));
+    setError(null);
+
+    try {
+      const response = await AuthService.makeAuthenticatedRequest(
+        `${BACKEND_URL}/api/admin/server/config2/postupdatefirewall`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            host: activeDevice.ip,
+            ...firewallUpdateData
+          })
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.status === 'success') {
+          await fetchFirewallRules();
+          addNotification({
+            title: 'Firewall Rule Updated',
+            message: `Firewall rule has been ${firewallUpdateData.action}ed successfully`,
+            type: 'success',
+            duration: 3000
+          });
+          return true;
+        } else {
+          throw new Error(data.message || `Failed to ${firewallUpdateData.action} firewall rule`);
+        }
+      } else {
+        throw new Error(`Failed to update firewall rule: ${response.status}`);
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : `Failed to ${firewallUpdateData.action} firewall rule`;
+      console.error('Error updating firewall rule:', err);
+      setError(errorMessage);
+      addNotification({
+        title: 'Firewall Update Failed',
+        message: errorMessage,
+        type: 'error',
+        duration: 5000
+      });
+      return false;
+    } finally {
+      setLoading(prev => ({ ...prev, updating: false }));
     }
   };
 

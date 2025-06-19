@@ -1,23 +1,25 @@
 // components/server/config2/NetworkBasicInfo.tsx
 import React, { useState } from 'react';
-import { FaNetworkWired, FaEdit, FaWifi, FaServer } from 'react-icons/fa';
+import { FaNetworkWired, FaEdit, FaWifi, FaServer, FaSpinner } from 'react-icons/fa';
 import { useConfig2 } from '../../../../hooks/server/useConfig2';
 import { useNotification } from '../../../../context/NotificationContext';
 import NetworkConfigModal from './NetworkConfigModal';
 import './NetworkBasicInfo.css';
+
+interface NetworkUpdateData {
+  method: string;
+  ip?: string;
+  subnet?: string;
+  gateway?: string;
+  dns?: string;
+}
 
 const NetworkBasicInfo: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
   const { networkBasics, loading, updateNetwork } = useConfig2();
   const { addNotification } = useNotification();
 
-  const handleUpdateNetwork = async (networkData: {
-    method: string;
-    ip?: string;
-    subnet?: string;
-    gateway?: string;
-    dns?: string;
-  }) => {
+  const handleUpdateNetwork = async (networkData: NetworkUpdateData) => {
     try {
       const success = await updateNetwork(networkData);
       if (success) {
@@ -43,11 +45,13 @@ const NetworkBasicInfo: React.FC = () => {
     }
   };
 
-  if (loading && !networkBasics) {
+  if (loading.networkBasics && !networkBasics) {
     return (
       <div className="network-basic-info-card">
         <div className="network-basic-info-loading">
-          <div className="network-basic-info-loading-spinner"></div>
+          <div className="network-basic-info-loading-spinner">
+            <FaSpinner className="spinning" />
+          </div>
           <p>Loading network information...</p>
         </div>
       </div>
@@ -70,10 +74,10 @@ const NetworkBasicInfo: React.FC = () => {
           <button 
             className="network-basic-info-edit-btn"
             onClick={() => setShowConfigModal(true)}
-            disabled={loading}
+            disabled={loading.updating}
             title="Edit Network Configuration"
           >
-            <FaEdit />
+            {loading.updating ? <FaSpinner className="spinning" /> : <FaEdit />}
           </button>
         </div>
 
@@ -147,7 +151,7 @@ const NetworkBasicInfo: React.FC = () => {
         onClose={() => setShowConfigModal(false)}
         onSubmit={handleUpdateNetwork}
         currentConfig={networkBasics}
-        isLoading={loading}
+        isLoading={loading.updating}
       />
     </>
   );

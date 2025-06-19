@@ -1,0 +1,240 @@
+/* components/common/connectionoverlay/ConnectionOverlay.css */
+.conn-overlay-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    backdrop-filter: blur(8px);
+    animation: conn-overlay-fade-in 0.3s ease-out;
+  }
+  
+  @keyframes conn-overlay-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  
+  .conn-overlay-modal {
+    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    color: #e2e8f0;
+    border-radius: 20px;
+    padding: 40px 32px;
+    min-width: 400px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    text-align: center;
+    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    border: 1px solid #475569;
+    animation: conn-overlay-slide-in 0.4s ease-out;
+  }
+  
+  @keyframes conn-overlay-slide-in {
+    from {
+      opacity: 0;
+      transform: translateY(-30px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  .conn-overlay-modal h2 {
+    margin: 16px 0 8px 0;
+    font-size: 24px;
+    font-weight: 700;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .conn-overlay-modal p {
+    margin: 8px 0 16px 0;
+    color: #94a3b8;
+    font-size: 16px;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .conn-overlay-spinner,
+  .conn-overlay-error-icon,
+  .conn-overlay-success-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+  }
+  
+  .conn-overlay-spinner {
+    color: #3b82f6;
+  }
+  
+  .spinning {
+    animation: conn-overlay-spin 1s linear infinite;
+  }
+  
+  @keyframes conn-overlay-spin {
+    to { transform: rotate(360deg); }
+  }
+  
+  .conn-overlay-error-icon {
+    color: #ef4444;
+  }
+  
+  .conn-overlay-success-icon {
+    color: #22c55e;
+  }
+  
+  .conn-overlay-loading-dots {
+    display: flex;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 20px;
+  }
+  
+  .conn-overlay-loading-dots span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #3b82f6;
+    animation: conn-overlay-bounce 1.4s ease-in-out infinite both;
+  }
+  
+  .conn-overlay-loading-dots span:nth-child(1) { animation-delay: -0.32s; }
+  .conn-overlay-loading-dots span:nth-child(2) { animation-delay: -0.16s; }
+  
+  @keyframes conn-overlay-bounce {
+    0%, 80%, 100% {
+      transform: scale(0);
+    }
+    40% {
+      transform: scale(1);
+    }
+  }
+  
+  .conn-overlay-error-details {
+    margin: 24px 0;
+    text-align: left;
+  }
+  
+  .conn-overlay-error-details h3 {
+    color: #e2e8f0;
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .conn-overlay-tips {
+    margin: 0;
+    padding-left: 20px;
+    color: #94a3b8;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  
+  .conn-overlay-tips li {
+    margin-bottom: 8px;
+  }
+  
+  .conn-overlay-tips strong {
+    color: #e2e8f0;
+  }
+  
+  .conn-overlay-error-message {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    color: #fca5a5;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .conn-overlay-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 24px;
+  }
+  
+  .conn-overlay-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-family: "Inter", sans-serif;
+  }
+  
+  .conn-overlay-btn-retry {
+    background: linear-gradient(135deg, #3b82f6, #60a5fa);
+    color: white;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+  }
+  
+  .conn-overlay-btn-retry:hover {
+    background: linear-gradient(135deg, #2563eb, #3b82f6);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+  }
+  
+  .conn-overlay-btn-config {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+  }
+  
+  .conn-overlay-btn-config:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+  }
+  
+  .conn-overlay-btn-icon {
+    font-size: 12px;
+  }
+  
+  .conn-overlay-success-checkmark {
+    font-size: 2rem;
+    color: #22c55e;
+    margin-top: 16px;
+    animation: conn-overlay-checkmark 0.6s ease-in-out;
+  }
+  
+  @keyframes conn-overlay-checkmark {
+    0% {
+      transform: scale(0);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  
+  /* Responsive Design */
+  @media (max-width: 768px) {
+    .conn-overlay-modal {
+      min-width: 320px;
+      padding: 32px 24px;
+      max-width: 95vw;
+    }
+    
+    .conn-overlay-actions {
+      flex-direction: column;
+    }
+    
+    .conn-overlay-btn {
+      width: 100%;
+      justify-content: center;
+    }
+  }
+  
