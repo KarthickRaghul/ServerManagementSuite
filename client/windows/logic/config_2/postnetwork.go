@@ -1,24 +1,34 @@
 package config_2
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
-	"net"
 	"net/http"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type NetworkUpdateRequest struct {
-	Method  string `json:"method"`            // "static" or "dynamic"
-	IP      string `json:"ip,omitempty"`      // Required for static
-	Subnet  string `json:"subnet,omitempty"`  // Optional fallback to current
-	Gateway string `json:"gateway,omitempty"` // Optional fallback to current
-	DNS     string `json:"dns,omitempty"`     // Comma-separated DNS
+	Method  string `json:"method"`
+	IP      string `json:"ip,omitempty"`
+	Subnet  string `json:"subnet,omitempty"`
+	Gateway string `json:"gateway,omitempty"`
+	DNS     string `json:"dns,omitempty"`
+}
+
+type NetworkUpdateResponse struct {
+	Success   bool                  `json:"success"`
+	Message   string                `json:"message"`
+	Details   string                `json:"details,omitempty"`
+	OldConfig *NetworkUpdateRequest `json:"old_config,omitempty"`
+	NewConfig *NetworkUpdateRequest `json:"new_config"`
 }
 
 func HandleUpdateNetworkConfig(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("Handling network configuration update request on Windows...")
+	fmt.Println("Current Date and Time (UTC):", time.Now().UTC().Format("2006-01-02 15:04:05"))
+	fmt.Println("Handling Windows network configuration update request...")
 
 	if r.Method != http.MethodPost {
 		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
@@ -28,34 +38,38 @@ func HandleUpdateNetworkConfig(w http.ResponseWriter, r *http.Request) {
 
 	var request NetworkUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		sendErrorResponse(w, "Failed to parse request body", err, nil)
+		sendErrorResponse(w, "Failed to parse request body", err)
 		return
 	}
 
 	if request.Method != "static" && request.Method != "dynamic" {
-		sendErrorResponse(w, "Invalid method, must be 'static' or 'dynamic'", nil, &request)
+		sendErrorResponse(w, "Invalid method, must be 'static' or 'dynamic'", nil)
 		return
 	}
 
 	if request.Method == "static" && request.IP == "" {
-		sendErrorResponse(w, "IP address is required for static configuration", nil, &request)
+		sendErrorResponse(w, "IP address is required for static configuration", nil)
 		return
 	}
 
 	iface, err := getActiveInterface()
 	if err != nil {
-		sendErrorResponse(w, "Failed to determine active interface", err, &request)
+		sendErrorResponse(w, "Failed to get active interface", err)
 		return
 	}
 
-	oldConfig, err := getCurrentNetworkConfigWindows(iface)
+	oldConfig, err := getCurrentNetworkConfig(iface)
 	if err != nil {
-		sendErrorResponse(w, "Failed to get current configuration", err, &request)
+		sendErrorResponse(w, "Failed to fetch current config", err)
 		return
 	}
 
-	// Fallback: Fill missing values from old config
-	if request.Method == "static" {
+	var success bool
+	var details string
+
+	if request.Method == "dynamic" {
+		success, details = setDynamicIP(iface)
+	} else {
 		if request.Subnet == "" {
 			request.Subnet = oldConfig.Subnet
 		}
@@ -65,38 +79,26 @@ func HandleUpdateNetworkConfig(w http.ResponseWriter, r *http.Request) {
 		if request.DNS == "" {
 			request.DNS = oldConfig.DNS
 		}
+		success, details = setStaticIP(iface, request.IP, request.Subnet, request.Gateway, request.DNS)
 	}
 
-	var success bool
-	var details string
-	if request.Method == "dynamic" {
-		success, details = setDynamicIPWindows(iface)
-	} else {
-		success, details = setStaticIPWindows(iface, request.IP, request.Subnet, request.Gateway, request.DNS)
-	}
-
-	status := "failed"
-	msg := "Failed to update network configuration"
+	message := "Failed to update configuration"
 	if success {
-		status = "success"
-		msg = "Network configuration updated successfully"
+		message = "Configuration updated successfully"
 	}
 
-	resp := map[string]interface{}{
-		"status":  status,
-		"message": msg,
-		"data": map[string]interface{}{
-			"details":    details,
-			"old_config": oldConfig,
-			"new_config": request,
-		},
+	resp := NetworkUpdateResponse{
+		Success:   success,
+		Message:   message,
+		Details:   details,
+		OldConfig: oldConfig,
+		NewConfig: &request,
 	}
 	json.NewEncoder(w).Encode(resp)
 }
 
-// Powershell command to get the active interface alias (lowest metric default route)
 func getActiveInterface() (string, error) {
-	cmd := exec.Command("powershell", "-Command", "Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Sort-Object RouteMetric | Select-Object -First 1 -ExpandProperty InterfaceAlias")
+	cmd := exec.Command("powershell", "-Command", `Get-NetRoute -DestinationPrefix "0.0.0.0/0" | Sort-Object RouteMetric | Select-Object -First 1 -ExpandProperty InterfaceAlias`)
 	out, err := cmd.Output()
 	if err != nil {
 		return "", err
@@ -104,91 +106,120 @@ func getActiveInterface() (string, error) {
 	return strings.TrimSpace(string(out)), nil
 }
 
-func getCurrentNetworkConfigWindows(iface string) (*NetworkUpdateRequest, error) {
-	// IP
-	cmd := exec.Command("powershell", "-Command", fmt.Sprintf(`(Get-NetIPAddress -InterfaceAlias "%s" -AddressFamily IPv4 | Where-Object {$_.IPAddress -ne $null} | Select-Object -First 1).IPAddress`, iface))
-	ip, _ := cmd.Output()
+func getCurrentNetworkConfig(iface string) (*NetworkUpdateRequest, error) {
+	cmd := exec.Command("powershell", "-Command",
+		fmt.Sprintf(`$ip = Get-NetIPAddress -InterfaceAlias "%s" -AddressFamily IPv4 | Select-Object -First 1; 
+			$gw = Get-NetRoute -InterfaceAlias "%s" -DestinationPrefix "0.0.0.0/0" | Select-Object -First 1;
+			$dns = (Get-DnsClientServerAddress -InterfaceAlias "%s" -AddressFamily IPv4).ServerAddresses -join ",";
+			Write-Output "$($ip.IPAddress),$($ip.PrefixLength),$($gw.NextHop),$dns"`,
+			iface, iface, iface),
+	)
 
-	// Prefix
-	cmd = exec.Command("powershell", "-Command", fmt.Sprintf(`(Get-NetIPAddress -InterfaceAlias "%s" -AddressFamily IPv4 | Where-Object {$_.PrefixLength -ne $null} | Select-Object -First 1).PrefixLength`, iface))
-	prefix, _ := cmd.Output()
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, err
+	}
 
-	// Gateway
-	cmd = exec.Command("powershell", "-Command", fmt.Sprintf(`(Get-NetRoute -InterfaceAlias "%s" -DestinationPrefix 0.0.0.0/0 | Select-Object -First 1).NextHop`, iface))
-	gw, _ := cmd.Output()
-
-	// DNS
-	cmd = exec.Command("powershell", "-Command", fmt.Sprintf(`(Get-DnsClientServerAddress -InterfaceAlias "%s" -AddressFamily IPv4).ServerAddresses -join ","`, iface))
-	dns, _ := cmd.Output()
+	parts := strings.Split(strings.TrimSpace(string(out)), ",")
+	if len(parts) < 4 {
+		return nil, fmt.Errorf("unexpected output format: %v", parts)
+	}
 
 	return &NetworkUpdateRequest{
-		Method:  "static", // DHCP not detected here
-		IP:      strings.TrimSpace(string(ip)),
-		Subnet:  prefixToNetmask(strings.TrimSpace(string(prefix))),
-		Gateway: strings.TrimSpace(string(gw)),
-		DNS:     strings.TrimSpace(string(dns)),
+		Method:  "static", // Windows doesn't expose DHCP state easily via this method
+		IP:      parts[0],
+		Subnet:  prefixToSubnet1(parts[1]),
+		Gateway: parts[2],
+		DNS:     parts[3],
 	}, nil
 }
 
-func setDynamicIPWindows(iface string) (bool, string) {
-	cmd1 := fmt.Sprintf(`netsh interface ip set address name="%s" source=dhcp`, iface)
-	cmd2 := fmt.Sprintf(`netsh interface ip set dns name="%s" source=dhcp`, iface)
-
-	if err := exec.Command("cmd", "/C", cmd1).Run(); err != nil {
-		return false, "Failed to switch to DHCP (IP)"
+func setDynamicIP(iface string) (bool, string) {
+	cmd := exec.Command("powershell", "-Command",
+		fmt.Sprintf(`Set-NetIPInterface -InterfaceAlias "%s" -Dhcp Enabled;
+			Set-DnsClientServerAddress -InterfaceAlias "%s" -ResetServerAddresses`, iface, iface))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, string(out)
 	}
-	if err := exec.Command("cmd", "/C", cmd2).Run(); err != nil {
-		return false, "IP set to DHCP, but DNS change failed"
-	}
-	return true, "Set to dynamic IP using netsh"
+	return true, string(out)
 }
 
-func setStaticIPWindows(iface, ip, subnet, gateway, dns string) (bool, string) {
-	cmd := fmt.Sprintf(`netsh interface ip set address name="%s" static %s %s %s`, iface, ip, subnet, gateway)
-	if err := exec.Command("cmd", "/C", cmd).Run(); err != nil {
-		return false, "Failed to set static IP"
+func setStaticIP(iface, ip, subnet, gateway, dns string) (bool, string) {
+	prefix := subnetToPrefix(subnet)
+
+	cmd := exec.Command("powershell", "-Command",
+		fmt.Sprintf(`New-NetIPAddress -InterfaceAlias "%s" -IPAddress "%s" -PrefixLength %s -DefaultGateway "%s" -ErrorAction Stop`,
+			iface, ip, prefix, gateway))
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &out
+	err := cmd.Run()
+	if err != nil {
+		return false, out.String()
 	}
 
-	// Set DNS (may be multiple)
-	if dns != "" {
-		for i, d := range strings.Split(dns, ",") {
-			dnsCmd := fmt.Sprintf(`netsh interface ip add dns name="%s" %s %s`, iface, d, func() string {
-				if i == 0 {
-					return "validate=no"
-				}
-				return "index=2"
-			}())
-			if err := exec.Command("cmd", "/C", dnsCmd).Run(); err != nil {
-				return false, "IP set, DNS failed: " + err.Error()
+	dnsCmd := exec.Command("powershell", "-Command",
+		fmt.Sprintf(`Set-DnsClientServerAddress -InterfaceAlias "%s" -ServerAddresses (%s)`,
+			iface, formatDNSList(dns)))
+	var dnsOut bytes.Buffer
+	dnsCmd.Stdout = &dnsOut
+	dnsCmd.Stderr = &dnsOut
+	err = dnsCmd.Run()
+	if err != nil {
+		return true, "Static IP set, but DNS failed: " + dnsOut.String()
+	}
+
+	return true, "Successfully set static configuration"
+}
+
+func subnetToPrefix(subnet string) string {
+	parts := strings.Split(subnet, ".")
+	bits := 0
+	for _, part := range parts {
+		n := 0
+		fmt.Sscanf(part, "%d", &n)
+		for i := 7; i >= 0; i-- {
+			if n&(1<<i) != 0 {
+				bits++
 			}
 		}
 	}
-	return true, "Successfully applied static IP"
+	return fmt.Sprintf("%d", bits)
 }
 
-// Convert /24 to 255.255.255.0
-func prefixToNetmask(prefix string) string {
-	var p int
-	fmt.Sscanf(prefix, "%d", &p)
-	mask := net.CIDRMask(p, 32)
+func prefixToSubnet1(prefix string) string {
+	n := 0
+	fmt.Sscanf(prefix, "%d", &n)
+	mask := make([]int, 4)
+	for i := 0; i < 4; i++ {
+		if n >= 8 {
+			mask[i] = 255
+			n -= 8
+		} else {
+			mask[i] = ^(255 >> n) & 255
+			n = 0
+		}
+	}
 	return fmt.Sprintf("%d.%d.%d.%d", mask[0], mask[1], mask[2], mask[3])
 }
 
-func sendErrorResponse(w http.ResponseWriter, msg string, err error, req *NetworkUpdateRequest) {
-	w.WriteHeader(http.StatusBadRequest)
+func formatDNSList(dns string) string {
+	var quoted []string
+	for _, s := range strings.Split(dns, ",") {
+		quoted = append(quoted, fmt.Sprintf(`"%s"`, strings.TrimSpace(s)))
+	}
+	return strings.Join(quoted, ",")
+}
 
-	data := map[string]interface{}{
-		"new_config": req,
+func sendErrorResponse(w http.ResponseWriter, message string, err error) {
+	w.WriteHeader(http.StatusBadRequest)
+	resp := NetworkUpdateResponse{
+		Success: false,
+		Message: message,
 	}
 	if err != nil {
-		data["details"] = err.Error()
+		resp.Details = err.Error()
 	}
-
-	resp := map[string]interface{}{
-		"status":  "failed",
-		"message": msg,
-		"data":    data,
-	}
-
 	json.NewEncoder(w).Encode(resp)
 }

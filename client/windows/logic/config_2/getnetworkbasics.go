@@ -1,169 +1,159 @@
 package config_2
 
 import (
-	"bufio"
 	"encoding/json"
+	"fmt"
+	"net"
 	"net/http"
 	"os/exec"
-	"strconv"
 	"strings"
 )
 
-type InterfaceStatus struct {
+// InterfaceInfo represents information about a network interface
+type InterfaceInfo struct {
 	Mode   string `json:"mode"`
 	Status string `json:"status"`
 }
 
-type NetworkConfig struct {
-	IPMethod  string                     `json:"ip_method"`
-	IPAddress string                     `json:"ip_address"`
-	Gateway   string                     `json:"gateway"`
-	Subnet    string                     `json:"subnet"`
-	DNS       string                     `json:"dns"`
-	Interface map[string]InterfaceStatus `json:"interface"`
+// NetworkConfigResponse represents the response format
+type NetworkConfigResponse struct {
+	IPMethod  string                   `json:"ip_method"`
+	IPAddress string                   `json:"ip_address"`
+	Gateway   string                   `json:"gateway"`
+	Subnet    string                   `json:"subnet"`
+	DNS       string                   `json:"dns"`
+	Uptime    string                   `json:"uptime"`
+	Interface map[string]InterfaceInfo `json:"interface"`
 }
 
-type NetAdapter struct {
-	Name   string `json:"Name"`
-	Status string `json:"Status"`
-}
-
-func NetworkConfigHandler(w http.ResponseWriter, r *http.Request) {
+// HandleNetworkConfig handles the network config request on Windows
+func HandleNetworkConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 
-	if r.Method != http.MethodGet {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "failed",
-			"message": "Only GET method allowed",
-		})
-		return
+	response := NetworkConfigResponse{
+		IPMethod:  "static",
+		IPAddress: "",
+		Gateway:   "",
+		Subnet:    "",
+		DNS:       "",
+		Uptime:    "",
+		Interface: make(map[string]InterfaceInfo),
 	}
 
-	config := NetworkConfig{
-		Interface: make(map[string]InterfaceStatus),
+	ip, ifaceName, subnet, gateway := getIPAndGateway()
+	response.IPAddress = ip
+	response.Gateway = gateway
+	response.Subnet = subnet
+	if ip != "" {
+		response.IPMethod = "dynamic"
 	}
 
-	cmd := exec.Command("netsh", "interface", "ip", "show", "config")
-	output, err := cmd.Output()
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "failed",
-			"message": "Failed to get IP config: " + err.Error(),
-		})
-		return
-	}
-
-	scanner := bufio.NewScanner(strings.NewReader(string(output)))
-
-	var (
-		tempMethod string
-		tempIP     string
-		tempGW     string
-		tempSubnet string
-		tempDNS    []string
-		captured   bool
-		isLoopback bool
-	)
-
-	for scanner.Scan() {
-		line := strings.TrimSpace(scanner.Text())
-
-		if strings.HasPrefix(line, "Configuration for interface") {
-			if !captured && tempIP != "" && !isLoopback {
-				config.IPMethod = tempMethod
-				config.IPAddress = tempIP
-				config.Gateway = tempGW
-				config.Subnet = tempSubnet
-				config.DNS = strings.Join(tempDNS, ", ")
-				captured = true
-			}
-			tempMethod, tempIP, tempGW, tempSubnet = "", "", "", ""
-			tempDNS = []string{}
-			isLoopback = false
-		} else if strings.HasPrefix(line, "DHCP enabled") {
-			if strings.Contains(line, "Yes") {
-				tempMethod = "dynamic"
-			} else {
-				tempMethod = "static"
-			}
-		} else if strings.HasPrefix(line, "IP Address") || strings.HasPrefix(line, "IPv4 Address") {
-			ip := strings.TrimSpace(strings.Split(line, ":")[1])
-			ip = strings.Split(ip, "(")[0]
-			ip = strings.TrimSpace(ip)
-			if ip == "127.0.0.1" {
-				isLoopback = true
-			}
-			tempIP = ip
-		} else if strings.HasPrefix(line, "Default Gateway") && strings.Contains(line, ":") {
-			tempGW = strings.TrimSpace(strings.Split(line, ":")[1])
-		} else if strings.HasPrefix(line, "Subnet Prefix") && strings.Contains(line, "(") {
-			subnet := strings.TrimSpace(line[strings.LastIndex(line, "(")+1:])
-			subnet = strings.TrimSuffix(subnet, ")")
-			tempSubnet = subnet
-		} else if strings.HasPrefix(line, "DNS servers configured through DHCP") ||
-			strings.HasPrefix(line, "Statically Configured DNS Servers") {
-
-			parts := strings.Split(line, ":")
-			if len(parts) > 1 {
-				dns := strings.TrimSpace(parts[1])
-				if dns != "" {
-					tempDNS = append(tempDNS, dns)
-				}
-			}
-
-			for scanner.Scan() {
-				nextLine := strings.TrimSpace(scanner.Text())
-				if nextLine == "" || strings.Contains(nextLine, ":") {
-					break
-				}
-				tempDNS = append(tempDNS, nextLine)
-			}
-		}
-	}
-
-	if !captured && tempIP != "" && !isLoopback {
-		config.IPMethod = tempMethod
-		config.IPAddress = tempIP
-		config.Gateway = tempGW
-		config.Subnet = tempSubnet
-		config.DNS = strings.Join(tempDNS, ", ")
-	}
-
-	ifaceCmd := exec.Command("powershell", "-Command", "Get-NetAdapter | Select-Object Name, Status | ConvertTo-Json")
-	ifaceOutput, err := ifaceCmd.Output()
+	ifaces, err := net.Interfaces()
 	if err == nil {
-		var adapters []NetAdapter
-		err = json.Unmarshal(ifaceOutput, &adapters)
-		if err != nil {
-			var single NetAdapter
-			if err2 := json.Unmarshal(ifaceOutput, &single); err2 == nil {
-				adapters = append(adapters, single)
-			} else {
-				w.WriteHeader(http.StatusInternalServerError)
-				json.NewEncoder(w).Encode(map[string]string{
-					"status":  "failed",
-					"message": "Failed to parse adapter list: " + err.Error(),
-				})
-				return
+		count := 1
+		for _, iface := range ifaces {
+			if (iface.Flags&net.FlagLoopback) != 0 || strings.Contains(iface.Name, "Loopback") {
+				continue
 			}
-		}
-
-		for i, adapter := range adapters {
-			status := strings.ToLower(adapter.Status)
-			if status == "up" || status == "connected" {
+			status := "inactive"
+			if iface.Name == ifaceName {
 				status = "active"
-			} else {
-				status = "inactive"
 			}
-			key := strconv.Itoa(i + 1)
-			config.Interface[key] = InterfaceStatus{
-				Mode:   adapter.Name,
+			response.Interface[fmt.Sprintf("%d", count)] = InterfaceInfo{
+				Mode:   iface.Name,
 				Status: status,
 			}
+			count++
 		}
 	}
 
-	json.NewEncoder(w).Encode(config)
+	dnsServers := getDNSServers()
+	response.DNS = strings.Join(dnsServers, ", ")
+
+	response.Uptime = getSystemUptimeWindows()
+
+	fmt.Println("Sending Windows network configuration response...")
+	json.NewEncoder(w).Encode(response)
+}
+
+// getIPAndGateway returns the IP, interface name, subnet, and gateway
+func getIPAndGateway() (string, string, string, string) {
+	cmd := exec.Command("powershell", "(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null } | Select-Object -First 1).IPv4Address.IPAddress")
+	out, err := cmd.Output()
+	if err != nil {
+		return "", "", "", ""
+	}
+	ip := strings.TrimSpace(string(out))
+
+	cmd2 := exec.Command("powershell", "Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null } | Select-Object -First 1 -ExpandProperty InterfaceAlias")
+	ifaceOut, err := cmd2.Output()
+	if err != nil {
+		return ip, "", "", ""
+	}
+	iface := strings.TrimSpace(string(ifaceOut))
+
+	cmd3 := exec.Command("powershell", "Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null } | Select-Object -First 1 | ForEach-Object { $_.IPv4Address.PrefixLength }")
+	subnetPrefix, err := cmd3.Output()
+	subnet := "255.255.255.0"
+	if err == nil {
+		subnet = prefixToSubnet(strings.TrimSpace(string(subnetPrefix)))
+	}
+
+	cmd4 := exec.Command("powershell", "Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Select-Object -First 1 -ExpandProperty NextHop")
+	gatewayOut, err := cmd4.Output()
+	gateway := strings.TrimSpace(string(gatewayOut))
+	if err != nil {
+		gateway = ""
+	}
+
+	return ip, iface, subnet, gateway
+}
+
+// Convert prefix length to subnet
+func prefixToSubnet(prefix string) string {
+	var bits int
+	fmt.Sscanf(prefix, "%d", &bits)
+	mask := ^uint32(0) << (32 - bits)
+	return fmt.Sprintf("%d.%d.%d.%d",
+		(mask>>24)&0xFF,
+		(mask>>16)&0xFF,
+		(mask>>8)&0xFF,
+		mask&0xFF)
+}
+
+// getDNSServers returns DNS servers from Windows
+func getDNSServers() []string {
+	cmd := exec.Command("powershell", "Get-DnsClientServerAddress -AddressFamily IPv4 | ForEach-Object { $_.ServerAddresses }")
+	output, err := cmd.Output()
+	if err != nil {
+		return []string{}
+	}
+	lines := strings.Split(string(output), "\n")
+	servers := []string{}
+	for _, line := range lines {
+		ip := strings.TrimSpace(line)
+		if net.ParseIP(ip) != nil {
+			servers = append(servers, ip)
+		}
+	}
+	return servers
+}
+
+// getSystemUptimeWindows returns system uptime using PowerShell
+func getSystemUptimeWindows() string {
+	cmd := exec.Command("powershell", "-Command", `
+		$uptime = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+		$uptimeSpan = (Get-Date) - $uptime
+		"{0} days, {1} hours, {2} minutes" -f $uptimeSpan.Days, $uptimeSpan.Hours, $uptimeSpan.Minutes
+	`)
+
+	out, err := cmd.Output()
+	if err != nil {
+		return "Unable to determine uptime"
+	}
+	return strings.TrimSpace(string(out))
 }

@@ -19,23 +19,27 @@ func HandleRestartInterfaces(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	currentTime := "2025-05-30 15:18:19"
+	currentUser := "kishore-001"
+
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		sendRestartError(w, "Failed to get network interfaces", err)
+		sendError(w, "Failed to get network interfaces", err)
 		return
 	}
 
-	var restartedInterfaces []string
+	restartedInterfaces := []string{}
 
 	for _, iface := range interfaces {
 		// Skip loopback and virtual interfaces
 		if iface.Flags&net.FlagLoopback != 0 ||
-			strings.Contains(iface.Name, "vEthernet") ||
 			strings.Contains(iface.Name, "Loopback") ||
-			strings.Contains(iface.Name, "Virtual") {
+			strings.Contains(strings.ToLower(iface.Name), "vmware") ||
+			strings.Contains(strings.ToLower(iface.Name), "virtual") {
 			continue
 		}
 
+		// Only attempt restart if the interface is up
 		if iface.Flags&net.FlagUp != 0 {
 			err := restartInterfaceWindows(iface.Name)
 			if err != nil {
@@ -46,51 +50,47 @@ func HandleRestartInterfaces(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	status := "failed"
-	msg := "No interfaces were restarted"
-	if len(restartedInterfaces) > 0 {
-		status = "success"
-		msg = fmt.Sprintf("Restarted %d interface(s)", len(restartedInterfaces))
+	response := map[string]interface{}{
+		"status":     "success",
+		"message":    fmt.Sprintf("Restarted %d interfaces", len(restartedInterfaces)),
+		"interfaces": restartedInterfaces,
+		"timestamp":  currentTime,
+		"user":       currentUser,
 	}
 
-	resp := map[string]interface{}{
-		"status":  status,
-		"message": msg,
-		"data": map[string]interface{}{
-			"interfaces": restartedInterfaces,
-		},
+	if len(restartedInterfaces) == 0 {
+		response["status"] = "warning"
+		response["message"] = "No interfaces were restarted"
 	}
 
-	json.NewEncoder(w).Encode(resp)
+	fmt.Printf("%d interfaces restarted by user %s\n", len(restartedInterfaces), currentUser)
+	json.NewEncoder(w).Encode(response)
 }
 
-// restartInterfaceWindows disables and re-enables a network adapter using PowerShell
+// restartInterfaceWindows disables and enables a network adapter using PowerShell
 func restartInterfaceWindows(interfaceName string) error {
-	disableCmd := exec.Command("powershell", "-Command", fmt.Sprintf(`Disable-NetAdapter -Name "%s" -Confirm:$false`, interfaceName))
-	if output, err := disableCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("disable error: %v, output: %s", err, output)
+	disableCmd := exec.Command("powershell", "-Command", fmt.Sprintf("Disable-NetAdapter -Name \"%s\" -Confirm:$false", interfaceName))
+	if out, err := disableCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to disable interface: %v, output: %s", err, string(out))
 	}
 
 	time.Sleep(1 * time.Second)
 
-	enableCmd := exec.Command("powershell", "-Command", fmt.Sprintf(`Enable-NetAdapter -Name "%s" -Confirm:$false`, interfaceName))
-	if output, err := enableCmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("enable error: %v, output: %s", err, output)
+	enableCmd := exec.Command("powershell", "-Command", fmt.Sprintf("Enable-NetAdapter -Name \"%s\" -Confirm:$false", interfaceName))
+	if out, err := enableCmd.CombinedOutput(); err != nil {
+		return fmt.Errorf("failed to enable interface: %v, output: %s", err, string(out))
 	}
 
-	fmt.Printf("Restarted interface: %s\n", interfaceName)
+	fmt.Printf("Successfully restarted interface %s\n", interfaceName)
 	return nil
 }
 
-// sendRestartError sends a standardized JSON error response
-func sendRestartError(w http.ResponseWriter, msg string, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	resp := map[string]interface{}{
-		"status":  "failed",
-		"message": msg,
-		"data": map[string]interface{}{
-			"details": err.Error(),
-		},
-	}
-	json.NewEncoder(w).Encode(resp)
+// sendError sends a JSON error response
+func sendError(w http.ResponseWriter, message string, err error) {
+	w.WriteHeader(http.StatusBadRequest)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":  "error",
+		"message": message,
+		"details": err.Error(),
+	})
 }

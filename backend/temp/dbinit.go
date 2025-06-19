@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	db, err := sql.Open("postgres", "postgres://admin:admin@localhost:8500/snsmsdb?sslmode=disable")
+	db, err := sql.Open("postgres", "postgres://postgres:password@localhost:8500/SSMS?sslmode=disable")
 	if err != nil {
 		log.Fatal(err)
 	}
