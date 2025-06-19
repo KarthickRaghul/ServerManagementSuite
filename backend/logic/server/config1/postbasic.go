@@ -5,11 +5,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"time"
 
+	"backend/config"
 	serverdb "backend/db/gen/server"
 )
 
@@ -66,8 +66,9 @@ func HandleBasicChange(queries *serverdb.Queries) http.HandlerFunc {
 			return
 		}
 
-		// Create request to remote client
-		clientURL := fmt.Sprintf("http://%s/client/config1/basic_update", req.Host)
+		// ✅ Use config for client URL (reads from .env file)
+		clientURL := config.GetClientURL(req.Host, "/client/config1/basic_update")
+
 		clientReq, err := http.NewRequest("POST", clientURL, bytes.NewBuffer(jsonPayload))
 		if err != nil {
 			http.Error(w, "Failed to create request", http.StatusInternalServerError)
@@ -114,4 +115,3 @@ func HandleBasicChange(queries *serverdb.Queries) http.HandlerFunc {
 		json.NewEncoder(w).Encode(clientResp)
 	}
 }
-

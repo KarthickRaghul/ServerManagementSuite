@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -99,8 +98,8 @@ func HandleServerOverview(queries *serverdb.Queries) http.HandlerFunc {
 
 // getClientUptime fetches uptime from the client and returns uptime string and online status
 func getClientUptime(host, accessToken string) (string, bool) {
-	// Create request to client
-	clientURL := fmt.Sprintf("http://%s/client/config1/uptime", host)
+	// ✅ Use config for client URL (reads from .env file)
+	clientURL := config.GetClientURL(host, "/client/config1/uptime")
 
 	req, err := http.NewRequest("GET", clientURL, nil)
 	if err != nil {

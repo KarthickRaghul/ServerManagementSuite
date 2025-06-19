@@ -1,3 +1,4 @@
+// main.go
 package main
 
 import (
@@ -10,6 +11,8 @@ import (
 )
 
 func main() {
+	// Load configuration first
+	config.LoadConfig()
 
 	// Create separate muxes for different protection levels
 	publicMux := http.NewServeMux()
@@ -28,14 +31,12 @@ func main() {
 	common.RegisterAuthRoutes(publicMux, generalqueries)
 
 	// 🔒 Protected routes (authentication required)
-
 	//  Server Protected Routes
 	server.RegisterHealthRoutes(protectedMux, serverqueries)
 	server.RegisterAlertRoutes(protectedMux, serverqueries)
 	server.RegisterLogRoutes(protectedMux, serverqueries)
 
 	// 👑 Admin-only routes
-
 	//  Common Admin Routes
 	common.RegisterSettingsRoutes(adminMux, generalqueries)
 
@@ -43,7 +44,6 @@ func main() {
 	server.RegisterConfig1Routes(adminMux, serverqueries)
 	server.RegisterConfig2Routes(adminMux, serverqueries)
 	server.RegisterOptimisation(adminMux, serverqueries)
-	//	server.RegisterBackupRoutes(adminMux, queries)
 
 	// Create main mux and apply appropriate middlewares
 	mainMux := http.NewServeMux()
@@ -54,8 +54,8 @@ func main() {
 	mainMux.Handle("/api/network/", config.ApplyProtectedMiddlewares(protectedMux))
 	mainMux.Handle("/api/admin/", config.ApplyAdminMiddlewares(adminMux))
 
-	log.Println("✅ SNSMS backend running on port 8000...")
-	if err := http.ListenAndServe("0.0.0.0:8000", mainMux); err != nil {
+	log.Printf("✅ SNSMS backend running on port %s...", config.AppConfig.ServerPort)
+	if err := http.ListenAndServe("0.0.0.0:"+config.AppConfig.ServerPort, mainMux); err != nil {
 		log.Fatalf("❌ Server failed: %v", err)
 	}
 }

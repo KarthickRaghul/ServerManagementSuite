@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"backend/config"
 	serverdb "backend/db/gen/server"
 )
 
@@ -65,8 +66,9 @@ func HandleSSHKeyManagement(queries *serverdb.Queries) http.HandlerFunc {
 			return
 		}
 
-		// Create request to remote client
-		clientURL := fmt.Sprintf("http://%s/client/config1/ssh", req.Host)
+		// ✅ Use config for client URL (reads from .env file)
+		clientURL := config.GetClientURL(req.Host, "/client/config1/ssh")
+
 		clientReq, err := http.NewRequest("POST", clientURL, bytes.NewBuffer(jsonPayload))
 		if err != nil {
 			http.Error(w, "Failed to create request", http.StatusInternalServerError)
