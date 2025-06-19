@@ -2,125 +2,102 @@ package log
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
-	"path/filepath"
+	"strconv"
 	"strings"
+	"time"
 )
 
-type FileLogEntry struct {
-	Path    string `json:"path"`
-	Content string `json:"content"`
+type LogEntry struct {
+	Timestamp   string `json:"timestamp"`
+	Level       string `json:"level"`
+	Application string `json:"application"`
+	Message     string `json:"message"`
 }
 
-type EventLogEntry struct {
-	Provider string `json:"provider"`
-	Message  string `json:"message"`
+type LogFilterRequest struct {
+	Date string `json:"date"` // Format: "YYYY-MM-DD"
+	Time string `json:"time"` // Format: "HH:MM:SS"
 }
 
-func cleanString(s string) string {
-	replacer := strings.NewReplacer(
-		"\r\n", " ",
-		"\n", " ",
-		"\r", " ",
-		"\t", " ",
-	)
-	return replacer.Replace(s)
+// parseLogLevel - very basic level parsing based on keywords
+func parseLogLevel(message string) string {
+	lower := strings.ToLower(message)
+	switch {
+	case strings.Contains(lower, "error"):
+		return "error"
+	case strings.Contains(lower, "warn"):
+		return "warning"
+	default:
+		return "info"
+	}
 }
 
-func HandleAllSystemLogs(w http.ResponseWriter, r *http.Request) {
+func HandleLog(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET method allowed", http.StatusMethodNotAllowed)
-		return
+	numLines := 100
+	if n := r.URL.Query().Get("lines"); n != "" {
+		if parsed, err := strconv.Atoi(n); err == nil && parsed > 0 {
+			numLines = parsed
+		}
 	}
 
-	// 1. Get Event Logs from PowerShell
-	psCommand := `Get-WinEvent -LogName System,Application,Security -MaxEvents 50 | Select-Object ProviderName, Message | ConvertTo-Json -Compress`
-	cmd := exec.Command("powershell", "-Command", psCommand)
-	output, err := cmd.Output()
+	var filter LogFilterRequest
+	if r.Body != nil {
+		_ = json.NewDecoder(r.Body).Decode(&filter)
+	}
+
+	// Construct PowerShell command
+	sinceFilter := ""
+	if filter.Date != "" || filter.Time != "" {
+		timestamp := ""
+		if filter.Date != "" && filter.Time != "" {
+			timestamp = fmt.Sprintf("%s %s", filter.Date, filter.Time)
+		} else if filter.Date != "" {
+			timestamp = filter.Date
+		} else if filter.Time != "" {
+			timestamp = time.Now().Format("2006-01-02") + " " + filter.Time
+		}
+
+		sinceFilter = fmt.Sprintf(`| Where-Object {$_.TimeCreated -ge (Get-Date "%s")}`, timestamp)
+	}
+
+	powershellCmd := fmt.Sprintf(`Get-WinEvent -LogName System -MaxEvents %d %s | Select-Object TimeCreated, Message, ProviderName | Format-List`, numLines, sinceFilter)
+	cmd := exec.Command("powershell", "-Command", powershellCmd)
+
+	output, err := cmd.CombinedOutput()
 	if err != nil {
-		sendLogError(w, "Failed to retrieve event logs", err)
+		http.Error(w, "Error fetching logs: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	var eventLogs []EventLogEntry
-	if err := json.Unmarshal(output, &eventLogs); err != nil {
-		var single EventLogEntry
-		if err2 := json.Unmarshal(output, &single); err2 == nil {
-			eventLogs = []EventLogEntry{single}
-		} else {
-			sendLogError(w, "Failed to parse event logs", err)
-			return
+	entries := []LogEntry{}
+	lines := strings.Split(string(output), "\n")
+
+	var currentEntry LogEntry
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "TimeCreated") {
+			timeStr := strings.TrimPrefix(line, "TimeCreated : ")
+			t, err := time.Parse(time.RFC3339, timeStr)
+			if err == nil {
+				currentEntry.Timestamp = t.Format(time.RFC3339)
+			} else {
+				currentEntry.Timestamp = time.Now().Format(time.RFC3339)
+			}
+		} else if strings.HasPrefix(line, "ProviderName") {
+			currentEntry.Application = strings.TrimPrefix(line, "ProviderName : ")
+		} else if strings.HasPrefix(line, "Message") {
+			currentEntry.Message = strings.TrimPrefix(line, "Message : ")
+			currentEntry.Level = parseLogLevel(currentEntry.Message)
+		} else if line == "" && currentEntry.Message != "" {
+			entries = append(entries, currentEntry)
+			currentEntry = LogEntry{}
 		}
 	}
 
-	for i := range eventLogs {
-		eventLogs[i].Message = cleanString(eventLogs[i].Message)
-	}
-
-	// 2. Read file logs
-	logDirs := []string{
-		`C:\Windows\Logs`,
-		`C:\ProgramData\Microsoft\Windows\WER\ReportArchive`,
-	}
-
-	var fileLogs []FileLogEntry
-	for _, dir := range logDirs {
-		files, err := os.ReadDir(dir)
-		if err != nil {
-			continue
-		}
-
-		for _, file := range files {
-			if file.IsDir() {
-				continue
-			}
-
-			fullPath := filepath.Join(dir, file.Name())
-			ext := filepath.Ext(fullPath)
-			if ext != ".log" && ext != ".txt" {
-				continue
-			}
-
-			if strings.EqualFold(file.Name(), "StorGroupPolicy.log") {
-				continue
-			}
-
-			data, err := os.ReadFile(fullPath)
-			if err != nil {
-				continue
-			}
-
-			fileLogs = append(fileLogs, FileLogEntry{
-				Path:    fullPath,
-				Content: cleanString(string(data)),
-			})
-		}
-	}
-
-	// Final response
-	resp := map[string]interface{}{
-		"status":  "success",
-		"message": "System logs retrieved successfully",
-		"data": map[string]interface{}{
-			"event_logs": eventLogs,
-			"file_logs":  fileLogs,
-		},
-	}
-
-	json.NewEncoder(w).Encode(resp)
-}
-
-func sendLogError(w http.ResponseWriter, msg string, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "failed",
-		"message": msg,
-		"data": map[string]interface{}{
-			"details": err.Error(),
-		},
-	})
+	json.NewEncoder(w).Encode(entries)
 }

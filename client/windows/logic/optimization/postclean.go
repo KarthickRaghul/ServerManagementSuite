@@ -5,9 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/user"
 	"path/filepath"
-	"time"
 )
 
 // cleanDir tries to remove all files/subfolders in a directory (but not the dir itself)
@@ -23,22 +21,17 @@ func cleanDir(path string) error {
 		return err
 	}
 
-	var finalErr error
 	for _, name := range names {
 		fullpath := filepath.Join(path, name)
 		err = os.RemoveAll(fullpath)
 		if err != nil {
-			fmt.Printf("Failed to remove %s: %v\n", fullpath, err)
-			if finalErr == nil {
-				finalErr = fmt.Errorf("%s (%v)", fullpath, err)
-			} else {
-				finalErr = fmt.Errorf("%v; %s (%v)", finalErr, fullpath, err)
-			}
+			return err
 		}
 	}
-	return finalErr
+	return nil
 }
 
+// HandleFileClean handles POST requests to clean temporary/cache folders on Windows
 func HandleFileClean(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
@@ -47,37 +40,23 @@ func HandleFileClean(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr, err := user.Current()
+	// Optionally check user (but not used)
+	_, err := os.UserHomeDir()
 	if err != nil {
-		http.Error(w, "Cannot get current user", http.StatusInternalServerError)
+		http.Error(w, "Failed to get user home directory", http.StatusInternalServerError)
 		return
 	}
 
-	userTemp := os.Getenv("TEMP")
-	if userTemp == "" {
-		userTemp = os.Getenv("TMP")
-	}
-	if userTemp == "" {
-		userTemp = filepath.Join(usr.HomeDir, "AppData", "Local", "Temp")
-	}
+	// Windows common temp/cache directories
+	tempDir := os.TempDir()                         // e.g., C:\Users\You\AppData\Local\Temp
+	localAppData := os.Getenv("LOCALAPPDATA")       // e.g., C:\Users\You\AppData\Local
+	userTemp := filepath.Join(localAppData, "Temp") // Redundant but kept for completeness
 
-	windowsTemp := filepath.Join(os.Getenv("SystemRoot"), "Temp")
-	if windowsTemp == "" {
-		windowsTemp = `C:\Windows\Temp`
-	}
-
-	userCache := filepath.Join(usr.HomeDir, "AppData", "Local", "Cache")
-
-	dirs := []string{userTemp, windowsTemp, userCache}
-
+	dirs := []string{tempDir, userTemp}
 	var cleaned []string
 	var failed []string
 
 	for _, dir := range dirs {
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			continue
-		}
-
 		err := cleanDir(dir)
 		if err == nil {
 			cleaned = append(cleaned, dir)
@@ -87,15 +66,15 @@ func HandleFileClean(w http.ResponseWriter, r *http.Request) {
 	}
 
 	status := "success"
+	message := fmt.Sprintf("Cleaned: %v", cleaned)
 	if len(failed) > 0 {
 		status = "partial"
+		message = fmt.Sprintf("Cleaned: %v. Failed: %v", cleaned, failed)
 	}
 
 	resp := map[string]interface{}{
-		"status":    status,
-		"cleaned":   cleaned,
-		"failed":    failed,
-		"timestamp": time.Now().Format("2006-01-02 15:04:05"),
+		"status":  status,
+		"message": message,
 	}
 
 	json.NewEncoder(w).Encode(resp)

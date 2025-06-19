@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 )
 
-// sizeOfDir recursively calculates the total size of files in a directory
+// sizeOfDir calculates total size of all files in the directory (recursively)
 func sizeOfDir(path string) (int64, error) {
 	var total int64
 	err := filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
@@ -33,28 +33,22 @@ func HandleFileInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	usr, err := user.Current()
-	if err != nil {
-		sendFileInfoError(w, "Cannot get current user", err)
+	if _, err := user.Current(); err != nil {
+		http.Error(w, "Failed to get current user", http.StatusInternalServerError)
 		return
 	}
 
-	userTemp := os.Getenv("TEMP")
-	if userTemp == "" {
-		userTemp = os.Getenv("TMP")
-	}
-	if userTemp == "" {
-		userTemp = filepath.Join(usr.HomeDir, "AppData", "Local", "Temp")
-	}
+	// Windows common temp/cache directories
+	userTemp := filepath.Join(os.Getenv("TEMP"))
+	userAppData := filepath.Join(os.Getenv("APPDATA"))
+	localAppData := filepath.Join(os.Getenv("LOCALAPPDATA"))
 
-	windowsTemp := filepath.Join(os.Getenv("SystemRoot"), "Temp")
-	if windowsTemp == "" {
-		windowsTemp = `C:\Windows\Temp`
+	dirs := []string{
+		userTemp,
+		filepath.Join(userAppData, "Temp"),
+		filepath.Join(localAppData, "Temp"),
 	}
 
-	userCache := filepath.Join(usr.HomeDir, "AppData", "Local", "Cache")
-
-	dirs := []string{userTemp, windowsTemp, userCache}
 	sizes := make(map[string]int64)
 	var failed []string
 
@@ -68,26 +62,10 @@ func HandleFileInfo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	resp := map[string]interface{}{
-		"status":  "success",
-		"message": "Directory sizes fetched",
-		"data": map[string]interface{}{
-			"folders": dirs,
-			"sizes":   sizes,
-			"failed":  failed,
-		},
+		"folders": dirs,
+		"sizes":   sizes,
+		"failed":  failed,
 	}
 
 	json.NewEncoder(w).Encode(resp)
-}
-
-// sendFileInfoError sends a standardized error JSON response
-func sendFileInfoError(w http.ResponseWriter, msg string, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "failed",
-		"message": msg,
-		"data": map[string]string{
-			"details": err.Error(),
-		},
-	})
 }

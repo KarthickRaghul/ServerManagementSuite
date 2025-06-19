@@ -1,15 +1,41 @@
 package config_1
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
-	"os/user"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 )
 
-type SSHKeyPayload struct {
-	PublicKey string `json:"public_key"`
+type SSHKeyRequest struct {
+	Key string `json:"key"`
+}
+
+type SSHKeyResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+}
+
+// getWindowsUsername runs `whoami` and extracts the username
+func getWindowsUsername() (string, error) {
+	cmd := exec.Command("whoami")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return "", fmt.Errorf("failed to run whoami: %v", err)
+	}
+	fullOutput := strings.TrimSpace(out.String()) // e.g., "DESKTOP-XYZ\\karthick"
+	parts := strings.Split(fullOutput, `\`)
+	if len(parts) != 2 {
+		return "", fmt.Errorf("unexpected whoami format: %s", fullOutput)
+	}
+	return parts[1], nil // Return just "karthick"
 }
 
 func HandleSSHUpload(w http.ResponseWriter, r *http.Request) {
@@ -17,77 +43,91 @@ func HandleSSHUpload(w http.ResponseWriter, r *http.Request) {
 
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "failed",
-			"message": "Only POST method is allowed",
+		json.NewEncoder(w).Encode(SSHKeyResponse{
+			Status:  "failed",
+			Message: "Only POST method allowed",
 		})
 		return
 	}
 
-	var payload SSHKeyPayload
-	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+	var keyRequest SSHKeyRequest
+	if err := json.NewDecoder(r.Body).Decode(&keyRequest); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "failed",
-			"message": "Invalid JSON format",
+		json.NewEncoder(w).Encode(SSHKeyResponse{
+			Status:  "failed",
+			Message: "Invalid JSON input",
 		})
 		return
 	}
 
-	if payload.PublicKey == "" {
+	if keyRequest.Key == "" {
 		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "failed",
-			"message": "Public key is required",
+		json.NewEncoder(w).Encode(SSHKeyResponse{
+			Status:  "failed",
+			Message: "SSH key is empty",
 		})
 		return
 	}
 
-	currentUser, err := user.Current()
+	if runtime.GOOS != "windows" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(SSHKeyResponse{
+			Status:  "failed",
+			Message: "This endpoint is designed for Windows systems",
+		})
+		return
+	}
+
+	username, err := getWindowsUsername()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "failed",
-			"message": "Unable to determine current user",
+		json.NewEncoder(w).Encode(SSHKeyResponse{
+			Status:  "failed",
+			Message: fmt.Sprintf("Could not get username: %v", err),
 		})
 		return
 	}
 
-	sshDir := filepath.Join(currentUser.HomeDir, ".ssh")
-	authKeysPath := filepath.Join(sshDir, "authorized_keys")
+	homeDir := filepath.Join("C:\\Users", username)
+	sshDir := filepath.Join(homeDir, ".ssh")
+	authFile := filepath.Join(sshDir, "authorized_keys")
 
-	if _, err := os.Stat(sshDir); os.IsNotExist(err) {
-		if err := os.MkdirAll(sshDir, 0700); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(map[string]string{
-				"status":  "failed",
-				"message": "Failed to create .ssh directory",
-			})
-			return
-		}
+	if err := os.MkdirAll(sshDir, 0700); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(SSHKeyResponse{
+			Status:  "failed",
+			Message: "Failed to create .ssh directory",
+		})
+		return
 	}
 
-	f, err := os.OpenFile(authKeysPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	sshKey := keyRequest.Key
+	if sshKey[len(sshKey)-1] != '\n' {
+		sshKey += "\n"
+	}
+
+	file, err := os.OpenFile(authFile, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "failed",
-			"message": "Failed to open authorized_keys",
+		json.NewEncoder(w).Encode(SSHKeyResponse{
+			Status:  "failed",
+			Message: fmt.Sprintf("Failed to open authorized_keys: %v", err),
 		})
 		return
 	}
-	defer f.Close()
+	defer file.Close()
 
-	if _, err := f.WriteString(payload.PublicKey + "\n"); err != nil {
+	if _, err := file.WriteString(sshKey); err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status":  "failed",
-			"message": "Failed to write SSH key",
+		json.NewEncoder(w).Encode(SSHKeyResponse{
+			Status:  "failed",
+			Message: "Failed to write SSH key",
 		})
 		return
 	}
 
-	json.NewEncoder(w).Encode(map[string]string{
-		"status": "success",
+	json.NewEncoder(w).Encode(SSHKeyResponse{
+		Status:  "success",
+		Message: fmt.Sprintf("SSH key uploaded to %s", authFile),
 	})
 }

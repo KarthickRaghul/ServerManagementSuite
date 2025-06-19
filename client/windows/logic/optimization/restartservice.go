@@ -20,7 +20,7 @@ type RestartResponse struct {
 	Timestamp string `json:"timestamp"`
 }
 
-func RestartServiceHandler(w http.ResponseWriter, r *http.Request) {
+func HandleRestartService(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -45,27 +45,19 @@ func RestartServiceHandler(w http.ResponseWriter, r *http.Request) {
 		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
-	// Stop the service
-	stopCmd := exec.Command("powershell", "-Command", "Stop-Service -Name \""+serviceName+"\" -Force")
-	stopOutput, stopErr := stopCmd.CombinedOutput()
-	if stopErr != nil {
-		resp.Status = "error"
-		resp.Message = fmt.Sprintf("Failed to stop service: %v, Output: %s", stopErr, string(stopOutput))
-		json.NewEncoder(w).Encode(resp)
-		return
-	}
+	// PowerShell command to restart the service
+	powershellCmd := fmt.Sprintf("Restart-Service -Name '%s' -Force", serviceName)
+	cmd := exec.Command("powershell", "-Command", powershellCmd)
 
-	// Start the service
-	startCmd := exec.Command("powershell", "-Command", "Start-Service -Name \""+serviceName+"\"")
-	startOutput, startErr := startCmd.CombinedOutput()
-	if startErr != nil {
+	output, err := cmd.CombinedOutput()
+	if err != nil {
 		resp.Status = "error"
-		resp.Message = fmt.Sprintf("Failed to start service: %v, Output: %s", startErr, string(startOutput))
+		resp.Message = fmt.Sprintf("Failed to restart service: %v, Output: %s", err, string(output))
 		json.NewEncoder(w).Encode(resp)
 		return
 	}
 
 	resp.Status = "success"
-	resp.Message = fmt.Sprintf("Service '%s' stopped and started successfully", serviceName)
+	resp.Message = fmt.Sprintf("Service '%s' restarted successfully", serviceName)
 	json.NewEncoder(w).Encode(resp)
 }

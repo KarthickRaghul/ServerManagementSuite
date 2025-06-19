@@ -7,5 +7,5 @@ import (
 )
 
 func RegisterLogRoutes(mux *http.ServeMux) {
-	mux.Handle("/client/log", auth.TokenAuthMiddleware(http.HandlerFunc(log.HandleAllSystemLogs)))
+	mux.Handle("/client/log", auth.TokenAuthMiddleware(http.HandlerFunc(log.HandleLog)))
 }
