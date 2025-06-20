@@ -30,52 +30,148 @@ Built with a modular architecture and robust security, SMS is ideal for universi
 
 ---
 
-## 🛠️ Installation Guide
+## ⚙️ Installation Instructions
 
-### Prerequisites
-
-- Go 1.19+ (backend, client)
-- PostgreSQL (database)
-- Node.js & npm (frontend)
-- Linux or Windows servers for client agents
-
-
-### Backend Setup (Go + PostgreSQL)
+### 1. Clone the Repository
 
 ```bash
-git clone <repository-url>
-cd backend
-go mod download
-cp .env.example .env # Edit with your DB credentials and secrets
-go run temp/dbinit.go # Initialize database
-go run main.go # Start backend server
+git clone https://github.com/your-username/ServerSecurityTool.git
 ```
 
-### Frontend Setup (React + Vite)
+> Replace `your-username` with your actual GitHub username or organization.
+
+---
+
+### 2. Install Vite
+
+#### 🪟 On Windows (CMD or PowerShell):
+
+```cmd
+npm install -g vite
+```
+
+#### 🐧 On Linux:
 
 ```bash
-cd frontend
-npm install
-cp .env.example .env # Set backend URL
-npm run dev # Start frontend (dev mode)
-npm run build # Build for production
+sudo npm install -g vite
 ```
 
-### Client Deployment (Go Agent)
+---
 
-On each managed Linux server:
+### 3. Set Up the Environment File
+
+Create a `.env` file inside the backend directory:
+
+```
+ServerSecurityTool/backend/.env
+```
+
+Add the following content:
+
+```env
+DATABASE_URL=postgres://postgres:password@localhost:8500/SSMS?sslmode=disable
+```
+
+#### 📘 Breakdown of `DATABASE_URL`:
+
+- **postgres** → PostgreSQL **username**
+- **password** → PostgreSQL **password**
+- **localhost** → Database **host** (use IP address if PostgreSQL is on a different machine)
+- **8500** → PostgreSQL **port**
+- **SSMS** → Name of the **PostgreSQL database**
+- **sslmode=disable** → Disables SSL; suitable for local development
+
+---
+
+### 4. Run the Backend
+
+#### 🪟 On Windows (PowerShell as Administrator):
+
+```powershell
+cd ServerSecurityTool/backend
+go run main.go
+```
+
+> ⚠️ Make sure to **Run PowerShell as Administrator** to allow access to system resources.
+
+#### 🐧 On Linux:
 
 ```bash
-sudo ./client-executable --port 2210
+cd ServerSecurityTool/backend
+sudo go run main.go
 ```
 
-On each managed Windows server:
-use admin powershell or command prompt to run the exe file
+---
 
+### 5. Run the Frontend
 
+In a new terminal window:
 
-- Registers with backend using access token
-- Collects and sends metrics every 30 seconds
+```bash
+cd ServerSecurityTool/frontend
+npm run dev -- --host
+```
+
+> This will launch the frontend and make it accessible over the local network.
+
+---
+
+## 💻 Client Setup
+
+The client tool collects system metrics and sends data to the backend.
+
+---
+
+### Option 1: Clone Client on Server Machine
+
+```bash
+git clone https://github.com/your-username/ClientTool.git
+cd ClientTool
+```
+
+Run the client:
+
+#### 🪟 On Windows:
+
+```powershell
+.\client_tool.exe
+```
+
+> Run in PowerShell **as Administrator**.
+
+#### 🐧 On Linux:
+
+```bash
+sudo ./client_tool
+```
+
+---
+
+### Option 2: Build on Any Machine and Copy to Server
+
+1. Build the client:
+
+```bash
+go build -o client_tool main.go
+```
+
+2. Copy the compiled binary to your server via SCP, USB, or file transfer.
+
+3. Run on the server:
+
+#### 🐧 Linux:
+
+```bash
+sudo ./client_tool
+```
+
+#### 🪟 Windows:
+
+```powershell
+.\client_tool.exe
+```
+
+✅ Your ServerSecurityTool stack (backend, frontend, and client) is now fully set up and running.
 
 ---
 
