@@ -1,7 +1,10 @@
+// pages/login/Login.tsx
 import React, { useState, useEffect } from "react";
 import "./login.css";
-import { FaUser, FaLock, FaShieldAlt } from "react-icons/fa";
+import { FaUser, FaLock } from "react-icons/fa";
+import Lottie from "lottie-react";
 import img from "../../assets/img"; // Adjust the path as necessary
+import cyberAnimation from "../../assets/cyber.json"; // Import the Lottie animation
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState("");
@@ -10,6 +13,16 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Splash screen timer
+  useEffect(() => {
+    const splashTimer = setTimeout(() => {
+      setShowSplash(false);
+    }, 3000); // Show splash for 3 seconds
+
+    return () => clearTimeout(splashTimer);
+  }, []);
 
   // Get MAC address on component mount
   useEffect(() => {
@@ -81,10 +94,38 @@ const Login: React.FC = () => {
     }
   };
 
+  // Splash Screen Component
+  if (showSplash) {
+    return (
+      <div className="splash-screen-container">
+        <div className="splash-screen-content">
+          <div className="splash-screen-animation">
+            <Lottie 
+              animationData={cyberAnimation} 
+              loop={true} 
+              autoplay={true}
+              style={{ width: 300, height: 300 }}
+            />
+          </div>
+          <div className="splash-screen-text">
+            <h1 className="splash-screen-title">SMS</h1>
+            <p className="splash-screen-subtitle">Server Management Suite</p>
+            <div className="splash-screen-loading">
+              <div className="splash-screen-loading-bar">
+                <div className="splash-screen-loading-progress"></div>
+              </div>
+              <p className="splash-screen-loading-text">Loading...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Main Login Page
   return (
     <div className="login-page-wrapper">
       <div className="login-page-background">
-
         <div className="login-page-container">
           <div className="login-page-card">
             <div className="login-page-header">

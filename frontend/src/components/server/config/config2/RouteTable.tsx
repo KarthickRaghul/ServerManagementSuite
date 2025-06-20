@@ -37,14 +37,18 @@ const RouteTable: React.FC = () => {
     return false;
   };
 
+  // ✅ Fixed: Convert destination to CIDR format for deletion
   const handleDeleteRoute = async (route: Route) => {
-    if (window.confirm(`Are you sure you want to delete route to ${route.destination}?`)) {
+    // Format destination with CIDR notation for deletion
+    const formattedDestination = formatDestination(route.destination, route.genmask);
+    
+    if (window.confirm(`Are you sure you want to delete route to ${formattedDestination}?`)) {
       const success = await updateRoute({
         action: 'delete',
-        destination: route.destination,
+        destination: formattedDestination, // ✅ Now includes CIDR notation
         gateway: route.gateway === '*' ? '0.0.0.0' : route.gateway,
-        interface: route.iface,
-        metric: route.metric
+        interface: route.iface !== '-' ? route.iface : undefined,
+        metric: route.metric !== '-' ? route.metric : undefined
       });
       
       if (success) {
@@ -53,15 +57,29 @@ const RouteTable: React.FC = () => {
     }
   };
 
+  // ✅ Enhanced formatDestination function
   const formatDestination = (destination: string, genmask: string): string => {
+    // Handle default route
     if (destination === '0.0.0.0' && genmask === '0.0.0.0') {
-      return 'default';
+      return '0.0.0.0/0';
     }
     
+    // Handle localhost/loopback
+    if (destination === '127.0.0.0' && genmask === '255.0.0.0') {
+      return '127.0.0.0/8';
+    }
+    
+    // Convert netmask to CIDR
     const cidr = netmaskToCidr(genmask);
-    return cidr ? `${destination}/${cidr}` : destination;
+    if (cidr !== null) {
+      return `${destination}/${cidr}`;
+    }
+    
+    // Fallback: if we can't determine CIDR, assume /32 for host routes
+    return `${destination}/32`;
   };
 
+  // ✅ Enhanced netmask to CIDR conversion
   const netmaskToCidr = (netmask: string): number | null => {
     const netmaskMap: { [key: string]: number } = {
       '255.255.255.255': 32,
@@ -117,6 +135,16 @@ const RouteTable: React.FC = () => {
     return flags.split('').map(flag => flagMap[flag] || flag).join(', ');
   };
 
+  // ✅ Helper function to display destination in table
+  const getDisplayDestination = (destination: string, genmask: string): string => {
+    if (destination === '0.0.0.0' && genmask === '0.0.0.0') {
+      return 'default';
+    }
+    
+    const cidr = netmaskToCidr(genmask);
+    return cidr !== null ? `${destination}/${cidr}` : destination;
+  };
+
   return (
     <div className="route-table-card">
       <div className="route-table-header">
@@ -168,7 +196,7 @@ const RouteTable: React.FC = () => {
                   {routeTable.map((route, index) => (
                     <tr key={index} className="route-table-row">
                       <td className="route-table-destination">
-                        {formatDestination(route.destination, route.genmask)}
+                        {getDisplayDestination(route.destination, route.genmask)}
                       </td>
                       <td className="route-table-gateway">
                         {route.gateway === '*' ? 'Direct' : route.gateway}

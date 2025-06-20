@@ -97,7 +97,7 @@ interface WindowsFirewallUpdateData {
   name?: string;
   displayName?: string;
   direction?: 'Inbound' | 'Outbound';
-  action?: 'Allow' | 'Block';
+  actionType?: 'Allow' | 'Block';
   enabled?: 'True' | 'False';
   profile?: 'Public' | 'Private' | 'Domain' | 'Any';
   protocol?: 'TCP' | 'UDP' | 'Any';
@@ -298,10 +298,11 @@ export const useConfig2 = () => {
           });
           return true;
         } else {
-          throw new Error(data.message || 'Network update failed');
+          throw new Error(data.message || data.error || 'Network update failed');
         }
       } else {
-        throw new Error(`Failed to update network: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update network: ${response.status}`);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to update network';
@@ -362,10 +363,11 @@ export const useConfig2 = () => {
           });
           return true;
         } else {
-          throw new Error(data.message || `Failed to ${status} interface`);
+          throw new Error(data.message || data.error || `Failed to ${status} interface`);
         }
       } else {
-        throw new Error(`Failed to update interface: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to update interface: ${response.status}`);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : `Failed to ${status} interface`;
@@ -422,10 +424,11 @@ export const useConfig2 = () => {
           });
           return true;
         } else {
-          throw new Error(data.message || 'Failed to restart interface');
+          throw new Error(data.message || data.error || 'Failed to restart interface');
         }
       } else {
-        throw new Error(`Failed to restart interface: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Failed to restart interface: ${response.status}`);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to restart interface';
@@ -443,7 +446,7 @@ export const useConfig2 = () => {
     }
   };
 
-  // Update Route
+  // Enhanced Update Route with better error handling
   const updateRoute = async (routeData: RouteUpdateData): Promise<boolean> => {
     if (!activeDevice) {
       addNotification({
@@ -459,6 +462,8 @@ export const useConfig2 = () => {
     setError(null);
 
     try {
+      console.log('🔍 Sending route update:', { host: activeDevice.ip, ...routeData });
+
       const response = await AuthService.makeAuthenticatedRequest(
         `${BACKEND_URL}/api/admin/server/config2/postupdateroute`,
         {
@@ -473,8 +478,10 @@ export const useConfig2 = () => {
         }
       );
 
+      const data = await response.json();
+      console.log('🔍 Route update response:', data);
+
       if (response.ok) {
-        const data = await response.json();
         if (data.status === 'success') {
           await fetchRouteTable();
           addNotification({
@@ -485,10 +492,10 @@ export const useConfig2 = () => {
           });
           return true;
         } else {
-          throw new Error(data.message || `Failed to ${routeData.action} route`);
+          throw new Error(data.message || data.error || data.details || `Failed to ${routeData.action} route`);
         }
       } else {
-        throw new Error(`Failed to update route: ${response.status}`);
+        throw new Error(data.error || data.details || `Server error: ${response.status}`);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : `Failed to ${routeData.action} route`;
@@ -506,7 +513,7 @@ export const useConfig2 = () => {
     }
   };
 
-  // Update Firewall Rule
+  // ✅ Enhanced Update Firewall Rule with Windows/Linux support
   const updateFirewallRule = async (firewallUpdateData: FirewallUpdateData): Promise<boolean> => {
     if (!activeDevice) {
       addNotification({
@@ -522,6 +529,8 @@ export const useConfig2 = () => {
     setError(null);
 
     try {
+      console.log('🔍 Sending firewall update:', { host: activeDevice.ip, ...firewallUpdateData });
+
       const response = await AuthService.makeAuthenticatedRequest(
         `${BACKEND_URL}/api/admin/server/config2/postupdatefirewall`,
         {
@@ -536,8 +545,10 @@ export const useConfig2 = () => {
         }
       );
 
+      const data = await response.json();
+      console.log('🔍 Firewall update response:', data);
+
       if (response.ok) {
-        const data = await response.json();
         if (data.status === 'success') {
           await fetchFirewallRules();
           addNotification({
@@ -548,10 +559,10 @@ export const useConfig2 = () => {
           });
           return true;
         } else {
-          throw new Error(data.message || `Failed to ${firewallUpdateData.action} firewall rule`);
+          throw new Error(data.message || data.error || data.details || `Failed to ${firewallUpdateData.action} firewall rule`);
         }
       } else {
-        throw new Error(`Failed to update firewall rule: ${response.status}`);
+        throw new Error(data.error || data.details || `Server error: ${response.status}`);
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : `Failed to ${firewallUpdateData.action} firewall rule`;

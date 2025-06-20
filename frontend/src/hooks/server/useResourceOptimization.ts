@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import AuthService from '../../auth/auth';
 import { useAppContext } from '../../context/AppContext';
+import { useNotification } from '../../context/NotificationContext';
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -27,9 +28,11 @@ interface ServicesResponse {
   timestamp: string;
 }
 
+// ✅ Enhanced response interface to handle partial status
 interface OptimizeResponse {
+  status: 'success' | 'partial' | 'failure';
   message: string;
-  status: string;
+  details?: string;
 }
 
 interface RestartServiceResponse {
@@ -47,6 +50,7 @@ export const useResourceOptimization = () => {
   const [optimizing, setOptimizing] = useState<boolean>(false);
   const [restartingService, setRestartingService] = useState<string | null>(null);
   const { activeDevice } = useAppContext();
+  const { addNotification } = useNotification();
 
   const fetchCleanupInfo = async () => {
     if (!activeDevice) return;
@@ -116,6 +120,7 @@ export const useResourceOptimization = () => {
     }
   };
 
+  // ✅ Enhanced optimizeSystem with partial status handling
   const optimizeSystem = async (): Promise<boolean> => {
     if (!activeDevice) return false;
 
@@ -136,19 +141,48 @@ export const useResourceOptimization = () => {
 
       if (response.ok) {
         const data: OptimizeResponse = await response.json();
-        if (data.status === 'success') {
-          // Refresh cleanup info after optimization
-          await fetchCleanupInfo();
-          return true;
-        } else {
-          throw new Error('System optimization failed: Invalid response status');
+        
+        // ✅ Handle different response statuses
+        switch (data.status) {
+          case 'success':
+            addNotification({
+              title: 'System Optimized',
+              message: data.message,
+              type: 'success',
+              duration: 4000
+            });
+            await fetchCleanupInfo(); // Refresh cleanup info
+            return true;
+
+          case 'partial':
+            addNotification({
+              title: 'Optimization Partially Completed',
+              message: data.message,
+              type: 'warning',
+              duration: 6000
+            });
+            await fetchCleanupInfo(); // Refresh cleanup info
+            return true; // Still consider it successful
+
+          case 'failure':
+            throw new Error(data.message || 'System optimization failed');
+
+          default:
+            throw new Error('Unknown response status from server');
         }
       } else {
         throw new Error(`Failed to optimize system: ${response.status}`);
       }
     } catch (err) {
       console.error('Error optimizing system:', err);
-      setError(err instanceof Error ? err.message : 'Failed to optimize system');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to optimize system';
+      setError(errorMessage);
+      addNotification({
+        title: 'Optimization Failed',
+        message: errorMessage,
+        type: 'error',
+        duration: 5000
+      });
       return false;
     } finally {
       setOptimizing(false);
@@ -163,7 +197,7 @@ export const useResourceOptimization = () => {
 
     try {
       const response = await AuthService.makeAuthenticatedRequest(
-        `${BACKEND_URL}/api/admin/server/resource/restart`,
+        `${BACKEND_URL}/api/admin/server/resource/restartservice`,
         {
           method: 'POST',
           headers: {
@@ -179,8 +213,13 @@ export const useResourceOptimization = () => {
       if (response.ok) {
         const data: RestartServiceResponse = await response.json();
         if (data.status === 'success') {
-          // Refresh services after restart
-          await fetchServices();
+          addNotification({
+            title: 'Service Restarted',
+            message: data.message,
+            type: 'success',
+            duration: 4000
+          });
+          await fetchServices(); // Refresh services
           return true;
         } else {
           throw new Error(`Service restart failed: ${data.message}`);
@@ -190,7 +229,14 @@ export const useResourceOptimization = () => {
       }
     } catch (err) {
       console.error('Error restarting service:', err);
-      setError(err instanceof Error ? err.message : 'Failed to restart service');
+      const errorMessage = err instanceof Error ? err.message : 'Failed to restart service';
+      setError(errorMessage);
+      addNotification({
+        title: 'Restart Failed',
+        message: errorMessage,
+        type: 'error',
+        duration: 5000
+      });
       return false;
     } finally {
       setRestartingService(null);

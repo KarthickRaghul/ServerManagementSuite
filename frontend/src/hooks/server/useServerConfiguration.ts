@@ -11,7 +11,6 @@ interface ServerConfigData {
 }
 
 interface UpdateConfigData {
-  host: string;
   hostname: string;
   timezone: string;
 }
@@ -60,7 +59,7 @@ export const useServerConfiguration = () => {
     }
   };
 
-  const updateConfiguration = async (configData: Omit<UpdateConfigData, 'host'>): Promise<boolean> => {
+  const updateConfiguration = async (configData: UpdateConfigData): Promise<boolean> => {
     if (!activeDevice) {
       throw new Error('No active device selected');
     }
@@ -69,10 +68,15 @@ export const useServerConfiguration = () => {
     setError(null);
 
     try {
+      console.log('🔍 Sending config update:', {
+        host: activeDevice.ip,
+        ...configData
+      });
+
       const response = await AuthService.makeAuthenticatedRequest(
         `${BACKEND_URL}/api/admin/server/config1/basic_update`,
         {
-          method: 'POST', // or POST if your API expects POST for updates
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
@@ -84,17 +88,19 @@ export const useServerConfiguration = () => {
         }
       );
 
+      const responseData = await response.json();
+      console.log('🔍 Config update response:', responseData);
+
       if (response.ok) {
-        const responseData = await response.json();
         if (responseData.status === 'success') {
           // Refresh the data after successful update
           await fetchConfiguration();
           return true;
         } else {
-          throw new Error('Update failed: Invalid response status');
+          throw new Error(responseData.message || responseData.details || 'Update failed');
         }
       } else {
-        throw new Error(`Failed to update server configuration: ${response.status}`);
+        throw new Error(responseData.message || responseData.details || `Server error: ${response.status}`);
       }
     } catch (err) {
       console.error('Error updating server configuration:', err);

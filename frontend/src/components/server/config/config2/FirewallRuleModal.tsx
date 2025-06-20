@@ -7,26 +7,7 @@ import './FirewallRuleModal.css';
 interface FirewallRuleModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAddRule: (ruleData: {
-    action: string;
-    rule?: string;
-    protocol?: string;
-    port?: string;
-    source?: string;
-    destination?: string;
-    name?: string;
-    displayName?: string;
-    direction?: string;
-    actionType?: string;
-    enabled?: string;
-    profile?: string;
-    localPort?: string;
-    remotePort?: string;
-    localAddress?: string;
-    remoteAddress?: string;
-    program?: string;
-    service?: string;
-  }) => Promise<boolean>;
+  onAddRule: (ruleData: any) => Promise<boolean>;
   isLoading: boolean;
   firewallType?: 'linux' | 'windows';
 }
@@ -47,12 +28,12 @@ const FirewallRuleModal: React.FC<FirewallRuleModalProps> = ({
     destination: ''
   });
 
-  // Windows form data
+  // ✅ Windows form data
   const [windowsFormData, setWindowsFormData] = useState({
     name: '',
     displayName: '',
     direction: 'Inbound',
-    action: 'Allow',
+    actionType: 'Allow', // This will be sent as actionType to backend
     enabled: 'True',
     profile: 'Public',
     protocol: 'TCP',
@@ -89,6 +70,7 @@ const FirewallRuleModal: React.FC<FirewallRuleModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ Windows form validation
   const validateWindowsForm = () => {
     const newErrors: {[key: string]: string} = {};
 
@@ -122,29 +104,11 @@ const FirewallRuleModal: React.FC<FirewallRuleModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ Enhanced submit handling for both Windows and Linux
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    let ruleData: {
-      action: string;
-      rule?: string;
-      protocol?: string;
-      port?: string;
-      source?: string;
-      destination?: string;
-      name?: string;
-      displayName?: string;
-      direction?: string;
-      actionType?: string;
-      enabled?: string;
-      profile?: string;
-      localPort?: string;
-      remotePort?: string;
-      localAddress?: string;
-      remoteAddress?: string;
-      program?: string;
-      service?: string;
-    } = { action: '' };
+    let ruleData: any = { action: 'add' };
     let isValid = false;
 
     if (firewallType === 'linux') {
@@ -166,6 +130,7 @@ const FirewallRuleModal: React.FC<FirewallRuleModalProps> = ({
         }
       }
     } else {
+      // ✅ Windows firewall handling
       isValid = validateWindowsForm();
       if (isValid) {
         ruleData = {
@@ -173,7 +138,7 @@ const FirewallRuleModal: React.FC<FirewallRuleModalProps> = ({
           name: windowsFormData.name.trim(),
           displayName: windowsFormData.displayName.trim(),
           direction: windowsFormData.direction,
-          actionType: windowsFormData.action,
+          actionType: windowsFormData.actionType, // ✅ This maps to 'actionType' in backend
           enabled: windowsFormData.enabled,
           profile: windowsFormData.profile,
           protocol: windowsFormData.protocol
@@ -203,6 +168,8 @@ const FirewallRuleModal: React.FC<FirewallRuleModalProps> = ({
 
     if (!isValid) return;
 
+    console.log('🔍 Submitting firewall rule:', ruleData);
+
     const success = await onAddRule(ruleData);
     if (success) {
       // Reset forms
@@ -211,7 +178,7 @@ const FirewallRuleModal: React.FC<FirewallRuleModalProps> = ({
         name: '',
         displayName: '',
         direction: 'Inbound',
-        action: 'Allow',
+        actionType: 'Allow',
         enabled: 'True',
         profile: 'Public',
         protocol: 'TCP',
@@ -233,6 +200,7 @@ const FirewallRuleModal: React.FC<FirewallRuleModalProps> = ({
     }
   };
 
+  // ✅ Linux form rendering
   const renderLinuxForm = () => (
     <>
       <div className="firewall-rule-form-row">
@@ -311,6 +279,7 @@ const FirewallRuleModal: React.FC<FirewallRuleModalProps> = ({
     </>
   );
 
+  // ✅ Windows form rendering
   const renderWindowsForm = () => (
     <>
       <div className="firewall-rule-form-row">
@@ -363,8 +332,8 @@ const FirewallRuleModal: React.FC<FirewallRuleModalProps> = ({
           <label className="firewall-rule-form-label">Action *</label>
           <select
             className="firewall-rule-form-select"
-            value={windowsFormData.action}
-            onChange={(e) => setWindowsFormData({...windowsFormData, action: e.target.value})}
+            value={windowsFormData.actionType}
+            onChange={(e) => setWindowsFormData({...windowsFormData, actionType: e.target.value})}
             disabled={isLoading}
           >
             <option value="Allow">Allow</option>

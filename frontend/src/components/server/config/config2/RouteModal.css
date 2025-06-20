@@ -274,3 +274,36 @@
 body.modal-open {
   overflow: hidden;
 }
+
+
+/* Add these styles to your existing RouteModal.css */
+
+.route-form-help {
+  display: block;
+  color: #0ea5e9;
+  font-size: 12px;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.route-form-examples {
+  margin-top: 6px;
+}
+
+.route-form-examples small {
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.route-form-error {
+  display: block;
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.route-form-input.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
