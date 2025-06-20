@@ -76,16 +76,41 @@ Add the following content:
 
 ```env
 DATABASE_URL=postgres://postgres:password@localhost:8500/SSMS?sslmode=disable
+CLIENT_PORT=2210
+CLIENT_PROTOCOL=http
+JWT_SECRET=vanakamdamapla
+SERVER_PORT=8000
+LOG_LEVEL=info
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USERNAME=servermanagementcit@gmail.com
+SMTP_PASSWORD=tgekktudhggxwpok
+SMTP_FROM=SMS Alerts <servermanagementcit@gmail.com>
 ```
 
-#### 📘 Breakdown of `DATABASE_URL`:
+#### 📘 Breakdown of Important Environment Variables:
 
-- **postgres** → PostgreSQL **username**
-- **password** → PostgreSQL **password**
-- **localhost** → Database **host** (use IP address if PostgreSQL is on a different machine)
-- **8500** → PostgreSQL **port**
-- **SSMS** → Name of the **PostgreSQL database**
-- **sslmode=disable** → Disables SSL; suitable for local development
+- **DATABASE_URL** → PostgreSQL connection string  
+  - **postgres** → PostgreSQL username  
+  - **password** → PostgreSQL password  
+  - **localhost** → Database host (can be IP if remote)  
+  - **8500** → PostgreSQL port  
+  - **SSMS** → Database name  
+  - **sslmode=disable** → Disables SSL for local/dev use
+
+- **CLIENT_PORT** → Port used by client agents to connect  
+- **CLIENT_PROTOCOL** → Communication protocol (e.g., http/https)  
+- **JWT_SECRET** → Secret key for JWT token signing  
+- **SERVER_PORT** → Port used by the backend server  
+- **LOG_LEVEL** → Logging level (e.g., info, debug, warn, error)  
+
+- **SMTP_HOST** → Mail server host  
+- **SMTP_PORT** → Mail server port (587 for TLS)  
+- **SMTP_USERNAME** → Email address for SMTP auth  
+- **SMTP_PASSWORD** → SMTP password or app password  
+- **SMTP_FROM** → Display name and sender email for alerts
+
 
 ---
 
