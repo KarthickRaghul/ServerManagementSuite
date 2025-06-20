@@ -35,17 +35,11 @@
   pointer-events: none;
 }
 
-.login-page-logo-outside {
-  position: absolute;
-  top: 40px;
-  left: 40px;
-  z-index: 10;
-}
-
-.login-page-logo-icon {
-  font-size: 32px;
-  color: rgba(255, 255, 255, 0.8);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+.login-page-icon img {
+  width: 250px;
+  height: 120px; /* Set your desired height */
+  object-fit: cover;
+  object-position: center; /* Centers the crop area */
 }
 
 .login-page-container {

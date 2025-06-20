@@ -24,7 +24,7 @@ func main() {
 	serverqueries := config.ServerQueries()
 
 	// starting the go routines
-	healthMonitor := routine.NewHealthMonitor(serverqueries)
+	healthMonitor := routine.NewHealthMonitor(serverqueries, generalqueries)
 	healthMonitor.Start()
 
 	// 🌐 Public routes (no authentication required)

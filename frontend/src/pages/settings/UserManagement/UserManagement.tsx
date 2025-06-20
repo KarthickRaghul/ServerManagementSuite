@@ -19,10 +19,14 @@ const UserManagement: React.FC = () => {
     deleting, 
     createUser, 
     deleteUser,
-    fetchUsers
+    fetchUsers,
+    canDeleteUser,
+    getAdminCount
   } = useUserManagement();
   
   const { addNotification } = useNotification();
+
+  const adminCount = getAdminCount();
 
   const handleAddUser = async (newUser: { username: string; email: string; role: 'admin' | 'viewer'; password: string }) => {
     setSubmitError(null);
@@ -57,7 +61,38 @@ const UserManagement: React.FC = () => {
   };
 
   const handleDeleteUser = async (username: string) => {
-    if (window.confirm(`Are you sure you want to delete user "${username}"?`)) {
+    // Find the user to get their role
+    const userToDelete = users.find(user => user.name === username);
+    
+    if (!userToDelete) {
+      addNotification({
+        title: 'Deletion Failed',
+        message: 'User not found',
+        type: 'error',
+        duration: 5000
+      });
+      return;
+    }
+
+    // Check if this user can be deleted
+    if (!canDeleteUser(username, userToDelete.role)) {
+      addNotification({
+        title: 'Cannot Delete User',
+        message: 'Cannot delete the last admin user. At least one admin must remain in the system.',
+        type: 'warning',
+        duration: 6000
+      });
+      return;
+    }
+
+    // Show confirmation dialog with additional warning for admin users
+    let confirmMessage = `Are you sure you want to delete user "${username}"?`;
+    
+    if (userToDelete.role === 'admin') {
+      confirmMessage += `\n\nWarning: This is an admin user. After deletion, there will be ${adminCount - 1} admin user(s) remaining.`;
+    }
+
+    if (window.confirm(confirmMessage)) {
       try {
         const success = await deleteUser(username);
         
@@ -102,7 +137,7 @@ const UserManagement: React.FC = () => {
         <div className="settings-usermgmt-title-section">
           <h2 className="settings-usermgmt-title">User Management</h2>
           <p className="settings-usermgmt-subtitle">
-            Manage system users and their access permissions ({users.length} users)
+            Manage system users and their access permissions ({users.length} users, {adminCount} admin{adminCount !== 1 ? 's' : ''})
           </p>
         </div>
         <div className="settings-usermgmt-header-actions">
@@ -125,6 +160,16 @@ const UserManagement: React.FC = () => {
         </div>
       </div>
 
+      {/* Admin Warning */}
+      {adminCount <= 1 && (
+        <div className="settings-usermgmt-warning">
+          <p>
+            <strong>⚠️ Warning:</strong> You have only {adminCount} admin user{adminCount !== 1 ? 's' : ''} in the system. 
+            The last admin user cannot be deleted to prevent system lockout.
+          </p>
+        </div>
+      )}
+
       {/* Show loading error */}
       {error && (
         <div className="settings-usermgmt-error">
@@ -144,6 +189,7 @@ const UserManagement: React.FC = () => {
         onDelete={handleDeleteUser}
         deleting={deleting}
         loading={loading}
+        canDeleteUser={canDeleteUser}
       />
       
       {showModal && (
