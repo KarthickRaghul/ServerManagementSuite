@@ -24,8 +24,7 @@ Built with a modular architecture and robust security, SMS is ideal for universi
 
 ```bash
 git clone https://github.com/KarthickRaghul/ServerManagementSuite
----
-
+```
 ### 2. Install Vite
 
 #### 🪟 On Windows (CMD or PowerShell):
@@ -109,8 +108,8 @@ The client tool collects system metrics and sends data to the backend.
 ### Option 1: Clone Client on Server Machine
 
 ```bash
-git clone https://github.com/your-username/ClientTool.git
-cd ClientTool
+git clone https://github.com/KarthickRaghul/ServerManagementSuite/tree/main/client
+cd client
 ```
 
 Run the client:
@@ -118,7 +117,7 @@ Run the client:
 #### 🪟 On Windows:
 
 ```powershell
-.\client_tool.exe
+go run  windows\main.go
 ```
 
 > Run in PowerShell **as Administrator**.
@@ -126,7 +125,7 @@ Run the client:
 #### 🐧 On Linux:
 
 ```bash
-sudo ./client_tool
+sudo go run linux\main.go
 ```
 
 ---
