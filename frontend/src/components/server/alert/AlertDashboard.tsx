@@ -1,6 +1,6 @@
 // components/server/alert/AlertDashboard.tsx
-import React, { useState } from 'react';
-import { FaSync, FaExclamationTriangle, FaFilter, FaClock, FaEye } from 'react-icons/fa';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { FaSync, FaExclamationTriangle, FaFilter, FaClock, FaEye, FaCheck, FaTrash } from 'react-icons/fa';
 import { useAlerts } from '../../../hooks/server/useAlerts';
 import { useNotification } from '../../../context/NotificationContext';
 import AlertDetailModal from './AlertDetailModal';
@@ -19,6 +19,8 @@ const AlertDashboard: React.FC = () => {
   const [selectedFilter, setSelectedFilter] = useState('All Alerts');
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedAlert, setSelectedAlert] = useState<Alert | null>(null);
+  const [selectedAlerts, setSelectedAlerts] = useState<number[]>([]);
+  const [selectAll, setSelectAll] = useState(false);
 
   const { 
     alerts, 
@@ -33,66 +35,8 @@ const AlertDashboard: React.FC = () => {
   
   const { addNotification } = useNotification();
 
-  const handleRefreshData = async () => {
-    await fetchAlerts();
-    addNotification({
-      title: 'Data Refreshed',
-      message: 'Alert data has been refreshed successfully',
-      type: 'info',
-      duration: 3000
-    });
-  };
-
-  const handleViewDetails = (alert: Alert) => {
-    setSelectedAlert(alert);
-    setShowDetailModal(true);
-  };
-
-  const handleAcknowledge = async (alertId: number) => {
-    try {
-      const success = await markSingleAlertAsSeen(alertId);
-      if (success) {
-        addNotification({
-          title: 'Alert Acknowledged',
-          message: 'Alert has been marked as seen',
-          type: 'success',
-          duration: 3000
-        });
-        setShowDetailModal(false);
-      }
-    } catch (err) {
-      addNotification({
-        title: 'Acknowledge Failed',
-        message: err instanceof Error ? err.message : 'Failed to acknowledge alert',
-        type: 'error',
-        duration: 5000
-      });
-    }
-  };
-
-  const handleResolve = async (alertId: number) => {
-    try {
-      const success = await resolveAlerts([alertId]);
-      if (success) {
-        addNotification({
-          title: 'Alert Resolved',
-          message: 'Alert has been resolved and deleted',
-          type: 'success',
-          duration: 3000
-        });
-        setShowDetailModal(false);
-      }
-    } catch (err) {
-      addNotification({
-        title: 'Resolve Failed',
-        message: err instanceof Error ? err.message : 'Failed to resolve alert',
-        type: 'error',
-        duration: 5000
-      });
-    }
-  };
-
-  const getFilteredAlerts = () => {
+  // Memoize filtered alerts to prevent unnecessary recalculations
+  const filteredAlerts = useMemo(() => {
     switch (selectedFilter) {
       case 'High Priority':
         return alerts.filter(alert => alert.severity === 'critical');
@@ -105,9 +49,175 @@ const AlertDashboard: React.FC = () => {
       default:
         return alerts;
     }
-  };
+  }, [alerts, selectedFilter]);
 
-  const getAlertStats = () => {
+  // Fix the infinite loop by properly managing the select all state
+  useEffect(() => {
+    if (filteredAlerts.length === 0) {
+      if (selectAll || selectedAlerts.length > 0) {
+        setSelectAll(false);
+        setSelectedAlerts([]);
+      }
+    } else {
+      const allSelected = filteredAlerts.every(alert => selectedAlerts.includes(alert.id));
+      if (allSelected !== selectAll) {
+        setSelectAll(allSelected);
+      }
+    }
+  }, [filteredAlerts.length, selectedAlerts.length, selectAll]); // Fixed dependencies
+
+  const handleRefreshData = useCallback(async () => {
+    await fetchAlerts();
+    setSelectedAlerts([]);
+    setSelectAll(false);
+    addNotification({
+      title: 'Data Refreshed',
+      message: 'Alert data has been refreshed successfully',
+      type: 'info',
+      duration: 3000
+    });
+  }, [fetchAlerts, addNotification]);
+
+  const handleViewDetails = useCallback((alert: Alert) => {
+    setSelectedAlert(alert);
+    setShowDetailModal(true);
+  }, []);
+
+  const handleSelectAlert = useCallback((alertId: number) => {
+    setSelectedAlerts(prev => {
+      if (prev.includes(alertId)) {
+        return prev.filter(id => id !== alertId);
+      } else {
+        return [...prev, alertId];
+      }
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectAll) {
+      setSelectedAlerts([]);
+      setSelectAll(false);
+    } else {
+      setSelectedAlerts(filteredAlerts.map(alert => alert.id));
+      setSelectAll(true);
+    }
+  }, [selectAll, filteredAlerts]);
+
+  const handleBulkAcknowledge = useCallback(async () => {
+    if (selectedAlerts.length === 0) {
+      addNotification({
+        title: 'No Selection',
+        message: 'Please select alerts to acknowledge',
+        type: 'warning',
+        duration: 3000
+      });
+      return;
+    }
+
+    try {
+      const promises = selectedAlerts.map(alertId => markSingleAlertAsSeen(alertId));
+      await Promise.all(promises);
+      
+      addNotification({
+        title: 'Alerts Acknowledged',
+        message: `${selectedAlerts.length} alert(s) have been acknowledged`,
+        type: 'success',
+        duration: 3000
+      });
+      
+      setSelectedAlerts([]);
+      setSelectAll(false);
+    } catch (err) {
+      addNotification({
+        title: 'Bulk Acknowledge Failed',
+        message: err instanceof Error ? err.message : 'Failed to acknowledge selected alerts',
+        type: 'error',
+        duration: 5000
+      });
+    }
+  }, [selectedAlerts, markSingleAlertAsSeen, addNotification]);
+
+  const handleBulkResolve = useCallback(async () => {
+    if (selectedAlerts.length === 0) {
+      addNotification({
+        title: 'No Selection',
+        message: 'Please select alerts to resolve',
+        type: 'warning',
+        duration: 3000
+      });
+      return;
+    }
+
+    if (window.confirm(`Are you sure you want to resolve ${selectedAlerts.length} selected alert(s)? This action cannot be undone.`)) {
+      try {
+        const success = await resolveAlerts(selectedAlerts);
+        if (success) {
+          addNotification({
+            title: 'Alerts Resolved',
+            message: `${selectedAlerts.length} alert(s) have been resolved and deleted`,
+            type: 'success',
+            duration: 3000
+          });
+          
+          setSelectedAlerts([]);
+          setSelectAll(false);
+        }
+      } catch (err) {
+        addNotification({
+          title: 'Bulk Resolve Failed',
+          message: err instanceof Error ? err.message : 'Failed to resolve selected alerts',
+          type: 'error',
+          duration: 5000
+        });
+      }
+    }
+  }, [selectedAlerts, resolveAlerts, addNotification]);
+
+  const handleSingleAcknowledge = useCallback(async (alertId: number) => {
+    try {
+      const success = await markSingleAlertAsSeen(alertId);
+      if (success) {
+        addNotification({
+          title: 'Alert Acknowledged',
+          message: 'Alert has been marked as seen',
+          type: 'success',
+          duration: 3000
+        });
+      }
+    } catch (err) {
+      addNotification({
+        title: 'Acknowledge Failed',
+        message: err instanceof Error ? err.message : 'Failed to acknowledge alert',
+        type: 'error',
+        duration: 5000
+      });
+    }
+  }, [markSingleAlertAsSeen, addNotification]);
+
+  const handleSingleResolve = useCallback(async (alertId: number) => {
+    if (window.confirm('Are you sure you want to resolve this alert? This action cannot be undone.')) {
+      try {
+        const success = await resolveAlerts([alertId]);
+        if (success) {
+          addNotification({
+            title: 'Alert Resolved',
+            message: 'Alert has been resolved and deleted',
+            type: 'success',
+            duration: 3000
+          });
+        }
+      } catch (err) {
+        addNotification({
+          title: 'Resolve Failed',
+          message: err instanceof Error ? err.message : 'Failed to resolve alert',
+          type: 'error',
+          duration: 5000
+        });
+      }
+    }
+  }, [resolveAlerts, addNotification]);
+
+  const getAlertStats = useMemo(() => {
     const total = alerts.length;
     const unacknowledged = alerts.filter(alert => alert.status === 'notseen').length;
     const critical = alerts.filter(alert => alert.severity === 'critical').length;
@@ -122,47 +232,42 @@ const AlertDashboard: React.FC = () => {
       warning,
       info
     };
-  };
+  }, [alerts]);
 
-  const getSeverityIcon = (severity: string) => {
+  const getSeverityIcon = useCallback((severity: string) => {
     const iconMap = {
       critical: '🔴',
       warning: '🟡',
       info: '🔵'
     };
     return iconMap[severity as keyof typeof iconMap] || '⚠️';
-  };
+  }, []);
 
-  const getSeverityClass = (severity: string) => {
+  const getSeverityClass = useCallback((severity: string) => {
     return `monitoring-alerts-severity-${severity}`;
-  };
+  }, []);
 
-  const formatTime = (timeInput: string | { Time?: string; time?: string } | null) => {
+  const formatTime = useCallback((timeInput: string | { Time?: string; time?: string } | null) => {
     try {
       let timeString: string;
       
-      // Handle time object from backend
       if (typeof timeInput === 'object' && timeInput !== null) {
         if (timeInput.Time) {
           timeString = timeInput.Time;
         } else if (timeInput.time) {
           timeString = timeInput.time;
         } else {
-          console.warn('Unknown time object format:', timeInput);
           return 'Invalid time';
         }
       } else if (typeof timeInput === 'string') {
         timeString = timeInput;
       } else {
-        console.warn('Invalid time input type:', typeof timeInput, timeInput);
         return 'Invalid time';
       }
   
       const date = new Date(timeString);
       
-      // Check if date is valid
       if (isNaN(date.getTime())) {
-        console.warn('Invalid date string:', timeString);
         return 'Invalid time';
       }
       
@@ -170,7 +275,6 @@ const AlertDashboard: React.FC = () => {
       const diffInMilliseconds = now.getTime() - date.getTime();
       const diffInMinutes = Math.floor(Math.abs(diffInMilliseconds) / (1000 * 60));
       
-      // Handle future dates (negative difference)
       if (diffInMilliseconds < 0) {
         if (diffInMinutes < 1) return 'In a moment';
         if (diffInMinutes < 60) return `In ${diffInMinutes} minutes`;
@@ -178,7 +282,6 @@ const AlertDashboard: React.FC = () => {
         return `In ${Math.floor(diffInMinutes / 1440)} days`;
       }
       
-      // Handle past dates (positive difference)
       if (diffInMinutes < 1) return 'Just now';
       if (diffInMinutes < 60) return `${diffInMinutes} minutes ago`;
       if (diffInMinutes < 1440) return `${Math.floor(diffInMinutes / 60)} hours ago`;
@@ -188,12 +291,9 @@ const AlertDashboard: React.FC = () => {
       console.error('Error formatting time:', error, 'Input:', timeInput);
       return 'Unknown time';
     }
-  };
-  
-  
+  }, []);
 
-  const stats = getAlertStats();
-  const filteredAlerts = getFilteredAlerts();
+  const stats = getAlertStats;
 
   return (
     <div className="monitoring-alerts-dashboard">
@@ -288,9 +388,7 @@ const AlertDashboard: React.FC = () => {
       {/* Tabs Section */}
       <div className="monitoring-alerts-tabs-container">
         <div className="monitoring-alerts-tabs">
-          <button 
-            className={`monitoring-alerts-tab active`}
-          >
+          <button className={`monitoring-alerts-tab active`}>
             <FaExclamationTriangle className="monitoring-alerts-tab-icon" />
             Alerts ({filteredAlerts.length})
           </button>
@@ -310,6 +408,33 @@ const AlertDashboard: React.FC = () => {
           <FaFilter className="monitoring-alerts-filter-icon" />
         </div>
       </div>
+
+      {/* Bulk Actions */}
+      {selectedAlerts.length > 0 && (
+        <div className="monitoring-alerts-bulk-actions">
+          <div className="monitoring-alerts-bulk-info">
+            <span>{selectedAlerts.length} alert(s) selected</span>
+          </div>
+          <div className="monitoring-alerts-bulk-buttons">
+            <button 
+              className="monitoring-alerts-bulk-btn monitoring-alerts-bulk-acknowledge"
+              onClick={handleBulkAcknowledge}
+              disabled={markingAsSeen.length > 0}
+            >
+              <FaEye className="monitoring-alerts-bulk-btn-icon" />
+              Acknowledge Selected
+            </button>
+            <button 
+              className="monitoring-alerts-bulk-btn monitoring-alerts-bulk-resolve"
+              onClick={handleBulkResolve}
+              disabled={resolving.length > 0}
+            >
+              <FaCheck className="monitoring-alerts-bulk-btn-icon" />
+              Resolve Selected
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Active Alerts Section */}
       <div className="monitoring-alerts-content-container">
@@ -331,6 +456,15 @@ const AlertDashboard: React.FC = () => {
               <table className="monitoring-alerts-table">
                 <thead>
                   <tr>
+                    <th className="monitoring-alerts-checkbox-column">
+                      <input
+                        type="checkbox"
+                        className="monitoring-alerts-checkbox"
+                        checked={selectAll}
+                        onChange={handleSelectAll}
+                        disabled={filteredAlerts.length === 0}
+                      />
+                    </th>
                     <th>Severity</th>
                     <th>Message</th>
                     <th>Host</th>
@@ -342,6 +476,14 @@ const AlertDashboard: React.FC = () => {
                 <tbody>
                   {filteredAlerts.map((alert) => (
                     <tr key={alert.id} className="monitoring-alerts-table-row">
+                      <td className="monitoring-alerts-checkbox-column">
+                        <input
+                          type="checkbox"
+                          className="monitoring-alerts-checkbox"
+                          checked={selectedAlerts.includes(alert.id)}
+                          onChange={() => handleSelectAlert(alert.id)}
+                        />
+                      </td>
                       <td>
                         <span className={`monitoring-alerts-severity-badge ${getSeverityClass(alert.severity)}`}>
                           {alert.severity}
@@ -366,13 +508,33 @@ const AlertDashboard: React.FC = () => {
                         </div>
                       </td>
                       <td>
-                        <button 
-                          className="monitoring-alerts-action-btn"
-                          onClick={() => handleViewDetails(alert)}
-                        >
-                          <FaEye />
-                          Details
-                        </button>
+                        <div className="monitoring-alerts-action-buttons">
+                          <button 
+                            className="monitoring-alerts-action-btn monitoring-alerts-action-details"
+                            onClick={() => handleViewDetails(alert)}
+                            title="View Details"
+                          >
+                            <FaEye />
+                          </button>
+                          {alert.status === 'notseen' && (
+                            <button 
+                              className="monitoring-alerts-action-btn monitoring-alerts-action-acknowledge"
+                              onClick={() => handleSingleAcknowledge(alert.id)}
+                              disabled={markingAsSeen.includes(alert.id)}
+                              title="Acknowledge"
+                            >
+                              <FaCheck />
+                            </button>
+                          )}
+                          <button 
+                            className="monitoring-alerts-action-btn monitoring-alerts-action-resolve"
+                            onClick={() => handleSingleResolve(alert.id)}
+                            disabled={resolving.includes(alert.id)}
+                            title="Resolve"
+                          >
+                            <FaTrash />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -388,8 +550,8 @@ const AlertDashboard: React.FC = () => {
         isOpen={showDetailModal}
         onClose={() => setShowDetailModal(false)}
         alert={selectedAlert}
-        onAcknowledge={handleAcknowledge}
-        onResolve={handleResolve}
+        onAcknowledge={handleSingleAcknowledge}
+        onResolve={handleSingleResolve}
         isAcknowledging={markingAsSeen.includes(selectedAlert?.id || 0)}
         isResolving={resolving.includes(selectedAlert?.id || 0)}
       />

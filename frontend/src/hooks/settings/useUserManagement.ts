@@ -6,7 +6,7 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 interface User {
   id: string;
-  name: string;
+  name: string; // This is the username from backend
   email: string;
   role: 'admin' | 'viewer';
 }
@@ -149,6 +149,21 @@ export const useUserManagement = () => {
     }
   };
 
+  // Helper function to check if user can be deleted
+  const canDeleteUser = (username: string, role: string): boolean => {
+    const adminUsers = users.filter(user => user.role === 'admin');
+    // If this is an admin user and there's only one admin, prevent deletion
+    if (role === 'admin' && adminUsers.length <= 1) {
+      return false;
+    }
+    return true;
+  };
+
+  // Get admin count
+  const getAdminCount = (): number => {
+    return users.filter(user => user.role === 'admin').length;
+  };
+
   useEffect(() => {
     fetchUsers();
   }, []);
@@ -161,6 +176,8 @@ export const useUserManagement = () => {
     deleting,
     fetchUsers,
     createUser,
-    deleteUser
+    deleteUser,
+    canDeleteUser,
+    getAdminCount
   };
 };
