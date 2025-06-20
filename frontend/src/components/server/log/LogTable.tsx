@@ -1,4 +1,4 @@
-// components/server/logs/LogTable.tsx
+// components/server/log/LogTable.tsx
 import React from 'react';
 import { FaClock, FaExclamationTriangle, FaInfoCircle, FaTimesCircle, FaExclamationCircle } from 'react-icons/fa';
 import { useLogContext } from '../../../context/LogContext';

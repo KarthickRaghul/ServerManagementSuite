@@ -90,15 +90,8 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
     try {
       const currentFilters = { ...filters, ...customFilters };
       
-      // ✅ Prepare request body with proper format validation
-      interface RequestBody {
-        host: string;
-        lines?: number;
-        date?: string;
-        time?: string;
-      }
-
-      const requestBody: RequestBody = {
+      // ✅ Prepare request body with validated formats
+      const requestBody: any = {
         host: activeDevice.ip
       };
 
@@ -107,19 +100,18 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
         requestBody.lines = currentFilters.lines;
       }
 
-      // ✅ Format and validate date (YYYY-MM-DD)
+      // ✅ Validate and format date (YYYY-MM-DD)
       if (currentFilters.date) {
         const dateValue = currentFilters.date.trim();
-        // Validate date format
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
           requestBody.date = dateValue;
           console.log('🔍 [LOG] Date filter applied:', dateValue);
         } else {
-          console.warn('⚠️ [LOG] Invalid date format, skipping date filter:', dateValue);
+          console.warn('⚠️ [LOG] Invalid date format, skipping:', dateValue);
         }
       }
 
-      // ✅ Format and validate time (HH:MM:SS)
+      // ✅ Validate and format time (HH:MM:SS)
       if (currentFilters.time) {
         let timeValue = currentFilters.time.trim();
         
@@ -128,12 +120,11 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
           timeValue += ':00';
         }
         
-        // Validate time format
         if (/^\d{2}:\d{2}:\d{2}$/.test(timeValue)) {
           requestBody.time = timeValue;
           console.log('🔍 [LOG] Time filter applied:', timeValue);
         } else {
-          console.warn('⚠️ [LOG] Invalid time format, skipping time filter:', timeValue);
+          console.warn('⚠️ [LOG] Invalid time format, skipping:', timeValue);
         }
       }
 
@@ -157,12 +148,10 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
         if (data.length === 0) {
           addNotification({
             title: 'No Logs Found',
-            message: 'No logs found for the selected criteria. Try adjusting your filters.',
+            message: 'No logs found for the selected date/time. Try a different date.',
             type: 'info',
             duration: 3000
           });
-        } else {
-          console.log(`📊 [LOG] Applied filters, showing ${logs.length} of ${data.length} logs`);
         }
       } else {
         const errorText = await response.text();
@@ -409,7 +398,7 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
     URL.revokeObjectURL(url);
   };
 
-  // ✅ Enhanced clearFilters with proper reset
+  // ✅ Enhanced clearFilters
   const clearFilters = () => {
     console.log('🧹 [LOG] Clearing all filters');
     const defaultFilters = {
@@ -425,7 +414,7 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
     // Apply filters to current data first for immediate UI update
     applyClientSideFilters(originalLogs, defaultFilters);
     
-    // Then fetch fresh data without any filters
+    // Then fetch fresh data
     fetchLogs(defaultFilters);
   };
 
