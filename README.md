@@ -18,28 +18,12 @@ Built with a modular architecture and robust security, SMS is ideal for universi
 
 ---
 
-## 🔑 Key Features
-
-- **Centralized Dashboard:** Manage all servers from a unified portal—no more individual SSH sessions.
-- **Real-time Monitoring:** Live metrics for CPU, memory, disk, and network I/O, updated every 30 seconds with historical graphs.
-- **Configuration Management:** Remotely edit hostnames, network interfaces, firewall rules, and more.
-- **Alert System:** Automated notifications for resource thresholds (CPU, RAM, disk, network), with severity levels.
-- **Role-Based Access Control:** Admin (full access) and Viewer (read-only) roles, with UI tailored to each.
-- **Secure Communication:** JWT authentication, access tokens, input validation, and encrypted protocols (HTTPS).
-- **Modular Architecture:** Easily extensible for new features and scalable to large server fleets.
-
----
-
 ## ⚙️ Installation Instructions
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/ServerSecurityTool.git
-```
-
-> Replace `your-username` with your actual GitHub username or organization.
-
+git clone https://github.com/KarthickRaghul/ServerManagementSuite
 ---
 
 ### 2. Install Vite
@@ -172,6 +156,18 @@ sudo ./client_tool
 ```
 
 ✅ Your ServerSecurityTool stack (backend, frontend, and client) is now fully set up and running.
+
+---
+
+## 🔑 Key Features
+
+- **Centralized Dashboard:** Manage all servers from a unified portal—no more individual SSH sessions.
+- **Real-time Monitoring:** Live metrics for CPU, memory, disk, and network I/O, updated every 30 seconds with historical graphs.
+- **Configuration Management:** Remotely edit hostnames, network interfaces, firewall rules, and more.
+- **Alert System:** Automated notifications for resource thresholds (CPU, RAM, disk, network), with severity levels.
+- **Role-Based Access Control:** Admin (full access) and Viewer (read-only) roles, with UI tailored to each.
+- **Secure Communication:** JWT authentication, access tokens, input validation, and encrypted protocols (HTTPS).
+- **Modular Architecture:** Easily extensible for new features and scalable to large server fleets.
 
 ---
 
