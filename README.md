@@ -25,6 +25,9 @@ Built with a modular architecture and robust security, SMS is ideal for universi
 ```bash
 git clone https://github.com/KarthickRaghul/ServerManagementSuite
 ```
+
+---
+
 ### 2. Install Vite
 
 #### 🪟 On Windows (CMD or PowerShell):
