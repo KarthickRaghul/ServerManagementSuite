@@ -13,6 +13,7 @@
     "@radix-ui/react-progress": "^1.1.7",
     "@types/react-router-dom": "^5.3.3",
     "fa-icons": "^0.2.0",
+    "lottie-react": "^2.4.1",
     "lucide-react": "^0.513.0",
     "next": "^15.3.3",
     "react": "^19.1.0",

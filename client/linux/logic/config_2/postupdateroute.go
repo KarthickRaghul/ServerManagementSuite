@@ -31,19 +31,62 @@ type RouteResponse struct {
 
 // validateAndFixNetwork validates the network address and fixes it if needed
 func validateAndFixNetwork(destination string) (string, error) {
-	// Check if it contains CIDR notation
-	if !strings.Contains(destination, "/") {
-		return "", fmt.Errorf("destination must include CIDR notation (e.g., /24)")
+	// Handle special cases
+	if destination == "default" || destination == "0.0.0.0" {
+		return "0.0.0.0/0", nil
 	}
 
-	// Parse the CIDR
-	_, network, err := net.ParseCIDR(destination)
-	if err != nil {
-		return "", fmt.Errorf("invalid CIDR format: %v", err)
+	// Check if it already contains CIDR notation
+	if strings.Contains(destination, "/") {
+		// Parse the CIDR to validate it
+		_, network, err := net.ParseCIDR(destination)
+		if err != nil {
+			return "", fmt.Errorf("invalid CIDR format: %v", err)
+		}
+		// Return the correct network address
+		return network.String(), nil
 	}
 
-	// Return the correct network address
-	return network.String(), nil
+	// If no CIDR notation, try to determine the appropriate one
+	ip := net.ParseIP(destination)
+	if ip == nil {
+		return "", fmt.Errorf("invalid IP address: %s", destination)
+	}
+
+	// Determine CIDR based on IP class
+	if ip.IsLoopback() {
+		return destination + "/32", nil // Host route for loopback
+	}
+
+	// For other IPs, assume /24 for private networks, /32 for host routes
+	if isPrivateIP(ip) {
+		// Check if it looks like a network address (ends with .0)
+		if strings.HasSuffix(destination, ".0") {
+			return destination + "/24", nil
+		} else {
+			return destination + "/32", nil // Host route
+		}
+	}
+
+	// Default to /32 for host routes
+	return destination + "/32", nil
+}
+
+// isPrivateIP checks if an IP is in private range
+func isPrivateIP(ip net.IP) bool {
+	privateRanges := []string{
+		"10.0.0.0/8",
+		"172.16.0.0/12",
+		"192.168.0.0/16",
+	}
+
+	for _, cidr := range privateRanges {
+		_, network, _ := net.ParseCIDR(cidr)
+		if network.Contains(ip) {
+			return true
+		}
+	}
+	return false
 }
 
 // HandleUpdateRoute handles the POST request to change the route table
@@ -58,32 +101,32 @@ func HandleUpdateRoute(w http.ResponseWriter, r *http.Request) {
 
 	var req ChangeRouteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		sendRouteErrorResponse(w, "Failed to parse request body", err)
+		sendErrorResponse(w, "Failed to parse request body", err)
 		return
 	}
 
 	// Validate action
 	if req.Action != "add" && req.Action != "delete" {
-		sendRouteErrorResponse(w, "Action must be 'add' or 'delete'", fmt.Errorf("invalid action: %s", req.Action))
+		sendErrorResponse(w, "Action must be 'add' or 'delete'", fmt.Errorf("invalid action: %s", req.Action))
 		return
 	}
 
 	// Validate required fields
 	if req.Destination == "" || req.Gateway == "" {
-		sendRouteErrorResponse(w, "Destination and gateway are required", fmt.Errorf("missing fields"))
+		sendErrorResponse(w, "Destination and gateway are required", fmt.Errorf("missing fields"))
 		return
 	}
 
-	// Validate and fix network address
+	// ✅ Validate and fix network address
 	correctedDestination, err := validateAndFixNetwork(req.Destination)
 	if err != nil {
-		sendRouteErrorResponse(w, "Invalid destination network", err)
+		sendErrorResponse(w, "Invalid destination network", err)
 		return
 	}
 
 	// Validate gateway IP
 	if net.ParseIP(req.Gateway) == nil {
-		sendRouteErrorResponse(w, "Invalid gateway IP address", fmt.Errorf("gateway %s is not a valid IP", req.Gateway))
+		sendErrorResponse(w, "Invalid gateway IP address", fmt.Errorf("gateway %s is not a valid IP", req.Gateway))
 		return
 	}
 
@@ -106,7 +149,7 @@ func HandleUpdateRoute(w http.ResponseWriter, r *http.Request) {
 	cmd := exec.Command("ip", cmdArgs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		sendRouteErrorResponse(w, "Failed to change route", fmt.Errorf("%v, output: %s", err, string(output)))
+		sendErrorResponse(w, "Failed to change route", fmt.Errorf("%v, output: %s", err, string(output)))
 		return
 	}
 
@@ -119,15 +162,5 @@ func HandleUpdateRoute(w http.ResponseWriter, r *http.Request) {
 		User:      "system",
 	}
 
-	json.NewEncoder(w).Encode(response)
-}
-
-// sendErrorResponse sends an error response in JSON format
-func sendRouteErrorResponse(w http.ResponseWriter, message string, err error) {
-	w.WriteHeader(http.StatusBadRequest)
-	response := RouteResponse{
-		Status: "failed",
-		Error:  fmt.Sprintf("%s: %v", message, err),
-	}
 	json.NewEncoder(w).Encode(response)
 }

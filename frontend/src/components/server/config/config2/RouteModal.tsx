@@ -33,13 +33,37 @@ const RouteModal: React.FC<RouteModalProps> = ({
 
   if (!isOpen) return null;
 
+  // ✅ Enhanced validation with CIDR auto-correction
   const validateForm = () => {
     const newErrors: {[key: string]: string} = {};
 
     if (!formData.destination.trim()) {
       newErrors.destination = 'Destination is required';
-    } else if (!/^(\d{1,3}\.){3}\d{1,3}\/\d{1,2}$/.test(formData.destination.trim())) {
-      newErrors.destination = 'Please enter a valid CIDR notation (e.g., 192.168.1.0/24)';
+    } else {
+      const dest = formData.destination.trim();
+      
+      // Check if it's a valid IP or CIDR
+      if (dest !== "default" && dest !== "0.0.0.0") {
+        // If it contains /, validate as CIDR
+        if (dest.includes('/')) {
+          const cidrRegex = /^(\d{1,3}\.){3}\d{1,3}\/(\d{1,2})$/;
+          if (!cidrRegex.test(dest)) {
+            newErrors.destination = 'Please enter a valid CIDR notation (e.g., 192.168.1.0/24)';
+          } else {
+            // Validate CIDR prefix length
+            const prefix = parseInt(dest.split('/')[1]);
+            if (prefix < 0 || prefix > 32) {
+              newErrors.destination = 'CIDR prefix must be between 0 and 32';
+            }
+          }
+        } else {
+          // If no /, validate as IP and suggest CIDR
+          const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
+          if (!ipRegex.test(dest)) {
+            newErrors.destination = 'Please enter a valid IP address or CIDR notation';
+          }
+        }
+      }
     }
 
     if (!formData.gateway.trim()) {
@@ -48,13 +72,42 @@ const RouteModal: React.FC<RouteModalProps> = ({
       newErrors.gateway = 'Please enter a valid IP address';
     }
 
+    // Validate metric if provided
+    if (formData.metric.trim() && !/^\d+$/.test(formData.metric.trim())) {
+      newErrors.metric = 'Metric must be a number';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
+  };
+
+  // ✅ Auto-format destination to include CIDR if missing
+  const formatDestination = (destination: string): string => {
+    const dest = destination.trim();
+    
+    // Handle special cases
+    if (dest === "default") return "0.0.0.0/0";
+    if (dest === "0.0.0.0") return "0.0.0.0/0";
+    
+    // If already has CIDR, return as is
+    if (dest.includes('/')) return dest;
+    
+    // Auto-add CIDR based on common patterns
+    if (dest.endsWith('.0')) {
+      // Looks like a network address, add /24
+      return dest + '/24';
+    } else {
+      // Looks like a host address, add /32
+      return dest + '/32';
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
+
+    // ✅ Format destination with proper CIDR notation
+    const formattedDestination = formatDestination(formData.destination);
 
     const routeData: { 
       action: string; 
@@ -64,7 +117,7 @@ const RouteModal: React.FC<RouteModalProps> = ({
       metric?: string; 
     } = {
       action: 'add',
-      destination: formData.destination.trim(),
+      destination: formattedDestination,
       gateway: formData.gateway.trim()
     };
 
@@ -75,6 +128,8 @@ const RouteModal: React.FC<RouteModalProps> = ({
     if (formData.metric.trim()) {
       routeData.metric = formData.metric.trim();
     }
+
+    console.log('🔍 Submitting route data:', routeData);
 
     const success = await onAddRoute(routeData);
     if (success) {
@@ -90,7 +145,19 @@ const RouteModal: React.FC<RouteModalProps> = ({
     }
   };
 
-  // Render modal using Portal to document.body
+  // ✅ Helper function to show CIDR examples
+  const getDestinationPlaceholder = () => {
+    return "e.g., 192.168.1.0/24 or default";
+  };
+
+  const getDestinationHelp = () => {
+    if (formData.destination && !formData.destination.includes('/') && formData.destination !== 'default') {
+      const formatted = formatDestination(formData.destination);
+      return `Will be formatted as: ${formatted}`;
+    }
+    return "Enter network address with CIDR notation";
+  };
+
   return createPortal(
     <div className="route-modal-overlay" onClick={handleBackdropClick}>
       <div className="route-modal-container">
@@ -119,14 +186,20 @@ const RouteModal: React.FC<RouteModalProps> = ({
             <input
               type="text"
               className={`route-form-input ${errors.destination ? 'error' : ''}`}
-              placeholder="e.g., 192.168.1.0/24"
+              placeholder={getDestinationPlaceholder()}
               value={formData.destination}
               onChange={(e) => setFormData({...formData, destination: e.target.value})}
               disabled={isLoading}
             />
+            {!errors.destination && formData.destination && (
+              <span className="route-form-help">{getDestinationHelp()}</span>
+            )}
             {errors.destination && (
               <span className="route-form-error">{errors.destination}</span>
             )}
+            <div className="route-form-examples">
+              <small>Examples: 192.168.1.0/24, 10.0.0.0/8, default, 172.16.1.100/32</small>
+            </div>
           </div>
 
           <div className="route-form-group">
@@ -153,7 +226,7 @@ const RouteModal: React.FC<RouteModalProps> = ({
             <input
               type="text"
               className="route-form-input"
-              placeholder="e.g., eth0"
+              placeholder="e.g., eth0, enp3s0"
               value={formData.interface}
               onChange={(e) => setFormData({...formData, interface: e.target.value})}
               disabled={isLoading}
@@ -166,12 +239,15 @@ const RouteModal: React.FC<RouteModalProps> = ({
             </label>
             <input
               type="text"
-              className="route-form-input"
+              className={`route-form-input ${errors.metric ? 'error' : ''}`}
               placeholder="e.g., 100"
               value={formData.metric}
               onChange={(e) => setFormData({...formData, metric: e.target.value})}
               disabled={isLoading}
             />
+            {errors.metric && (
+              <span className="route-form-error">{errors.metric}</span>
+            )}
           </div>
 
           <div className="route-modal-actions">
@@ -195,7 +271,7 @@ const RouteModal: React.FC<RouteModalProps> = ({
         </form>
       </div>
     </div>,
-    document.body // Render to document.body instead of parent container
+    document.body
   );
 };
 

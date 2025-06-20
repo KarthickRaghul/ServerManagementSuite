@@ -1,7 +1,7 @@
 // components/server/config/config1/components/serverconfiguration.tsx
 import React, { useState, useEffect } from 'react';
 import './serverconfiguration.css';
-import { FaServer, FaCog, FaGlobe } from 'react-icons/fa';
+import { FaServer, FaCog, FaGlobe, FaInfoCircle } from 'react-icons/fa';
 import ModalWrapper from './modalwrapper';
 import { useServerConfiguration } from '../../../../../hooks';
 import { useNotification } from '../../../../../context/NotificationContext';
@@ -10,7 +10,7 @@ const ServerConfiguration: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     hostname: '',
-    timezone: 'UTC+0 (GMT)'
+    timezone: 'UTC'
   });
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -22,60 +22,42 @@ const ServerConfiguration: React.FC = () => {
     if (data) {
       setFormData({
         hostname: data.hostname,
-        timezone: mapTimezoneToDisplay(data.timezone)
+        timezone: data.timezone
       });
     }
   }, [data]);
 
-  // Map backend timezone to display format
-  const mapTimezoneToDisplay = (backendTimezone: string): string => {
-    const timezoneMap: { [key: string]: string } = {
-      'Asia/Kolkata': 'UTC+5:30 (IST)',
-      'UTC': 'UTC+0 (GMT)',
-      'America/Los_Angeles': 'UTC-8 (PST)',
-      'Europe/Berlin': 'UTC+1 (CET)',
-      'America/New_York': 'UTC-5 (EST)',
-      'Asia/Tokyo': 'UTC+9 (JST)'
-    };
-    return timezoneMap[backendTimezone] || 'UTC+0 (GMT)';
-  };
-
-  // Map display format to backend timezone
-  const mapDisplayToTimezone = (displayTimezone: string): string => {
-    const displayMap: { [key: string]: string } = {
-      'UTC+5:30 (IST)': 'Asia/Kolkata',
-      'UTC+0 (GMT)': 'UTC',
-      'UTC-8 (PST)': 'America/Los_Angeles',
-      'UTC+1 (CET)': 'Europe/Berlin',
-      'UTC-5 (EST)': 'America/New_York',
-      'UTC+9 (JST)': 'Asia/Tokyo'
-    };
-    return displayMap[displayTimezone] || 'UTC';
-  };
-
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitError(null); // Clear any previous errors
+    setSubmitError(null);
+    
+    // Validate hostname
+    if (formData.hostname.trim().length > 15) {
+      setSubmitError('Hostname must be 15 characters or less');
+      return;
+    }
+
+    if (!/^[a-zA-Z0-9-]+$/.test(formData.hostname.trim())) {
+      setSubmitError('Hostname can only contain letters, numbers, and hyphens');
+      return;
+    }
     
     try {
       const success = await updateConfiguration({
         hostname: formData.hostname.trim(),
-        timezone: mapDisplayToTimezone(formData.timezone)
+        timezone: formData.timezone
       });
 
       if (success) {
-        // Show success notification but DON'T close modal
         addNotification({
           title: 'Configuration Updated',
-          message: 'Server hostname and timezone have been successfully updated.',
+          message: 'Server hostname and timezone have been successfully updated. A restart may be required for hostname changes to take effect.',
           type: 'success',
-          duration: 4000
+          duration: 6000
         });
         setSubmitError(null);
         console.log("Configuration updated successfully");
-        // Modal stays open - user must manually close it
       } else {
-        // If update failed, show error notification and banner
         const errorMessage = "Failed to update configuration. Please try again.";
         setSubmitError(errorMessage);
         addNotification({
@@ -100,22 +82,22 @@ const ServerConfiguration: React.FC = () => {
 
   const handleClose = () => {
     setShowModal(false);
-    setSubmitError(null); // Clear submit errors when closing
+    setSubmitError(null);
     // Reset form data to current server data
     if (data) {
       setFormData({
         hostname: data.hostname,
-        timezone: mapTimezoneToDisplay(data.timezone)
+        timezone: data.timezone
       });
     }
   };
 
   const handleOpenModal = () => {
-    setSubmitError(null); // Clear any previous submit errors
+    setSubmitError(null);
     if (data) {
       setFormData({
         hostname: data.hostname,
-        timezone: mapTimezoneToDisplay(data.timezone)
+        timezone: data.timezone
       });
     }
     setShowModal(true);
@@ -140,14 +122,12 @@ const ServerConfiguration: React.FC = () => {
               Configure fundamental server parameters and system-level settings
             </p>
             
-            {/* Show loading error */}
             {error && (
               <div className="config1-serverconfig-error-banner">
                 <p>Error loading data: {error}</p>
               </div>
             )}
 
-            {/* Show submit error */}
             {submitError && (
               <div className="config1-serverconfig-error-banner">
                 <p>{submitError}</p>
@@ -163,12 +143,18 @@ const ServerConfiguration: React.FC = () => {
                 <input 
                   className="config1-serverconfig-input"
                   name="hostname" 
-                  placeholder="server.company.com" 
+                  placeholder="server01" 
                   value={formData.hostname}
                   onChange={(e) => setFormData({...formData, hostname: e.target.value})}
                   required 
                   disabled={updating}
+                  maxLength={15}
+                  pattern="[a-zA-Z0-9-]+"
                 />
+                <div className="config1-serverconfig-help">
+                  <FaInfoCircle className="config1-serverconfig-help-icon" />
+                  <small>Maximum 15 characters. Only letters, numbers, and hyphens allowed.</small>
+                </div>
               </div>
               
               <div className="config1-serverconfig-input-group">
@@ -183,12 +169,66 @@ const ServerConfiguration: React.FC = () => {
                   onChange={(e) => setFormData({...formData, timezone: e.target.value})}
                   disabled={updating}
                 >
-                  <option value="UTC+0 (GMT)">UTC+0 (GMT)</option>
-                  <option value="UTC+5:30 (IST)">UTC+5:30 (IST)</option>
-                  <option value="UTC-8 (PST)">UTC-8 (PST)</option>
-                  <option value="UTC+1 (CET)">UTC+1 (CET)</option>
-                  <option value="UTC-5 (EST)">UTC-5 (EST)</option>
-                  <option value="UTC+9 (JST)">UTC+9 (JST)</option>
+                  <optgroup label="UTC/GMT">
+                    <option value="UTC">UTC</option>
+                    <option value="GMT">GMT (Greenwich Mean Time)</option>
+                  </optgroup>
+                  
+                  <optgroup label="Americas">
+                    <option value="America/New_York">Eastern Time (New York)</option>
+                    <option value="America/Chicago">Central Time (Chicago)</option>
+                    <option value="America/Denver">Mountain Time (Denver)</option>
+                    <option value="America/Los_Angeles">Pacific Time (Los Angeles)</option>
+                    <option value="America/Phoenix">Arizona Time (Phoenix)</option>
+                    <option value="America/Anchorage">Alaska Time (Anchorage)</option>
+                    <option value="America/Toronto">Eastern Time (Toronto)</option>
+                    <option value="America/Vancouver">Pacific Time (Vancouver)</option>
+                    <option value="America/Mexico_City">Central Time (Mexico City)</option>
+                    <option value="America/Sao_Paulo">Brazil Time (São Paulo)</option>
+                    <option value="America/Buenos_Aires">Argentina Time (Buenos Aires)</option>
+                  </optgroup>
+                  
+                  <optgroup label="Europe">
+                    <option value="Europe/London">London (GMT/BST)</option>
+                    <option value="Europe/Berlin">Berlin (CET/CEST)</option>
+                    <option value="Europe/Paris">Paris (CET/CEST)</option>
+                    <option value="Europe/Rome">Rome (CET/CEST)</option>
+                    <option value="Europe/Madrid">Madrid (CET/CEST)</option>
+                    <option value="Europe/Amsterdam">Amsterdam (CET/CEST)</option>
+                    <option value="Europe/Vienna">Vienna (CET/CEST)</option>
+                    <option value="Europe/Zurich">Zurich (CET/CEST)</option>
+                    <option value="Europe/Stockholm">Stockholm (CET/CEST)</option>
+                    <option value="Europe/Moscow">Moscow (MSK)</option>
+                  </optgroup>
+                  
+                  <optgroup label="Asia">
+                    <option value="Asia/Kolkata">India (IST)</option>
+                    <option value="Asia/Tokyo">Tokyo (JST)</option>
+                    <option value="Asia/Shanghai">Shanghai (CST)</option>
+                    <option value="Asia/Hong_Kong">Hong Kong (HKT)</option>
+                    <option value="Asia/Singapore">Singapore (SGT)</option>
+                    <option value="Asia/Seoul">Seoul (KST)</option>
+                    <option value="Asia/Bangkok">Bangkok (ICT)</option>
+                    <option value="Asia/Dubai">Dubai (GST)</option>
+                    <option value="Asia/Tehran">Tehran (IRST)</option>
+                    <option value="Asia/Karachi">Karachi (PKT)</option>
+                  </optgroup>
+                  
+                  <optgroup label="Australia & Pacific">
+                    <option value="Australia/Sydney">Sydney (AEDT)</option>
+                    <option value="Australia/Melbourne">Melbourne (AEDT)</option>
+                    <option value="Australia/Brisbane">Brisbane (AEST)</option>
+                    <option value="Australia/Perth">Perth (AWST)</option>
+                    <option value="Pacific/Auckland">Auckland (NZDT)</option>
+                    <option value="Pacific/Honolulu">Honolulu (HST)</option>
+                  </optgroup>
+                  
+                  <optgroup label="Africa">
+                    <option value="Africa/Cairo">Cairo (EET)</option>
+                    <option value="Africa/Johannesburg">Johannesburg (SAST)</option>
+                    <option value="Africa/Lagos">Lagos (WAT)</option>
+                    <option value="Africa/Nairobi">Nairobi (EAT)</option>
+                  </optgroup>
                 </select>
               </div>
 

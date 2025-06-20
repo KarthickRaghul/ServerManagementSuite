@@ -37,13 +37,12 @@ interface LinuxFirewallData {
   active: boolean;
 }
 
-
 const FirewallTable: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedChain, setSelectedChain] = useState('All');
   const { firewallData, loading, updateFirewallRule, fetchFirewallRules } = useConfig2();
 
-  // Detect firewall type based on data structure
+  // ✅ Enhanced firewall type detection
   const firewallType: 'windows' | 'linux' = 
     Array.isArray(firewallData) && firewallData.length > 0 && 'Name' in firewallData[0] 
       ? 'windows' 
@@ -58,6 +57,7 @@ const FirewallTable: React.FC = () => {
     return false;
   };
 
+  // ✅ Enhanced delete handling for both Windows and Linux
   const handleDeleteRule = async (rule: WindowsFirewallRule | LinuxFirewallRule) => {
     const confirmMessage = firewallType === 'windows' 
       ? `Are you sure you want to delete the rule "${(rule as WindowsFirewallRule).DisplayName || (rule as WindowsFirewallRule).Name}"?`
@@ -68,9 +68,10 @@ const FirewallTable: React.FC = () => {
       
       if (firewallType === 'windows') {
         const windowsRule = rule as WindowsFirewallRule;
+        // ✅ Windows delete request
         deleteData = {
           action: 'delete',
-          name: windowsRule.Name
+          name: windowsRule.Name // Use the rule name for deletion
         };
       } else {
         const linuxRule = rule as LinuxFirewallRule;
@@ -84,6 +85,8 @@ const FirewallTable: React.FC = () => {
         };
       }
       
+      console.log('🔍 Deleting firewall rule:', deleteData);
+      
       const success = await updateFirewallRule(deleteData);
       if (success) {
         await fetchFirewallRules();
@@ -91,6 +94,7 @@ const FirewallTable: React.FC = () => {
     }
   };
 
+  // ✅ Windows rule toggle functionality
   const handleToggleRule = async (rule: WindowsFirewallRule) => {
     if (firewallType === 'windows') {
       const newEnabled = rule.Enabled === 'True' ? 'False' : 'True';
@@ -137,6 +141,7 @@ const FirewallTable: React.FC = () => {
     }
   };
 
+  // ✅ Enhanced Windows table rendering
   const renderWindowsTable = () => {
     const windowsRules = Array.isArray(firewallData) ? firewallData as WindowsFirewallRule[] : [];
     

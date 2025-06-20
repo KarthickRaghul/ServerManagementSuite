@@ -331,3 +331,38 @@
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+
+/* Add these styles to your existing serverconfiguration.css */
+
+.config1-serverconfig-help {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.config1-serverconfig-help-icon {
+  color: #0ea5e9;
+  font-size: 12px;
+}
+
+.config1-serverconfig-help small {
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.config1-serverconfig-error-banner {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 16px;
+}
+
+.config1-serverconfig-error-banner p {
+  color: #ef4444;
+  margin: 0;
+  font-size: 14px;
+}
