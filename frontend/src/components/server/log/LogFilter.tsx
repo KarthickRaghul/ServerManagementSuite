@@ -1,4 +1,4 @@
-// components/server/logs/LogFilter.tsx
+// components/server/log/LogFilter.tsx
 import React from 'react';
 import { FaFilter, FaSearch, FaCalendarAlt, FaSync, FaTrash } from 'react-icons/fa';
 import { useLogContext } from '../../../context/LogContext';

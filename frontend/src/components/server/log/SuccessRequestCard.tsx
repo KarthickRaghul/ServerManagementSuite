@@ -1,11 +1,11 @@
-// components/server/logs/SuccessRequestCard.tsx
+// components/server/log/SuccessRequestCard.tsx
 import React from 'react';
 import { FaCheckCircle } from 'react-icons/fa';
-import { useLogs } from '../../../hooks/server/useLogs';
+import { useLogContext } from '../../../context/LogContext';
 import './SuccessRequestCard.css';
 
 const SuccessRequestCard: React.FC = () => {
-  const { getLogStats } = useLogs();
+  const { getLogStats } = useLogContext();
   const stats = getLogStats();
 
   return (
