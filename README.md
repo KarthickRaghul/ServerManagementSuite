@@ -44,7 +44,27 @@ sudo npm install -g vite
 
 ---
 
-### 3. Set Up the Environment File
+### 3. Install PostgreSQL
+
+#### 🪟 On Windows:
+
+1. Download the installer from the official site: [https://www.postgresql.org/download/windows/](https://www.postgresql.org/download/windows/)
+2. Run the installer and follow the setup wizard.
+3. Set the port (e.g., `8500`) and credentials (username and password) during installation.
+4. After installation, ensure `pgAdmin` and the PostgreSQL service are running.
+
+#### 🐧 On Linux (Debian/Ubuntu):
+
+```bash
+sudo apt update
+sudo apt install postgresql postgresql-contrib
+```
+
+> Optional: Change the default port or authentication settings by editing `/etc/postgresql/<version>/main/postgresql.conf` and `pg_hba.conf`.
+
+---
+
+### 4. Set Up the Environment File
 
 Create a `.env` file inside the backend directory:
 
@@ -69,7 +89,7 @@ DATABASE_URL=postgres://postgres:password@localhost:8500/SSMS?sslmode=disable
 
 ---
 
-### 4. Run the Backend
+### 5. Run the Backend
 
 #### 🪟 On Windows (PowerShell as Administrator):
 
@@ -89,7 +109,7 @@ sudo go run main.go
 
 ---
 
-### 5. Run the Frontend
+### 6. Run the Frontend
 
 In a new terminal window:
 
@@ -120,7 +140,7 @@ Run the client:
 #### 🪟 On Windows:
 
 ```powershell
-go run  windows\main.go
+go run windows\main.go
 ```
 
 > Run in PowerShell **as Administrator**.
