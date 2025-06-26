@@ -2,8 +2,8 @@ package api
 
 import (
 	"net/http"
-	"windows/auth"
-	"windows/logic/health"
+	"github.com/kishore-001/ServerManagementSuite/windows/auth"
+	"github.com/kishore-001/ServerManagementSuite/windows/logic/health"
 )
 
 func RegisterHealthRoutes(mux *http.ServeMux) {

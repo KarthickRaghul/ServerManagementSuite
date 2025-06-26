@@ -1,7 +1,7 @@
 package auth
 
 import (
-	db "backend/db/gen/general"
+	db "github.com/kishore-001/ServerManagementSuite/backend/db/gen/general"
 	"context"
 	"database/sql"
 	"encoding/json"

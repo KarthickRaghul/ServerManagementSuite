@@ -2,8 +2,8 @@ package api
 
 import (
 	"net/http"
-	"windows/auth"
-	"windows/logic/config_1"
+	"github.com/kishore-001/ServerManagementSuite/windows/auth"
+	"github.com/kishore-001/ServerManagementSuite/windows/logic/config_1"
 )
 
 func RegisterConfig1Routes(mux *http.ServeMux) {

@@ -2,10 +2,10 @@
 package main
 
 import (
-	"backend/api/common"
-	"backend/api/server"
-	"backend/config"
-	"backend/routine"
+	"github.com/kishore-001/ServerManagementSuite/backend/api/common"
+	"github.com/kishore-001/ServerManagementSuite/backend/api/server"
+	"github.com/kishore-001/ServerManagementSuite/backend/config"
+	"github.com/kishore-001/ServerManagementSuite/backend/routine"
 	"log"
 	"net/http"
 )

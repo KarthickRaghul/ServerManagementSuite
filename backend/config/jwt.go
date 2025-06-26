@@ -1,7 +1,7 @@
 package config
 
 import (
-	"backend/auth"
+	"github.com/kishore-001/ServerManagementSuite/backend/auth"
 	"context"
 	"net/http"
 	"strings"

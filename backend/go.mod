@@ -1,4 +1,4 @@
-module backend
+module github.com/kishore-001/ServerManagementSuite/backend
 
 go 1.24.3
 

@@ -2,8 +2,8 @@ package api
 
 import (
 	"net/http"
-	"windows/auth"
-	"windows/logic/optimization"
+	"github.com/kishore-001/ServerManagementSuite/windows/auth"
+	"github.com/kishore-001/ServerManagementSuite/windows/logic/optimization"
 )
 
 func RegisterOptimizeRoutes(mux *http.ServeMux) {

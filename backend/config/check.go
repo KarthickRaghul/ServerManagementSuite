@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	serverdb "backend/db/gen/server"
+	serverdb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/server"
 )
 
 type CheckRequest struct {

@@ -2,8 +2,8 @@ package api
 
 import (
 	"net/http"
-	"windows/auth"
-	log "windows/logic/logs"
+	"github.com/kishore-001/ServerManagementSuite/windows/auth"
+	log "github.com/kishore-001/ServerManagementSuite/windows/logic/logs"
 )
 
 func RegisterLogRoutes(mux *http.ServeMux) {

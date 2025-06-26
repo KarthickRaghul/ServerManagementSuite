@@ -1,4 +1,4 @@
-module windows
+module github.com/kishore-001/ServerManagementSuite/windows
 
 go 1.24.3
 

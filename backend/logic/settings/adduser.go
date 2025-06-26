@@ -1,7 +1,7 @@
 package settings
 
 import (
-	generaldb "backend/db/gen/general"
+	generaldb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/general"
 	"encoding/json"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"

@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"linux/api"
+	"github.com/kishore-001/ServerManagementSuite/linux/api"
 	"log"
 	"net/http"
 	"os"

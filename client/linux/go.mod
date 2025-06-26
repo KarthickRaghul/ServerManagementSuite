@@ -1,4 +1,4 @@
-module linux
+module github.com/kishore-001/ServerManagementSuite/linux
 
 go 1.24.3
 

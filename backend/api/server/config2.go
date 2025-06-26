@@ -1,8 +1,8 @@
 package server
 
 import (
-	generaldb "backend/db/gen/server"
-	"backend/logic/server/config2"
+	generaldb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/server"
+	"github.com/kishore-001/ServerManagementSuite/backend/logic/server/config2"
 	"net/http"
 )
 

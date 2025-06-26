@@ -1,7 +1,7 @@
 package config1
 
 import (
-	"backend/config"
+	"github.com/kishore-001/ServerManagementSuite/backend/config"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	serverdb "backend/db/gen/server"
+	serverdb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/server"
 )
 
 // Request body from frontend

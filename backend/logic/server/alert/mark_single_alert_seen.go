@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"backend/config"
-	serverdb "backend/db/gen/server"
+	"github.com/kishore-001/ServerManagementSuite/backend/config"
+	serverdb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/server"
 )
 
 // HandleMarkSingleAlertAsSeen - Mark single alert as seen (for convenience)

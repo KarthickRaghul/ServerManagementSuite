@@ -2,8 +2,8 @@
 package config
 
 import (
-	generaldb "backend/db/gen/general"
-	serverdb "backend/db/gen/server"
+	generaldb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/general"
+	serverdb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/server"
 	"database/sql"
 	_ "github.com/lib/pq"
 	"log"

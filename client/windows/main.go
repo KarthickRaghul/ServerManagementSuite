@@ -10,7 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"windows/api"
+	"github.com/kishore-001/ServerManagementSuite/windows/api"
 )
 
 const tokenFilePath = "./auth/token.hash"

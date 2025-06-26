@@ -1,8 +1,8 @@
 package settings
 
 import (
-	"backend/config"
-	generaldb "backend/db/gen/general"
+	"github.com/kishore-001/ServerManagementSuite/backend/config"
+	generaldb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/general"
 	"encoding/json"
 	"net/http"
 )

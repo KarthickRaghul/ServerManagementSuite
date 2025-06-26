@@ -1,8 +1,8 @@
 package common
 
 import (
-	"backend/auth"
-	generaldb "backend/db/gen/general"
+	"github.com/kishore-001/ServerManagementSuite/backend/auth"
+	generaldb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/general"
 	"net/http"
 )
 

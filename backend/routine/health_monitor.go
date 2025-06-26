@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"backend/config"
-	generaldb "backend/db/gen/general"
-	serverdb "backend/db/gen/server"
+	"github.com/kishore-001/ServerManagementSuite/backend/config"
+	generaldb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/general"
+	serverdb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/server"
 )
 
 // ✅ Updated type definitions with float64 for better JSON compatibility

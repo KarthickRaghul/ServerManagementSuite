@@ -1,8 +1,8 @@
 package api
 
 import (
-	"linux/auth"
-	"linux/logic/optimization"
+	"github.com/kishore-001/ServerManagementSuite/linux/auth"
+	"github.com/kishore-001/ServerManagementSuite/linux/logic/optimization"
 	"net/http"
 )
 

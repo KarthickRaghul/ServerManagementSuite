@@ -1,9 +1,9 @@
 package common
 
 import (
-	"backend/config"
-	serverdb "backend/db/gen/server"
-	"backend/logic/server/config1"
+	"github.com/kishore-001/ServerManagementSuite/backend/config"
+	serverdb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/server"
+	"github.com/kishore-001/ServerManagementSuite/backend/logic/server/config1"
 	"net/http"
 )
 

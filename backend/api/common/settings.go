@@ -1,8 +1,8 @@
 package common
 
 import (
-	generaldb "backend/db/gen/general"
-	"backend/logic/settings"
+	generaldb "github.com/kishore-001/ServerManagementSuite/backend/db/gen/general"
+	"github.com/kishore-001/ServerManagementSuite/backend/logic/settings"
 	"net/http"
 )
 
