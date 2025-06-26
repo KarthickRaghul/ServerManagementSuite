@@ -1,7 +1,6 @@
 package config_1
 
 import (
-	"encoding/json"
 	"net/http"
 	"os/exec"
 	"strings"
@@ -13,19 +12,20 @@ type Overview struct {
 
 func HandleOverview(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only GET method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	uptime := getSystemUptimeWindows()
+
 	data := Overview{
-		Uptime: getSystemUptimeWindows(),
+		Uptime: uptime,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(data)
+	sendGetSuccess(w, data)
 }
 
-// getSystemUptimeWindows returns system uptime using PowerShell
+// getSystemUptimeWindows returns system uptime in a human-readable format
 func getSystemUptimeWindows() string {
 	cmd := exec.Command("powershell", "-Command", `
 		$uptime = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime

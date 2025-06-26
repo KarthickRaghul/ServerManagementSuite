@@ -1,9 +1,7 @@
 package optimization
 
 import (
-	"encoding/json"
 	"net/http"
-	"os/user"
 	"strings"
 	"time"
 
@@ -25,29 +23,28 @@ type ServiceListResult struct {
 	Timestamp string        `json:"timestamp"`
 }
 
-// getUserServices on Windows just returns an empty map; we fallback to detecting user-level services heuristically
+
+// getUserServices returns an empty map (Windows doesn't have systemd)
 func getUserServices() (map[string]string, error) {
 	return map[string]string{}, nil
 }
 
-// getAllRegularUsers on Windows returns only the current user
-func getAllRegularUsers() ([]string, error) {
-	currentUser, err := user.Current()
-	if err != nil {
-		return []string{}, err
-	}
-	return []string{currentUser.Username}, nil
-}
 
 func HandleListService(w http.ResponseWriter, r *http.Request) {
+	// Check for GET method
+	if r.Method != http.MethodGet {
+		sendError(w, "Only GET method allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 
-	// Windows fallback: we don’t have user services list from systemd
+	// Get user services (empty on Windows)
 	userServices, _ := getUserServices()
 
 	procs, err := process.Processes()
 	if err != nil {
-		http.Error(w, "Failed to fetch processes", http.StatusInternalServerError)
+		sendError(w, "Failed to fetch processes: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -66,26 +63,24 @@ func HandleListService(w http.ResponseWriter, r *http.Request) {
 		nameLower := strings.ToLower(name)
 
 		if userServiceOwner, exists := userServices[nameLower]; exists {
-			svc := ServiceInfo{
+			services = append(services, ServiceInfo{
 				PID:     proc.Pid,
 				User:    userServiceOwner,
 				Name:    name,
 				Cmdline: cmdline,
 				Type:    "user",
-			}
-			services = append(services, svc)
+			})
 		}
 
-		// Heuristic check for service-like user processes
+		// Heuristic check for service-like processes
 		if isUserService(name, cmdline) {
-			svc := ServiceInfo{
+			services = append(services, ServiceInfo{
 				PID:     proc.Pid,
 				User:    username,
 				Name:    name,
 				Cmdline: cmdline,
 				Type:    "user",
-			}
-			services = append(services, svc)
+			})
 		}
 	}
 
@@ -96,10 +91,9 @@ func HandleListService(w http.ResponseWriter, r *http.Request) {
 		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
-	json.NewEncoder(w).Encode(result)
+	sendGetSuccess(w, result)
 }
 
-// isUserService logic unchanged
 func isUserService(name, cmdline string) bool {
 	nameLower := strings.ToLower(name)
 	cmdlineLower := strings.ToLower(cmdline)
@@ -129,3 +123,4 @@ func isUserService(name, cmdline string) bool {
 
 	return false
 }
+

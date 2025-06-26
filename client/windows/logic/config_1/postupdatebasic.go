@@ -3,66 +3,72 @@ package config_1
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"os/exec"
 	"strings"
 )
 
-// BasicUpdateRequest defines the expected JSON structure
+// BasicUpdateRequest defines the expected JSON structure for basic system updates
 type BasicUpdateRequest struct {
 	Hostname string `json:"hostname"`
 	Timezone string `json:"timezone"`
 }
 
-// HandleBasicUpdate processes hostname and timezone updates for Windows
+// HandleBasicUpdate processes requests to update hostname and timezone (Windows)
 func HandleBasicUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var updateReq BasicUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
-		log.Println("Failed to decode request:", err)
-		writeStatus(w, false)
+		sendError(w, "Invalid JSON input: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	log.Printf("Received Update Request: Hostname=%s, Timezone=%s\n", updateReq.Hostname, updateReq.Timezone)
+	if updateReq.Hostname == "" && updateReq.Timezone == "" {
+		sendError(w, "At least one field (hostname or timezone) must be provided", http.StatusBadRequest)
+		return
+	}
 
-	status := true
+	var errorMessages []string
 
 	if updateReq.Hostname != "" {
 		if err := updateHostname(updateReq.Hostname); err != nil {
-			log.Println("Hostname update error:", err)
-			status = false
+			errorMessages = append(errorMessages, "hostname update failed: "+err.Error())
 		}
 	}
 
 	if updateReq.Timezone != "" {
 		if err := updateTimezone(updateReq.Timezone); err != nil {
-			log.Println("Timezone update error:", err)
-			status = false
+			errorMessages = append(errorMessages, "timezone update failed: "+err.Error())
 		}
 	}
 
-	writeStatus(w, status)
-}
-
-func writeStatus(w http.ResponseWriter, success bool) {
-	w.Header().Set("Content-Type", "application/json")
-	status := "success"
-	if !success {
-		status = "failed"
+	if len(errorMessages) > 0 {
+		sendError(w, strings.Join(errorMessages, "; "), http.StatusInternalServerError)
+		return
 	}
-	json.NewEncoder(w).Encode(map[string]string{
-		"status": status,
-	})
+
+	sendPostSuccess(w)
 }
 
 // updateHostname uses PowerShell to rename the computer
+// updateHostname uses PowerShell to rename the computer
 func updateHostname(newHostname string) error {
+	// Get current hostname
+	currentHostnameBytes, err := exec.Command("cmd", "/C", "hostname").Output()
+	if err != nil {
+		return fmt.Errorf("failed to get current hostname: %v", err)
+	}
+	currentHostname := strings.TrimSpace(string(currentHostnameBytes))
+
+	// If new hostname is same as current, return nil (no error)
+	if strings.EqualFold(currentHostname, newHostname) {
+		return nil
+	}
+
 	cmd := exec.Command("powershell", "-Command",
 		fmt.Sprintf(`Rename-Computer -NewName %s -Force -PassThru`, quoteArg(newHostname)),
 	)

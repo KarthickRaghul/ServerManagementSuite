@@ -53,19 +53,141 @@ type HealthStats struct {
 	OpenPorts []OpenPort `json:"open_ports"`
 }
 
+type ErrorResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
+// sendGetSuccess sends successful GET response with data
+func sendGetSuccess(w http.ResponseWriter, data interface{}) {
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(data)
+}
+
+// sendError sends standardized error response
+func sendError(w http.ResponseWriter, message string, statusCode int) {
+	w.WriteHeader(statusCode)
+	errorResp := ErrorResponse{
+		Status:  "failed",
+		Message: message,
+	}
+	json.NewEncoder(w).Encode(errorResp)
+}
+
+func HandleHealthConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		sendError(w, "Only GET method allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+
+	// CPU
+	cpuPercent, err := cpu.Percent(time.Second, false)
+	if err != nil || len(cpuPercent) == 0 {
+		sendError(w, "Failed to get CPU stats", http.StatusInternalServerError)
+		return
+	}
+
+	// RAM
+	vmStat, err := mem.VirtualMemory()
+	if err != nil {
+		sendError(w, "Failed to get RAM stats", http.StatusInternalServerError)
+		return
+	}
+
+	// Disk
+	var diskPath string
+	if runtime.GOOS == "windows" {
+		diskPath = "C:\\"
+	} else {
+		diskPath = "/"
+	}
+	diskStat, err := disk.Usage(diskPath)
+	if err != nil {
+		sendError(w, "Failed to get disk stats", http.StatusInternalServerError)
+		return
+	}
+
+	// Network
+	activeIface, _ := getActiveInterface()
+	var netStat *NetStats
+	if activeIface != "" {
+		netIOs, err := psnet.IOCounters(true)
+		if err == nil {
+			for _, iface := range netIOs {
+				if iface.Name == activeIface {
+					netStat = &NetStats{
+						Name:      iface.Name,
+						BytesSent: bytesToMB(iface.BytesSent),
+						BytesRecv: bytesToMB(iface.BytesRecv),
+					}
+					break
+				}
+			}
+		}
+	}
+
+	// Open ports
+	conns, err := psnet.Connections("inet")
+	openPorts := []OpenPort{}
+	if err == nil {
+		for _, conn := range conns {
+			if conn.Status == "LISTEN" && conn.Laddr.Port != 0 {
+				protocol := "tcp"
+				if conn.Type == 2 {
+					protocol = "udp"
+				}
+				processName := ""
+				if conn.Pid > 0 {
+					processName = getProcessName(conn.Pid)
+				}
+				openPorts = append(openPorts, OpenPort{
+					Protocol: protocol,
+					Port:     conn.Laddr.Port,
+					Process:  processName,
+				})
+			}
+		}
+	}
+
+	stats := HealthStats{
+		CPU: CPUStats{
+			UsagePercent: cpuPercent[0],
+		},
+		RAM: RAMStats{
+			Total:        bytesToMB(vmStat.Total),
+			Used:         bytesToMB(vmStat.Used),
+			Free:         bytesToMB(vmStat.Free),
+			UsagePercent: vmStat.UsedPercent,
+		},
+		Disk: DiskStats{
+			Total:        bytesToMB(diskStat.Total),
+			Used:         bytesToMB(diskStat.Used),
+			Free:         bytesToMB(diskStat.Free),
+			UsagePercent: diskStat.UsedPercent,
+		},
+		Net:       netStat,
+		OpenPorts: openPorts,
+	}
+
+	sendGetSuccess(w, stats)
+}
+
+// getActiveInterface returns the primary UP, non-loopback, non-virtual interface
 func getActiveInterface() (string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
 		return "", err
 	}
-
 	var candidates []net.Interface
 	for _, iface := range ifaces {
 		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
 			continue
 		}
-		if strings.Contains(iface.Name, "docker") || strings.Contains(iface.Name, "veth") ||
-			strings.Contains(iface.Name, "br-") || strings.Contains(iface.Name, "virbr") {
+		if strings.Contains(strings.ToLower(iface.Name), "docker") ||
+			strings.Contains(strings.ToLower(iface.Name), "veth") ||
+			strings.Contains(strings.ToLower(iface.Name), "br-") ||
+			strings.Contains(strings.ToLower(iface.Name), "virbr") {
 			continue
 		}
 		addrs, err := iface.Addrs()
@@ -75,6 +197,10 @@ func getActiveInterface() (string, error) {
 		// Windows common names
 		if strings.Contains(strings.ToLower(iface.Name), "ethernet") ||
 			strings.Contains(strings.ToLower(iface.Name), "wi-fi") {
+			return iface.Name, nil
+		}
+		// Linux/macOS: prioritize wireless/en
+		if strings.HasPrefix(iface.Name, "wl") || strings.HasPrefix(iface.Name, "en") {
 			return iface.Name, nil
 		}
 		candidates = append(candidates, iface)
@@ -99,100 +225,4 @@ func getProcessName(pid int32) string {
 		return ""
 	}
 	return name
-}
-
-func HandleHealthConfig(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	// CPU
-	cpuPercent, _ := cpu.Percent(time.Second, false)
-
-	// RAM
-	vmStat, _ := mem.VirtualMemory()
-
-	// Disk
-	var diskPath string
-	if runtime.GOOS == "windows" {
-		diskPath = "C:\\"
-	} else {
-		diskPath = "/"
-	}
-	diskStat, _ := disk.Usage(diskPath)
-
-	// Network
-	activeIface, _ := getActiveInterface()
-	var netStat *NetStats
-	if activeIface != "" {
-		netIOs, _ := psnet.IOCounters(true)
-		for _, iface := range netIOs {
-			if iface.Name == activeIface {
-				netStat = &NetStats{
-					Name:      iface.Name,
-					BytesSent: bytesToMB(iface.BytesSent),
-					BytesRecv: bytesToMB(iface.BytesRecv),
-				}
-				break
-			}
-		}
-	}
-
-	// Open ports
-	conns, _ := psnet.Connections("inet")
-	openPorts := []OpenPort{}
-	for _, conn := range conns {
-		if conn.Status == "LISTEN" && conn.Laddr.Port != 0 {
-			protocol := "tcp"
-			if conn.Type == 2 {
-				protocol = "udp"
-			}
-			processName := ""
-			if conn.Pid > 0 {
-				processName = getProcessName(conn.Pid)
-			}
-			openPorts = append(openPorts, OpenPort{
-				Protocol: protocol,
-				Port:     conn.Laddr.Port,
-				Process:  processName,
-			})
-		}
-	}
-
-	// Compose result
-	stats := HealthStats{
-		CPU: CPUStats{
-			UsagePercent: 0,
-		},
-		RAM: RAMStats{
-			Total:        0,
-			Used:         0,
-			Free:         0,
-			UsagePercent: 0,
-		},
-		Disk: DiskStats{
-			Total:        0,
-			Used:         0,
-			Free:         0,
-			UsagePercent: 0,
-		},
-		Net:       netStat,
-		OpenPorts: openPorts,
-	}
-
-	if len(cpuPercent) > 0 {
-		stats.CPU.UsagePercent = cpuPercent[0]
-	}
-	if vmStat != nil {
-		stats.RAM.Total = bytesToMB(vmStat.Total)
-		stats.RAM.Used = bytesToMB(vmStat.Used)
-		stats.RAM.Free = bytesToMB(vmStat.Free)
-		stats.RAM.UsagePercent = vmStat.UsedPercent
-	}
-	if diskStat != nil {
-		stats.Disk.Total = bytesToMB(diskStat.Total)
-		stats.Disk.Used = bytesToMB(diskStat.Used)
-		stats.Disk.Free = bytesToMB(diskStat.Free)
-		stats.Disk.UsagePercent = diskStat.UsedPercent
-	}
-
-	json.NewEncoder(w).Encode(stats)
 }

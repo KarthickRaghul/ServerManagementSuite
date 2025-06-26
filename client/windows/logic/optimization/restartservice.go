@@ -21,22 +21,25 @@ type RestartResponse struct {
 }
 
 func HandleRestartService(w http.ResponseWriter, r *http.Request) {
+	// Set content type
 	w.Header().Set("Content-Type", "application/json")
 
+	// Check for POST method
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Parse request body
 	var req RestartRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+		sendError(w, "Invalid JSON body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	serviceName := strings.TrimSpace(req.Service)
 	if serviceName == "" {
-		http.Error(w, "Service name is required", http.StatusBadRequest)
+		sendError(w, "Service name is required", http.StatusBadRequest)
 		return
 	}
 
@@ -51,7 +54,7 @@ func HandleRestartService(w http.ResponseWriter, r *http.Request) {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		resp.Status = "error"
+		resp.Status = "failed"
 		resp.Message = fmt.Sprintf("Failed to restart service: %v, Output: %s", err, string(output))
 		json.NewEncoder(w).Encode(resp)
 		return

@@ -287,15 +287,3 @@ func subnetToPrefix(subnet string) string {
 	return fmt.Sprintf("%d", count)
 }
 
-func sendErrorResponse(w http.ResponseWriter, message string, err error) {
-	w.WriteHeader(http.StatusBadRequest)
-	errResp := NetworkUpdateResponse{
-		Success: false,
-		Message: message,
-		Details: "",
-	}
-	if err != nil {
-		errResp.Details = err.Error()
-	}
-	json.NewEncoder(w).Encode(errResp)
-}

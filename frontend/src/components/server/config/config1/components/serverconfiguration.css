@@ -22,7 +22,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(14, 165, 233, 0.05);
+  background: #0ea5e90d;
   opacity: 0;
   transition: opacity 0.3s ease;
 }
@@ -36,6 +36,8 @@
   box-shadow: 0 20px 40px rgba(14, 165, 233, 0.15);
   border-color: rgba(14, 165, 233, 0.3);
 }
+
+
 
 .config1-serverconfig-card-container h3 {
   color: #e2e8f0;
@@ -159,6 +161,42 @@
   box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
   background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
 }
+
+/* Option Group Styling */
+.config1-serverconfig-select optgroup {
+  width: 100%;
+  background: #1e293b;
+  color: #0ea5e9;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+  font-family: "Inter", sans-serif;
+}
+
+.config1-serverconfig-select option {
+  width: 100%;
+  background: #1e293b;
+  color: #e2e8f0;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.config1-serverconfig-select option:hover,
+.config1-serverconfig-select option:focus {
+  background: #334155;
+  color: #0ea5e9;
+}
+
+.config1-serverconfig-select option:checked {
+  background: #0ea5e9;
+  color: white;
+}
+
+
 
 .config1-serverconfig-input::placeholder {
   color: #64748b;

@@ -65,4 +65,3 @@ func getSystemUptime() string {
 	// If all else fails, return a default message
 	return "Unable to determine uptime"
 }
-

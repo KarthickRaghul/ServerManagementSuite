@@ -31,26 +31,20 @@ func cleanDir(path string) error {
 	return nil
 }
 
-// HandleFileClean handles POST requests to clean temporary/cache folders on Windows
 func HandleFileClean(w http.ResponseWriter, r *http.Request) {
+	// Check for POST method
+	if r.Method != http.MethodPost {
+		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Set content type
 	w.Header().Set("Content-Type", "application/json")
 
-	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Optionally check user (but not used)
-	_, err := os.UserHomeDir()
-	if err != nil {
-		http.Error(w, "Failed to get user home directory", http.StatusInternalServerError)
-		return
-	}
-
 	// Windows common temp/cache directories
-	tempDir := os.TempDir()                         // e.g., C:\Users\You\AppData\Local\Temp
-	localAppData := os.Getenv("LOCALAPPDATA")       // e.g., C:\Users\You\AppData\Local
-	userTemp := filepath.Join(localAppData, "Temp") // Redundant but kept for completeness
+	tempDir := os.TempDir()                   // e.g., C:\Users\You\AppData\Local\Temp
+	localAppData := os.Getenv("LOCALAPPDATA") // e.g., C:\Users\You\AppData\Local
+	userTemp := filepath.Join(localAppData, "Temp")
 
 	dirs := []string{tempDir, userTemp}
 	var cleaned []string
@@ -65,17 +59,32 @@ func HandleFileClean(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	status := "success"
-	message := fmt.Sprintf("Cleaned: %v", cleaned)
-	if len(failed) > 0 {
-		status = "partial"
-		message = fmt.Sprintf("Cleaned: %v. Failed: %v", cleaned, failed)
+	// Handle partial success
+	if len(failed) > 0 && len(cleaned) > 0 {
+		resp := map[string]interface{}{
+			"status":  "partial",
+			"message": fmt.Sprintf("Cleaned: %v. Failed: %v", cleaned, failed),
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(resp)
+		return
+	} 
+
+	// Handle complete failure
+	if len(failed) > 0 && len(cleaned) == 0 {
+		sendError(w, fmt.Sprintf("Failed to clean all directories: %v", failed), http.StatusInternalServerError)
+		return
 	}
 
-	resp := map[string]interface{}{
-		"status":  status,
-		"message": message,
-	}
+	// Complete success
+	sendPostSuccess(w)
+}
 
-	json.NewEncoder(w).Encode(resp)
+
+func sendPostSuccess(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusOK)
+	response := map[string]string{
+		"status": "success",
+	}
+	json.NewEncoder(w).Encode(response)
 }
