@@ -23,6 +23,12 @@ type LogFilterRequest struct {
 	Time string `json:"time"` // Format: "HH:MM:SS"
 }
 
+// Standard error response structure
+type ErrorResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
 func parseLogLevel(message string) string {
 	lower := strings.ToLower(message)
 	switch {
@@ -56,7 +62,7 @@ func HandleLog(w http.ResponseWriter, r *http.Request) {
 
 	// Support both GET and POST methods
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -75,17 +81,17 @@ func HandleLog(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost && r.Body != nil {
 		if err := json.NewDecoder(r.Body).Decode(&filter); err != nil {
 			log.Printf("❌ [CLIENT-LOG] Failed to parse filter: %v", err)
-			http.Error(w, "Invalid filter format", http.StatusBadRequest)
+			sendError(w, "Invalid filter format", http.StatusBadRequest)
 			return
 		}
 		log.Printf("🔍 [CLIENT-LOG] Received filter: %+v", filter)
 	}
 
-	// ✅ Build journalctl arguments based on your working command
+	// Build journalctl arguments based on your working command
 	var args []string
 
 	if filter.Date != "" {
-		// ✅ Use the exact format that works
+		// Use the exact format that works
 		since := filter.Date + " 00:00:00"
 		until := filter.Date + " 23:59:59"
 
@@ -131,13 +137,13 @@ func HandleLog(w http.ResponseWriter, r *http.Request) {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		log.Printf("❌ [CLIENT-LOG] journalctl error: %v, output: %s", err, string(output))
-		http.Error(w, "Error fetching logs: "+err.Error(), http.StatusInternalServerError)
+		sendError(w, "Error fetching logs: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	log.Printf("✅ [CLIENT-LOG] journalctl executed successfully, output length: %d", len(output))
 
-	// ✅ Parse journalctl output in ISO format
+	// Parse journalctl output in ISO format
 	lines := strings.Split(string(output), "\n")
 	var entries []LogEntry
 
@@ -146,7 +152,7 @@ func HandleLog(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		// ✅ Parse ISO format: "2025-06-10T08:00:05+05:30 ROG-G15 kernel: message"
+		// Parse ISO format: "2025-06-10T08:00:05+05:30 ROG-G15 kernel: message"
 		// Extract timestamp (first 25 characters include timezone)
 		if len(line) < 25 {
 			continue
@@ -181,18 +187,42 @@ func HandleLog(w http.ResponseWriter, r *http.Request) {
 		entries = append(entries, entry)
 	}
 
-	// ✅ Apply line limit if date filter was used and we have too many entries
+	// Apply line limit if date filter was used and we have too many entries
 	if filter.Date != "" && len(entries) > numLines {
 		// Take the most recent entries
 		entries = entries[len(entries)-numLines:]
 	}
 
-	log.Printf("✅ [CLIENT-LOG] Parsed %d log entries", len(entries))
-
-	// Return JSON response
-	if err := json.NewEncoder(w).Encode(entries); err != nil {
-		log.Printf("❌ [CLIENT-LOG] Failed to encode response: %v", err)
-		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+	// ✅ Check if time filter is applied and no logs found
+	if filter.Time != "" && len(entries) == 0 {
+		log.Printf("❌ [CLIENT-LOG] No logs found after the specified time: %s", filter.Time)
+		sendError(w, "No logs found after the specified time", http.StatusNotFound)
 		return
 	}
+
+	// ✅ Check if date filter is applied and no logs found
+	if filter.Date != "" && len(entries) == 0 {
+		log.Printf("❌ [CLIENT-LOG] No logs found for the specified date: %s", filter.Date)
+		sendError(w, "No logs found for the specified date", http.StatusNotFound)
+		return
+	}
+
+	log.Printf("✅ [CLIENT-LOG] Parsed %d log entries", len(entries))
+
+	// Return JSON response (keep success format unchanged)
+	if err := json.NewEncoder(w).Encode(entries); err != nil {
+		log.Printf("❌ [CLIENT-LOG] Failed to encode response: %v", err)
+		sendError(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
+}
+
+// sendError sends standardized error response
+func sendError(w http.ResponseWriter, message string, statusCode int) {
+	w.WriteHeader(statusCode)
+	errorResp := ErrorResponse{
+		Status:  "failed",
+		Message: message,
+	}
+	json.NewEncoder(w).Encode(errorResp)
 }
