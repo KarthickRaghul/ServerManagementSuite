@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strings"
 )
 
 // BasicUpdateRequest defines the expected JSON structure for basic system updates
@@ -16,52 +17,62 @@ type BasicUpdateRequest struct {
 
 // HandleBasicUpdate processes requests to update hostname and timezone
 func HandleBasicUpdate(w http.ResponseWriter, r *http.Request) {
+	// Check for POST method
 	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	// Set content type
+	w.Header().Set("Content-Type", "application/json")
 
 	// Parse the JSON request
 	var updateReq BasicUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&updateReq); err != nil {
-		writeStatus(w, false)
+		sendError(w, "Invalid JSON input: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Track update status
-	status := true
+	// Validate that at least one field is provided
+	if updateReq.Hostname == "" && updateReq.Timezone == "" {
+		sendError(w, "At least one field (hostname or timezone) must be provided", http.StatusBadRequest)
+		return
+	}
+
+	// Track update status and error messages
+	var errorMessages []string
 
 	// Update hostname if provided
 	if updateReq.Hostname != "" {
 		if err := updateHostname(updateReq.Hostname); err != nil {
-			status = false
+			errorMessages = append(errorMessages, "hostname update failed: "+err.Error())
 		}
 	}
 
 	// Update timezone if provided
 	if updateReq.Timezone != "" {
 		if err := updateTimezone(updateReq.Timezone); err != nil {
-			status = false
+			errorMessages = append(errorMessages, "timezone update failed: "+err.Error())
 		}
 	}
 
-	writeStatus(w, status)
-}
-
-func writeStatus(w http.ResponseWriter, success bool) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	status := "success"
-	if !success {
-		status = "failed"
+	// If any errors occurred, send failed response with combined message
+	if len(errorMessages) > 0 {
+		sendError(w, strings.Join(errorMessages, "; "), http.StatusInternalServerError)
+		return
 	}
-	json.NewEncoder(w).Encode(map[string]string{
-		"status": status,
-	})
+
+	// Send success response
+	sendPostSuccess(w)
 }
 
 // updateHostname changes the system hostname
 func updateHostname(hostname string) error {
+	// Basic validation
+	if strings.TrimSpace(hostname) == "" {
+		return fmt.Errorf("hostname cannot be empty")
+	}
+
 	// Check if running as root/sudo
 	if os.Geteuid() != 0 {
 		return fmt.Errorf("must run as root/sudo to change hostname")
@@ -89,6 +100,11 @@ func updateHostname(hostname string) error {
 
 // updateTimezone changes the system timezone
 func updateTimezone(timezone string) error {
+	// Basic validation
+	if strings.TrimSpace(timezone) == "" {
+		return fmt.Errorf("timezone cannot be empty")
+	}
+
 	// Check if running as root/sudo
 	if os.Geteuid() != 0 {
 		return fmt.Errorf("must run as root/sudo to change timezone")
@@ -108,4 +124,3 @@ func updateTimezone(timezone string) error {
 
 	return nil
 }
-

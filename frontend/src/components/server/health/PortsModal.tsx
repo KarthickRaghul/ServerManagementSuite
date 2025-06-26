@@ -1,7 +1,12 @@
 // components/common/health/PortsModal.tsx
-import React from 'react';
-import { FaTimes, FaGlobe, FaExclamationTriangle } from 'react-icons/fa';
-import './PortsModal.css';
+import React from "react";
+import {
+  FaTimes,
+  FaGlobe,
+  FaExclamationTriangle,
+  FaInfoCircle,
+} from "react-icons/fa";
+import "./PortsModal.css";
 
 interface Port {
   protocol: string;
@@ -18,12 +23,61 @@ interface PortsModalProps {
 const PortsModal: React.FC<PortsModalProps> = ({ isOpen, onClose, ports }) => {
   if (!isOpen) return null;
 
-  // Remove duplicate ports and group by port number
+  // ✅ Enhanced port categorization based on port numbers and process names
+  const getPortCategory = (
+    port: number,
+    process: string,
+  ): { category: string; severity: "critical" | "warning" | "standard" } => {
+    // Critical system ports
+    if ([22, 23, 21, 3389].includes(port)) {
+      return { category: "Remote Access", severity: "critical" };
+    }
+    // Database ports
+    if (
+      [1433, 3306, 5432, 6379, 27017, 9200].includes(port) ||
+      process.toLowerCase().includes("postgres")
+    ) {
+      return { category: "Database", severity: "warning" };
+    }
+    // Web services
+    if (
+      [80, 443, 8080, 8443].includes(port) ||
+      process.toLowerCase().includes("node")
+    ) {
+      return { category: "Web Service", severity: "standard" };
+    }
+    // Email services
+    if ([25, 110, 143, 993, 995].includes(port)) {
+      return { category: "Email Service", severity: "standard" };
+    }
+    // DNS and system services
+    if ([53, 123].includes(port) || process.toLowerCase().includes("dns")) {
+      return { category: "System Service", severity: "standard" };
+    }
+    // Development services
+    if (
+      [3000, 5173, 8000, 8500].includes(port) ||
+      process.toLowerCase().includes("eslint") ||
+      process.toLowerCase().includes("node")
+    ) {
+      return { category: "Development", severity: "standard" };
+    }
+    // Container services
+    if (
+      process.toLowerCase().includes("containerd") ||
+      process.toLowerCase().includes("docker")
+    ) {
+      return { category: "Container", severity: "standard" };
+    }
+    return { category: "Application", severity: "standard" };
+  };
+
+  // Remove duplicate ports and group by port number with enhanced details
   const getUniquePortsWithDetails = () => {
     const portMap = new Map<number, Port[]>();
-    
+
     // Group ports by port number
-    ports.forEach(port => {
+    ports.forEach((port) => {
       if (!portMap.has(port.port)) {
         portMap.set(port.port, []);
       }
@@ -31,25 +85,57 @@ const PortsModal: React.FC<PortsModalProps> = ({ isOpen, onClose, ports }) => {
     });
 
     // Convert to array with unique ports and their details
-    return Array.from(portMap.entries()).map(([portNumber, portDetails]) => ({
-      port: portNumber,
-      details: portDetails,
-      isDuplicate: portDetails.length > 1,
-      processes: [...new Set(portDetails.map(p => p.process))], // Unique processes
-      protocols: [...new Set(portDetails.map(p => p.protocol))] // Unique protocols
-    }));
+    return Array.from(portMap.entries())
+      .map(([portNumber, portDetails]) => {
+        const category = getPortCategory(portNumber, portDetails[0].process);
+        return {
+          port: portNumber,
+          processName: portDetails[0].process, // ✅ Use actual process name from API
+          category: category.category,
+          severity: category.severity,
+          details: portDetails,
+          isDuplicate: portDetails.length > 1,
+          processes: [...new Set(portDetails.map((p) => p.process))],
+          protocols: [...new Set(portDetails.map((p) => p.protocol))],
+        };
+      })
+      .sort((a, b) => a.port - b.port); // Sort by port number
   };
 
   const uniquePorts = getUniquePortsWithDetails();
 
-  const getPortSeverity = (port: number): 'critical' | 'standard' => {
-    const criticalPorts = [22, 80, 443, 3306, 5432, 1433, 21, 23, 25, 53, 110, 143, 993, 995];
-    return criticalPorts.includes(port) ? 'critical' : 'standard';
+  const criticalPorts = uniquePorts.filter(
+    (port) => port.severity === "critical",
+  );
+  const warningPorts = uniquePorts.filter(
+    (port) => port.severity === "warning",
+  );
+  const standardPorts = uniquePorts.filter(
+    (port) => port.severity === "standard",
+  );
+  const duplicatedPorts = uniquePorts.filter((port) => port.isDuplicate);
+
+  // ✅ Enhanced port statistics
+  const getPortStats = () => {
+    const categories = uniquePorts.reduce(
+      (acc, port) => {
+        acc[port.category] = (acc[port.category] || 0) + 1;
+        return acc;
+      },
+      {} as { [key: string]: number },
+    );
+
+    return {
+      total: uniquePorts.length,
+      critical: criticalPorts.length,
+      warning: warningPorts.length,
+      standard: standardPorts.length,
+      duplicated: duplicatedPorts.length,
+      categories,
+    };
   };
 
-  const criticalPorts = uniquePorts.filter(port => getPortSeverity(port.port) === 'critical');
-  const standardPorts = uniquePorts.filter(port => getPortSeverity(port.port) === 'standard');
-  const duplicatedPorts = uniquePorts.filter(port => port.isDuplicate);
+  const stats = getPortStats();
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
@@ -63,9 +149,9 @@ const PortsModal: React.FC<PortsModalProps> = ({ isOpen, onClose, ports }) => {
         <div className="health-ports-modal-header">
           <div className="health-ports-modal-title-section">
             <FaGlobe className="health-ports-modal-icon" />
-            <h2 className="health-ports-modal-title">Open Ports Details</h2>
+            <h2 className="health-ports-modal-title">Open Ports & Services</h2>
           </div>
-          <button 
+          <button
             className="health-ports-modal-close"
             onClick={onClose}
             type="button"
@@ -75,70 +161,97 @@ const PortsModal: React.FC<PortsModalProps> = ({ isOpen, onClose, ports }) => {
         </div>
 
         <div className="health-ports-modal-content">
+          {/* ✅ Enhanced Statistics */}
           <div className="health-ports-modal-stats">
             <div className="health-ports-stat-item">
-              <span className="health-ports-stat-value">{uniquePorts.length}</span>
-              <span className="health-ports-stat-label">Unique Ports</span>
+              <span className="health-ports-stat-value">{stats.total}</span>
+              <span className="health-ports-stat-label">Total Services</span>
             </div>
             <div className="health-ports-stat-item">
-              <span className="health-ports-stat-value">{criticalPorts.length}</span>
+              <span className="health-ports-stat-value critical">
+                {stats.critical}
+              </span>
               <span className="health-ports-stat-label">Critical</span>
             </div>
             <div className="health-ports-stat-item">
-              <span className="health-ports-stat-value">{duplicatedPorts.length}</span>
+              <span className="health-ports-stat-value warning">
+                {stats.warning}
+              </span>
+              <span className="health-ports-stat-label">Database</span>
+            </div>
+            <div className="health-ports-stat-item">
+              <span className="health-ports-stat-value">
+                {stats.duplicated}
+              </span>
               <span className="health-ports-stat-label">Duplicated</span>
             </div>
           </div>
 
           <p className="health-ports-modal-subtitle">
-            Complete list of unique open ports and their security status
+            Complete overview of active network services and their security
+            classifications
           </p>
 
-          {/* Duplicated Ports Warning */}
-          {duplicatedPorts.length > 0 && (
+          {/* Security Warnings */}
+          {criticalPorts.length > 0 && (
             <div className="health-ports-modal-warning">
               <FaExclamationTriangle className="health-ports-modal-warning-icon" />
               <div className="health-ports-modal-warning-content">
-                <h4>Duplicate Ports Detected</h4>
+                <h4>Critical Services Exposed</h4>
                 <p>
-                  {duplicatedPorts.length} port(s) have multiple bindings: {duplicatedPorts.map(p => p.port).join(', ')}
+                  {criticalPorts.length} critical service(s) detected:{" "}
+                  {criticalPorts
+                    .map((p) => `${p.processName} (${p.port})`)
+                    .join(", ")}
+                  . Ensure proper firewall rules and access controls are in
+                  place.
                 </p>
               </div>
             </div>
           )}
 
-          {/* Port Grid */}
-          <div className="health-ports-modal-grid">
-            {/* Critical Ports */}
-            {criticalPorts.map((portInfo, index) => (
-              <div 
-                key={`critical-${index}`} 
-                className={`health-ports-modal-item critical ${portInfo.isDuplicate ? 'duplicate' : ''}`}
-                title={`Processes: ${portInfo.processes.join(', ')}\nProtocols: ${portInfo.protocols.join(', ')}`}
-              >
-                <span className="health-ports-modal-port-number">{portInfo.port}</span>
-                <span className="health-ports-modal-port-label">
-                  {portInfo.isDuplicate ? 'Critical (Dup)' : 'Critical'}
-                </span>
-                {portInfo.isDuplicate && (
-                  <span className="health-ports-modal-duplicate-indicator">
-                    {portInfo.details.length}x
-                  </span>
-                )}
+          {/* Duplicate Ports Warning */}
+          {duplicatedPorts.length > 0 && (
+            <div className="health-ports-modal-warning">
+              <FaInfoCircle className="health-ports-modal-warning-icon" />
+              <div className="health-ports-modal-warning-content">
+                <h4>Duplicate Port Bindings</h4>
+                <p>
+                  {duplicatedPorts.length} port(s) have multiple bindings:{" "}
+                  {duplicatedPorts
+                    .map((p) => `${p.port} (${p.processName})`)
+                    .join(", ")}
+                </p>
               </div>
-            ))}
-            
-            {/* Standard Ports */}
-            {standardPorts.map((portInfo, index) => (
-              <div 
-                key={`standard-${index}`} 
-                className={`health-ports-modal-item standard ${portInfo.isDuplicate ? 'duplicate' : ''}`}
-                title={`Processes: ${portInfo.processes.join(', ')}\nProtocols: ${portInfo.protocols.join(', ')}`}
+            </div>
+          )}
+
+          {/* ✅ Enhanced Service Grid using actual process names */}
+          <div className="health-ports-modal-grid">
+            {uniquePorts.map((portInfo, index) => (
+              <div
+                key={index}
+                className={`health-ports-modal-item ${portInfo.severity} ${portInfo.isDuplicate ? "duplicate" : ""}`}
+                title={`${portInfo.processName}\nCategory: ${portInfo.category}\nProcesses: ${portInfo.processes.join(", ")}\nProtocols: ${portInfo.protocols.join(", ")}`}
               >
-                <span className="health-ports-modal-port-number">{portInfo.port}</span>
-                <span className="health-ports-modal-port-label">
-                  {portInfo.isDuplicate ? 'Standard (Dup)' : 'Standard'}
-                </span>
+                <div className="health-ports-modal-service-header">
+                  <span className="health-ports-modal-port-number">
+                    {portInfo.port}
+                  </span>
+                  <span className="health-ports-modal-category-badge">
+                    {portInfo.category}
+                  </span>
+                </div>
+                <div className="health-ports-modal-service-info">
+                  <span className="health-ports-modal-service-name">
+                    {portInfo.processName}
+                  </span>
+                  <div className="health-ports-modal-service-details">
+                    <span className="health-ports-modal-protocol">
+                      {portInfo.protocols.join(", ")}
+                    </span>
+                  </div>
+                </div>
                 {portInfo.isDuplicate && (
                   <span className="health-ports-modal-duplicate-indicator">
                     {portInfo.details.length}x
@@ -148,22 +261,30 @@ const PortsModal: React.FC<PortsModalProps> = ({ isOpen, onClose, ports }) => {
             ))}
           </div>
 
-          {/* Detailed Port Information */}
+          {/* ✅ Enhanced Detailed Information */}
           {duplicatedPorts.length > 0 && (
             <div className="health-ports-modal-details">
-              <h4>Duplicate Port Details</h4>
+              <h4>Duplicate Service Details</h4>
               <div className="health-ports-detail-list">
                 {duplicatedPorts.map((portInfo, index) => (
                   <div key={index} className="health-ports-detail-item">
                     <div className="health-ports-detail-header">
-                      <span className="health-ports-detail-port">Port {portInfo.port}</span>
-                      <span className="health-ports-detail-count">{portInfo.details.length} bindings</span>
+                      <span className="health-ports-detail-service">
+                        {portInfo.processName} (Port {portInfo.port})
+                      </span>
+                      <span className="health-ports-detail-count">
+                        {portInfo.details.length} instances
+                      </span>
                     </div>
                     <div className="health-ports-detail-processes">
                       {portInfo.details.map((detail, idx) => (
                         <div key={idx} className="health-ports-process-item">
-                          <span className="health-ports-process-protocol">{detail.protocol}</span>
-                          <span className="health-ports-process-name">{detail.process}</span>
+                          <span className="health-ports-process-protocol">
+                            {detail.protocol.toUpperCase()}
+                          </span>
+                          <span className="health-ports-process-name">
+                            {detail.process}
+                          </span>
                         </div>
                       ))}
                     </div>
@@ -173,15 +294,20 @@ const PortsModal: React.FC<PortsModalProps> = ({ isOpen, onClose, ports }) => {
             </div>
           )}
 
-          {/* Security Notice */}
+          {/* ✅ Enhanced Security Notice */}
           <div className="health-ports-modal-notice">
-            <FaExclamationTriangle className="health-ports-modal-notice-icon" />
+            <FaInfoCircle className="health-ports-modal-notice-icon" />
             <div className="health-ports-modal-notice-content">
-              <h4>Security Notice</h4>
+              <h4>Security Recommendations</h4>
               <p>
-                {criticalPorts.length > 0 && `Critical ports (${criticalPorts.map(p => p.port).join(', ')}) are exposed. `}
-                {duplicatedPorts.length > 0 && `${duplicatedPorts.length} duplicate port binding(s) detected. `}
-                Ensure proper firewall rules and process management are in place.
+                {criticalPorts.length > 0 &&
+                  `• Secure ${criticalPorts.length} critical service(s) with strong authentication and firewall rules. `}
+                {warningPorts.length > 0 &&
+                  `• Review ${warningPorts.length} database service(s) for proper access controls. `}
+                {duplicatedPorts.length > 0 &&
+                  `• Investigate ${duplicatedPorts.length} duplicate binding(s) for potential conflicts. `}
+                Regular security audits and monitoring are recommended for all
+                exposed services.
               </p>
             </div>
           </div>

@@ -1,8 +1,8 @@
 // hooks/server/useLogs.ts
-import { useState, useEffect } from 'react';
-import AuthService from '../../auth/auth';
-import { useAppContext } from '../../context/AppContext';
-import { useNotification } from '../../context/NotificationContext';
+import { useState, useEffect } from "react";
+import AuthService from "../../auth/auth";
+import { useAppContext } from "../../context/AppContext";
+import { useNotification } from "../../context/NotificationContext";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -22,31 +22,41 @@ interface LogFilters {
   lines: number;
 }
 
+// ✅ Standardized response interfaces
+interface LogResponse {
+  status: string;
+  message?: string;
+  data?: LogEntry[];
+  logs?: LogEntry[];
+  timestamp?: string;
+}
+
+interface ErrorResponse {
+  status: string;
+  message: string;
+}
+
 export const useLogs = () => {
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [originalLogs, setOriginalLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<LogFilters>({
-    search: '',
-    level: '',
-    application: '',
-    date: '',
-    time: '',
-    lines: 100
+    search: "",
+    level: "",
+    application: "",
+    date: "",
+    time: "",
+    lines: 100,
   });
-  
+
   const { activeDevice } = useAppContext();
   const { addNotification } = useNotification();
 
-  // Fetch logs from backend
+  // ✅ Enhanced fetchLogs with standardized error handling
   const fetchLogs = async (customFilters?: Partial<LogFilters>) => {
     if (!activeDevice) {
-      addNotification({
-        title: 'Log Fetch Error',
-        message: 'No active device selected',
-        type: 'error',
-        duration: 5000
-      });
+      setLoading(false);
       return;
     }
 
@@ -55,226 +65,299 @@ export const useLogs = () => {
 
     try {
       const currentFilters = { ...filters, ...customFilters };
-      
-      // Build URL with query parameters for lines
-      let url = `${BACKEND_URL}/api/server/log`;
-      if (currentFilters.lines && currentFilters.lines !== 100) {
-        url += `?lines=${currentFilters.lines}`;
-      }
 
-      // Prepare request body with host and optional date/time filters
-      interface RequestBody {
-        host: string;
-        date?: string;
-        time?: string;
-      }
-
-      const requestBody: RequestBody = {
-        host: activeDevice.ip
+      // ✅ Use standardized endpoint
+      const requestBody: any = {
+        host: activeDevice.ip,
       };
 
-      // Add date/time filters if provided (backend expects these in request body)
+      // Add filters to request body
+      if (currentFilters.lines && currentFilters.lines !== 100) {
+        requestBody.lines = currentFilters.lines;
+      }
+
       if (currentFilters.date) {
         requestBody.date = currentFilters.date;
       }
+
       if (currentFilters.time) {
-        requestBody.time = currentFilters.time;
+        let timeValue = currentFilters.time.trim();
+        if (/^\d{2}:\d{2}$/.test(timeValue)) {
+          timeValue += ":00";
+        }
+        if (/^\d{2}:\d{2}:\d{2}$/.test(timeValue)) {
+          requestBody.time = timeValue;
+        }
       }
 
-      const response = await AuthService.makeAuthenticatedRequest(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await AuthService.makeAuthenticatedRequest(
+        `${BACKEND_URL}/api/admin/server/logs`, // ✅ Updated endpoint
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
         },
-        body: JSON.stringify(requestBody)
-      });
+      );
 
       if (response.ok) {
-        const data: LogEntry[] = await response.json();
-        let filteredData = data;
+        const data: LogResponse = await response.json();
 
-        // Apply client-side filters
-        if (currentFilters.search) {
-          filteredData = filteredData.filter(log => 
-            log.message.toLowerCase().includes(currentFilters.search.toLowerCase()) ||
-            log.application.toLowerCase().includes(currentFilters.search.toLowerCase())
-          );
+        // ✅ Check for standardized error response
+        if (data.status === "failed" || data.status === "error") {
+          throw new Error(data.message || "Failed to fetch logs");
         }
 
-        if (currentFilters.level) {
-          filteredData = filteredData.filter(log => 
-            log.level.toLowerCase() === currentFilters.level.toLowerCase()
-          );
-        }
+        // ✅ Handle multiple success status variations
+        if (data.status === "success" || data.status === "ok" || !data.status) {
+          // Handle both wrapped and direct response formats
+          const logsData = data.data || data.logs || [];
+          setOriginalLogs(logsData);
+          applyClientSideFilters(logsData, currentFilters);
 
-        if (currentFilters.application) {
-          filteredData = filteredData.filter(log => 
-            log.application.toLowerCase().includes(currentFilters.application.toLowerCase())
-          );
-        }
-
-        setLogs(filteredData);
-        
-        if (filteredData.length === 0 && data.length > 0) {
-          addNotification({
-            title: 'No Results',
-            message: 'No logs match the current filters',
-            type: 'info',
-            duration: 3000
-          });
+          if (logsData.length === 0) {
+            addNotification({
+              title: "No Logs Found",
+              message: "No logs found for the selected criteria",
+              type: "info",
+              duration: 3000,
+            });
+          }
+        } else {
+          console.warn("Unexpected response status:", data.status, data);
+          throw new Error(`Unexpected response status: ${data.status}`);
         }
       } else {
-        const errorText = await response.text();
-        throw new Error(`Failed to fetch logs: ${response.status} - ${errorText}`);
+        // ✅ Enhanced HTTP error handling
+        const errorData = (await response
+          .json()
+          .catch(() => ({}))) as ErrorResponse;
+        throw new Error(
+          errorData.message ||
+            `HTTP ${response.status}: ${response.statusText}`,
+        );
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch logs';
-      console.error('Error fetching logs:', err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch logs";
+      console.error("Error fetching logs:", err);
       setError(errorMessage);
-      addNotification({
-        title: 'Log Fetch Error',
-        message: errorMessage,
-        type: 'error',
-        duration: 5000
-      });
+      setLogs([]);
+      setOriginalLogs([]);
+
+      // ✅ Only show notification for non-network errors to avoid spam
+      if (!(err instanceof Error && err.message.includes("Failed to reach"))) {
+        addNotification({
+          title: "Log Fetch Error",
+          message: errorMessage,
+          type: "error",
+          duration: 5000,
+        });
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Update filters and fetch logs
+  // ✅ Enhanced client-side filtering
+  const applyClientSideFilters = (
+    data: LogEntry[],
+    currentFilters: LogFilters,
+  ) => {
+    let filteredData = [...data];
+
+    // Apply search filter
+    if (currentFilters.search && currentFilters.search.trim()) {
+      const searchTerm = currentFilters.search.toLowerCase().trim();
+      filteredData = filteredData.filter(
+        (log) =>
+          log.message.toLowerCase().includes(searchTerm) ||
+          log.application.toLowerCase().includes(searchTerm) ||
+          log.level.toLowerCase().includes(searchTerm),
+      );
+    }
+
+    // Apply level filter
+    if (currentFilters.level) {
+      filteredData = filteredData.filter(
+        (log) => log.level.toLowerCase() === currentFilters.level.toLowerCase(),
+      );
+    }
+
+    // Apply application filter
+    if (currentFilters.application) {
+      filteredData = filteredData.filter(
+        (log) => log.application === currentFilters.application,
+      );
+    }
+
+    setLogs(filteredData);
+  };
+
+  // ✅ Enhanced updateFilters with debounced search
   const updateFilters = (newFilters: Partial<LogFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
     setFilters(updatedFilters);
-    
-    // Only fetch if server-side filters changed (date, time, lines)
-    const serverSideFilters = ['date', 'time', 'lines'];
-    const shouldRefetch = Object.keys(newFilters).some(key => 
-      serverSideFilters.includes(key) && newFilters[key as keyof LogFilters] !== filters[key as keyof LogFilters]
+
+    // Define server-side filters
+    const serverSideFilters = ["date", "time", "lines"];
+    const shouldRefetch = Object.keys(newFilters).some(
+      (key) =>
+        serverSideFilters.includes(key) &&
+        newFilters[key as keyof LogFilters] !==
+          filters[key as keyof LogFilters],
     );
-    
+
     if (shouldRefetch) {
       fetchLogs(updatedFilters);
     } else {
       // Apply client-side filters immediately
-      applyClientSideFilters(updatedFilters);
+      applyClientSideFilters(originalLogs, updatedFilters);
     }
   };
 
-  // Apply client-side filters without refetching
-  const applyClientSideFilters = (currentFilters: LogFilters) => {
-    // This would need access to the original unfiltered data
-    // For now, we'll refetch to keep it simple
-    fetchLogs(currentFilters);
-  };
-
-  // Get log statistics
+  // ✅ Enhanced statistics
   const getLogStats = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayLogs = logs.filter(log => log.timestamp.startsWith(today));
-    
-    const errorCount = logs.filter(log => log.level.toLowerCase() === 'error').length;
-    const warningCount = logs.filter(log => log.level.toLowerCase() === 'warning').length;
-    const infoCount = logs.filter(log => log.level.toLowerCase() === 'info').length;
-    const totalToday = todayLogs.length;
+    const today = new Date().toISOString().split("T")[0];
+    const todayLogs = originalLogs.filter((log) => {
+      try {
+        return log.timestamp.startsWith(today);
+      } catch {
+        return false;
+      }
+    });
+
+    const errorCount = logs.filter(
+      (log) => log.level.toLowerCase() === "error",
+    ).length;
+    const warningCount = logs.filter(
+      (log) => log.level.toLowerCase() === "warning",
+    ).length;
+    const infoCount = logs.filter(
+      (log) => log.level.toLowerCase() === "info",
+    ).length;
 
     return {
       errorCount,
       warningCount,
       infoCount,
-      totalToday,
-      totalLogs: logs.length
+      totalToday: todayLogs.length,
+      totalLogs: logs.length,
     };
   };
 
-  // Get unique applications for filter dropdown
+  // ✅ Enhanced unique applications
   const getUniqueApplications = () => {
-    const apps = [...new Set(logs.map(log => log.application))];
-    return apps.filter(app => app && app !== 'unknown').sort();
+    const apps = [...new Set(originalLogs.map((log) => log.application))];
+    return apps
+      .filter((app) => app && app !== "unknown" && app.trim() !== "")
+      .sort();
   };
 
-  // Export logs functionality
-  const exportLogs = (format: 'csv' | 'json' | 'pdf') => {
-    try {
-      const dataToExport = logs;
-      
-      if (dataToExport.length === 0) {
-        addNotification({
-          title: 'Export Failed',
-          message: 'No logs to export',
-          type: 'warning',
-          duration: 3000
-        });
-        return;
-      }
-      
-      switch (format) {
-        case 'csv':
-          exportAsCSV(dataToExport);
-          break;
-        case 'json':
-          exportAsJSON(dataToExport);
-          break;
-        case 'pdf':
-          exportAsTXT(dataToExport);
-          break;
-      }
-      
+  // ✅ Enhanced export with better error handling
+  const exportLogs = (format: "csv" | "json" | "txt") => {
+    if (logs.length === 0) {
       addNotification({
-        title: 'Export Successful',
-        message: `${dataToExport.length} logs exported as ${format.toUpperCase()}`,
-        type: 'success',
-        duration: 3000
+        title: "Export Failed",
+        message: "No logs available to export",
+        type: "warning",
+        duration: 3000,
+      });
+      return;
+    }
+
+    try {
+      switch (format) {
+        case "csv":
+          exportAsCSV(logs);
+          break;
+        case "json":
+          exportAsJSON(logs);
+          break;
+        case "txt":
+          exportAsTXT(logs);
+          break;
+      }
+
+      addNotification({
+        title: "Export Successful",
+        message: `${logs.length} logs exported as ${format.toUpperCase()}`,
+        type: "success",
+        duration: 3000,
       });
     } catch (err) {
+      console.error("Export error:", err);
       addNotification({
-        title: 'Export Failed',
+        title: "Export Failed",
         message: `Failed to export logs as ${format.toUpperCase()}`,
-        type: 'error',
-        duration: 5000
+        type: "error",
+        duration: 5000,
       });
     }
   };
 
   const exportAsCSV = (data: LogEntry[]) => {
-    const headers = ['Timestamp', 'Level', 'Application', 'Message'];
+    const headers = ["Timestamp", "Level", "Application", "Message"];
     const csvContent = [
-      headers.join(','),
-      ...data.map(log => [
-        `"${log.timestamp}"`,
-        `"${log.level}"`,
-        `"${log.application}"`,
-        `"${log.message.replace(/"/g, '""')}"`
-      ].join(','))
-    ].join('\n');
+      headers.join(","),
+      ...data.map((log) =>
+        [
+          `"${log.timestamp}"`,
+          `"${log.level}"`,
+          `"${log.application}"`,
+          `"${log.message.replace(/"/g, '""')}"`,
+        ].join(","),
+      ),
+    ].join("\n");
 
-    downloadFile(csvContent, `logs_${activeDevice?.ip}_${new Date().toISOString().split('T')[0]}.csv`, 'text/csv');
+    const timestamp = new Date().toISOString().split("T")[0];
+    const filename = `logs_${activeDevice?.ip}_${timestamp}.csv`;
+    downloadFile(csvContent, filename, "text/csv");
   };
 
   const exportAsJSON = (data: LogEntry[]) => {
     const exportData = {
-      device: activeDevice?.ip,
-      exportDate: new Date().toISOString(),
-      totalEntries: data.length,
-      logs: data
+      metadata: {
+        device: activeDevice?.ip,
+        deviceTag: activeDevice?.tag,
+        exportDate: new Date().toISOString(),
+        totalEntries: data.length,
+        filtersApplied: filters,
+      },
+      logs: data,
     };
     const jsonContent = JSON.stringify(exportData, null, 2);
-    downloadFile(jsonContent, `logs_${activeDevice?.ip}_${new Date().toISOString().split('T')[0]}.json`, 'application/json');
+
+    const timestamp = new Date().toISOString().split("T")[0];
+    const filename = `logs_${activeDevice?.ip}_${timestamp}.json`;
+    downloadFile(jsonContent, filename, "application/json");
   };
 
   const exportAsTXT = (data: LogEntry[]) => {
-    const header = `Log Export for ${activeDevice?.ip}\nExported: ${new Date().toLocaleString()}\nTotal Entries: ${data.length}\n${'='.repeat(80)}\n\n`;
-    const textContent = header + data.map(log => 
-      `${log.timestamp} [${log.level.toUpperCase()}] ${log.application}: ${log.message}`
-    ).join('\n');
-    
-    downloadFile(textContent, `logs_${activeDevice?.ip}_${new Date().toISOString().split('T')[0]}.txt`, 'text/plain');
+    const header = `Log Export for ${activeDevice?.ip}\nExported: ${new Date().toLocaleString()}\nTotal Entries: ${data.length}\n${"=".repeat(80)}\n\n`;
+    const textContent =
+      header +
+      data
+        .map(
+          (log) =>
+            `${log.timestamp} [${log.level.toUpperCase()}] ${log.application}: ${log.message}`,
+        )
+        .join("\n");
+
+    const timestamp = new Date().toISOString().split("T")[0];
+    const filename = `logs_${activeDevice?.ip}_${timestamp}.txt`;
+    downloadFile(textContent, filename, "text/plain");
   };
 
-  const downloadFile = (content: string, filename: string, mimeType: string) => {
+  const downloadFile = (
+    content: string,
+    filename: string,
+    mimeType: string,
+  ) => {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
@@ -283,30 +366,40 @@ export const useLogs = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Clear filters
+  // ✅ Enhanced clearFilters
   const clearFilters = () => {
-    setFilters({
-      search: '',
-      level: '',
-      application: '',
-      date: '',
-      time: '',
-      lines: 100
-    });
-    fetchLogs({
-      search: '',
-      level: '',
-      application: '',
-      date: '',
-      time: '',
-      lines: 100
+    const defaultFilters = {
+      search: "",
+      level: "",
+      application: "",
+      date: "",
+      time: "",
+      lines: 100,
+    };
+    setFilters(defaultFilters);
+
+    // Apply to current data first for immediate UI update
+    applyClientSideFilters(originalLogs, defaultFilters);
+
+    // Then fetch fresh data
+    fetchLogs(defaultFilters);
+
+    addNotification({
+      title: "Filters Cleared",
+      message: "All log filters have been reset",
+      type: "info",
+      duration: 3000,
     });
   };
 
-  // Auto-fetch logs on mount and device change
+  // ✅ Enhanced useEffect with proper cleanup
   useEffect(() => {
     if (activeDevice) {
       fetchLogs();
+    } else {
+      setLogs([]);
+      setOriginalLogs([]);
+      setError(null);
     }
   }, [activeDevice]);
 
@@ -320,6 +413,6 @@ export const useLogs = () => {
     getLogStats,
     getUniqueApplications,
     exportLogs,
-    clearFilters
+    clearFilters,
   };
 };

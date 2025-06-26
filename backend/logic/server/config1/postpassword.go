@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"backend/config"
@@ -32,51 +33,48 @@ func HandlePasswordChange(queries *serverdb.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Only allow POST
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
 		// Parse frontend request
 		var req PasswordChangeRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			sendError(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// Validate required fields
 		if req.Host == "" || req.Username == "" || req.Password == "" {
-			http.Error(w, "Host, username, and password are required", http.StatusBadRequest)
+			sendError(w, "Host, username, and password are required", http.StatusBadRequest)
 			return
 		}
 
-		// Get device access token from database
+		// Lookup device and get access token
 		device, err := queries.GetServerDeviceByIP(context.Background(), req.Host)
 		if err == sql.ErrNoRows {
-			http.Error(w, "Device not registered", http.StatusNotFound)
+			sendError(w, "Device not registered", http.StatusNotFound)
 			return
 		} else if err != nil {
-			http.Error(w, "Database error", http.StatusInternalServerError)
+			sendError(w, "Database error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Prepare payload for client
-		clientPayload := ClientPasswordRequest{
-			Username: req.Username,
-			New:      req.Password,
-		}
+		// Process password change request based on OS
+		clientPayload := processPasswordChangeRequest(req, device.Os)
 
 		jsonPayload, err := json.Marshal(clientPayload)
 		if err != nil {
-			http.Error(w, "Failed to prepare request", http.StatusInternalServerError)
+			sendError(w, "Failed to prepare request: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// ✅ Use config for client URL (reads from .env file)
+		// Use config for client URL (reads from .env file)
 		clientURL := config.GetClientURL(req.Host, "/client/config1/pass")
 
 		clientReq, err := http.NewRequest("POST", clientURL, bytes.NewBuffer(jsonPayload))
 		if err != nil {
-			http.Error(w, "Failed to create request", http.StatusInternalServerError)
+			sendError(w, "Failed to create request: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -91,45 +89,83 @@ func HandlePasswordChange(queries *serverdb.Queries) http.HandlerFunc {
 
 		resp, err := httpClient.Do(clientReq)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(ClientResponsePassword{
-				Status: "failed",
-			})
+			sendError(w, "Failed to reach client: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 		defer resp.Body.Close()
 
-		// Read client response
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(ClientResponsePassword{
-				Status: "failed",
-			})
+		// Handle client error responses
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+
+			// Try to parse client error response (standardized format)
+			var clientError ErrorResponse
+			if json.Unmarshal(body, &clientError) == nil && clientError.Status == "failed" {
+				sendError(w, "Client error: "+clientError.Message, http.StatusBadGateway)
+			} else {
+				sendError(w, "Client error: "+string(body), http.StatusBadGateway)
+			}
 			return
 		}
 
-		// Check if client returned error status
-		if resp.StatusCode != http.StatusOK {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(ClientResponsePassword{
-				Status: "failed",
-			})
+		// Read client response
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			sendError(w, "Failed to read client response: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 
 		// Parse client response
 		var clientResp ClientResponsePassword
 		if err := json.Unmarshal(body, &clientResp); err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(ClientResponsePassword{
-				Status: "failed",
-			})
+			sendError(w, "Invalid client response: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 
-		// Forward the exact response from client to frontend
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(clientResp)
+		// Process response based on OS
+		processedResp := processPasswordChangeResponse(clientResp, device.Os)
+
+		// Send successful response
+		sendGetSuccess(w, processedResp)
 	}
+}
+
+// Process password change request based on OS
+func processPasswordChangeRequest(req PasswordChangeRequest, osType string) ClientPasswordRequest {
+	if strings.ToLower(osType) == "windows" {
+		return processWindowsPasswordChangeRequest(req)
+	}
+
+	// Default Linux behavior
+	return ClientPasswordRequest{
+		Username: strings.TrimSpace(req.Username),
+		New:      req.Password, // Don't trim password to preserve spaces
+	}
+}
+
+// Process password change response based on OS
+func processPasswordChangeResponse(resp ClientResponsePassword, osType string) interface{} {
+	if strings.ToLower(osType) == "windows" {
+		return processWindowsPasswordChangeResponse(resp)
+	}
+
+	// Default Linux behavior
+	return resp
+}
+
+// Windows-specific password change request processing (placeholder for future differences)
+func processWindowsPasswordChangeRequest(req PasswordChangeRequest) ClientPasswordRequest {
+	// For now, return same format as Linux
+	// Future: might need different user management for Windows
+	return ClientPasswordRequest{
+		Username: strings.TrimSpace(req.Username),
+		New:      req.Password,
+	}
+}
+
+// Windows-specific password change response processing (placeholder for future differences)
+func processWindowsPasswordChangeResponse(resp ClientResponsePassword) interface{} {
+	// For now, return same format as Linux
+	// Future: might need different response handling for Windows
+	return resp
 }

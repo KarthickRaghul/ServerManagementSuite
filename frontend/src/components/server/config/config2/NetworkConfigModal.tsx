@@ -1,7 +1,13 @@
 // components/server/config2/NetworkConfigModal.tsx
-import React, { useState, useEffect } from 'react';
-import { FaTimes, FaNetworkWired, FaSave, FaWifi, FaServer } from 'react-icons/fa';
-import './NetworkConfigModal.css';
+import React, { useState, useEffect } from "react";
+import {
+  FaTimes,
+  FaNetworkWired,
+  FaSave,
+  FaWifi,
+  FaServer,
+} from "react-icons/fa";
+import "./NetworkConfigModal.css";
 
 interface NetworkBasics {
   ip_method: string;
@@ -13,6 +19,7 @@ interface NetworkBasics {
   interface: {
     [key: string]: {
       mode: string;
+      power: string; // ✅ Added power field to match backend
       status: string;
     };
   };
@@ -37,26 +44,26 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
   onClose,
   onSubmit,
   currentConfig,
-  isLoading
+  isLoading,
 }) => {
   const [formData, setFormData] = useState({
-    method: 'static',
-    ip: '',
-    subnet: '',
-    gateway: '',
-    dns: ''
+    method: "static",
+    ip: "",
+    subnet: "",
+    gateway: "",
+    dns: "",
   });
-  const [errors, setErrors] = useState<{[key: string]: string}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (currentConfig && isOpen) {
       setFormData({
-        method: currentConfig.ip_method || 'static',
-        ip: currentConfig.ip_address || '',
-        subnet: currentConfig.subnet || '',
-        gateway: currentConfig.gateway || '',
-        dns: currentConfig.dns || ''
+        method: currentConfig.ip_method || "static",
+        ip: currentConfig.ip_address || "",
+        subnet: currentConfig.subnet || "",
+        gateway: currentConfig.gateway || "",
+        dns: currentConfig.dns || "",
       });
       setErrors({});
     }
@@ -65,27 +72,32 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
   if (!isOpen) return null;
 
   const validateForm = () => {
-    const newErrors: {[key: string]: string} = {};
+    const newErrors: { [key: string]: string } = {};
 
-    if (formData.method === 'static') {
+    if (formData.method === "static") {
       if (!formData.ip.trim()) {
-        newErrors.ip = 'IP address is required for static configuration';
+        newErrors.ip = "IP address is required for static configuration";
       } else if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(formData.ip.trim())) {
-        newErrors.ip = 'Please enter a valid IP address';
+        newErrors.ip = "Please enter a valid IP address";
       }
 
       if (!formData.gateway.trim()) {
-        newErrors.gateway = 'Gateway is required for static configuration';
+        newErrors.gateway = "Gateway is required for static configuration";
       } else if (!/^(\d{1,3}\.){3}\d{1,3}$/.test(formData.gateway.trim())) {
-        newErrors.gateway = 'Please enter a valid gateway address';
+        newErrors.gateway = "Please enter a valid gateway address";
       }
 
       if (!formData.subnet.trim()) {
-        newErrors.subnet = 'Subnet is required for static configuration';
+        newErrors.subnet = "Subnet is required for static configuration";
       }
 
-      if (formData.dns.trim() && !/^(\d{1,3}\.){3}\d{1,3}(,\s*(\d{1,3}\.){3}\d{1,3})*$/.test(formData.dns.trim())) {
-        newErrors.dns = 'Please enter valid DNS servers (comma-separated)';
+      if (
+        formData.dns.trim() &&
+        !/^(\d{1,3}\.){3}\d{1,3}(,\s*(\d{1,3}\.){3}\d{1,3})*$/.test(
+          formData.dns.trim(),
+        )
+      ) {
+        newErrors.dns = "Please enter valid DNS servers (comma-separated)";
       }
     }
 
@@ -106,10 +118,10 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
       gateway?: string;
       dns?: string;
     } = {
-      method: formData.method
+      method: formData.method,
     };
 
-    if (formData.method === 'static') {
+    if (formData.method === "static") {
       networkData.ip = formData.ip.trim();
       networkData.subnet = formData.subnet.trim();
       networkData.gateway = formData.gateway.trim();
@@ -122,6 +134,7 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
       const success = await onSubmit(networkData);
       if (success) {
         setErrors({});
+        onClose(); // ✅ Close modal on success
       }
     } finally {
       setIsSubmitting(false);
@@ -135,9 +148,17 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
   };
 
   const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  // ✅ Enhanced close handler
+  const handleClose = () => {
+    if (!isSubmitting) {
+      setErrors({});
+      onClose();
     }
   };
 
@@ -151,13 +172,17 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
               <FaNetworkWired className="network-config-modal-icon" />
             </div>
             <div>
-              <h2 className="network-config-modal-title">Network Configuration</h2>
-              <p className="network-config-modal-subtitle">Configure network settings</p>
+              <h2 className="network-config-modal-title">
+                Network Configuration
+              </h2>
+              <p className="network-config-modal-subtitle">
+                Configure network settings
+              </p>
             </div>
           </div>
-          <button 
+          <button
             className="network-config-modal-close"
-            onClick={onClose}
+            onClick={handleClose}
             type="button"
             disabled={isSubmitting}
           >
@@ -174,9 +199,11 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
               IP Configuration Method
             </h3>
             <div className="network-config-method-selector">
-              <div 
-                className={`network-config-method-option ${formData.method === 'dynamic' ? 'selected' : ''}`}
-                onClick={() => !isSubmitting && handleInputChange('method', 'dynamic')}
+              <div
+                className={`network-config-method-option ${formData.method === "dynamic" ? "selected" : ""}`}
+                onClick={() =>
+                  !isSubmitting && handleInputChange("method", "dynamic")
+                }
               >
                 <div className="network-config-method-radio">
                   <div className="network-config-method-radio-dot"></div>
@@ -186,9 +213,11 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
                   <p>Automatically obtain IP configuration from DHCP server</p>
                 </div>
               </div>
-              <div 
-                className={`network-config-method-option ${formData.method === 'static' ? 'selected' : ''}`}
-                onClick={() => !isSubmitting && handleInputChange('method', 'static')}
+              <div
+                className={`network-config-method-option ${formData.method === "static" ? "selected" : ""}`}
+                onClick={() =>
+                  !isSubmitting && handleInputChange("method", "static")
+                }
               >
                 <div className="network-config-method-radio">
                   <div className="network-config-method-radio-dot"></div>
@@ -202,13 +231,13 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
           </div>
 
           {/* Static IP Configuration */}
-          {formData.method === 'static' && (
+          {formData.method === "static" && (
             <div className="network-config-form-section">
               <h3 className="network-config-section-title">
                 <FaServer className="network-config-section-icon" />
                 Static IP Configuration
               </h3>
-              
+
               <div className="network-config-form-grid">
                 <div className="network-config-form-group">
                   <label className="network-config-form-label">
@@ -216,48 +245,54 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    className={`network-config-form-input ${errors.ip ? 'error' : ''}`}
+                    className={`network-config-form-input ${errors.ip ? "error" : ""}`}
                     placeholder="e.g., 192.168.1.100"
                     value={formData.ip}
-                    onChange={(e) => handleInputChange('ip', e.target.value)}
+                    onChange={(e) => handleInputChange("ip", e.target.value)}
                     disabled={isSubmitting}
                   />
                   {errors.ip && (
-                    <span className="network-config-form-error">{errors.ip}</span>
+                    <span className="network-config-form-error">
+                      {errors.ip}
+                    </span>
                   )}
                 </div>
 
                 <div className="network-config-form-group">
-                  <label className="network-config-form-label">
-                    Gateway *
-                  </label>
+                  <label className="network-config-form-label">Gateway *</label>
                   <input
                     type="text"
-                    className={`network-config-form-input ${errors.gateway ? 'error' : ''}`}
+                    className={`network-config-form-input ${errors.gateway ? "error" : ""}`}
                     placeholder="e.g., 192.168.1.1"
                     value={formData.gateway}
-                    onChange={(e) => handleInputChange('gateway', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("gateway", e.target.value)
+                    }
                     disabled={isSubmitting}
                   />
                   {errors.gateway && (
-                    <span className="network-config-form-error">{errors.gateway}</span>
+                    <span className="network-config-form-error">
+                      {errors.gateway}
+                    </span>
                   )}
                 </div>
 
                 <div className="network-config-form-group network-config-form-group-full">
-                  <label className="network-config-form-label">
-                    Subnet *
-                  </label>
+                  <label className="network-config-form-label">Subnet *</label>
                   <input
                     type="text"
-                    className={`network-config-form-input ${errors.subnet ? 'error' : ''}`}
+                    className={`network-config-form-input ${errors.subnet ? "error" : ""}`}
                     placeholder="e.g., 192.168.1.0/24 or 255.255.255.0"
                     value={formData.subnet}
-                    onChange={(e) => handleInputChange('subnet', e.target.value)}
+                    onChange={(e) =>
+                      handleInputChange("subnet", e.target.value)
+                    }
                     disabled={isSubmitting}
                   />
                   {errors.subnet && (
-                    <span className="network-config-form-error">{errors.subnet}</span>
+                    <span className="network-config-form-error">
+                      {errors.subnet}
+                    </span>
                   )}
                 </div>
 
@@ -267,14 +302,16 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    className={`network-config-form-input ${errors.dns ? 'error' : ''}`}
+                    className={`network-config-form-input ${errors.dns ? "error" : ""}`}
                     placeholder="e.g., 8.8.8.8, 8.8.4.4"
                     value={formData.dns}
-                    onChange={(e) => handleInputChange('dns', e.target.value)}
+                    onChange={(e) => handleInputChange("dns", e.target.value)}
                     disabled={isSubmitting}
                   />
                   {errors.dns && (
-                    <span className="network-config-form-error">{errors.dns}</span>
+                    <span className="network-config-form-error">
+                      {errors.dns}
+                    </span>
                   )}
                   <small className="network-config-form-help">
                     Separate multiple DNS servers with commas
@@ -285,7 +322,7 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
           )}
 
           {/* Current Configuration Display */}
-          {formData.method === 'dynamic' && currentConfig && (
+          {formData.method === "dynamic" && currentConfig && (
             <div className="network-config-form-section">
               <h3 className="network-config-section-title">
                 Current DHCP Configuration
@@ -293,15 +330,15 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
               <div className="network-config-current-info">
                 <div className="network-config-current-item">
                   <label>Current IP:</label>
-                  <span>{currentConfig.ip_address || 'Not assigned'}</span>
+                  <span>{currentConfig.ip_address || "Not assigned"}</span>
                 </div>
                 <div className="network-config-current-item">
                   <label>Current Gateway:</label>
-                  <span>{currentConfig.gateway || 'Not assigned'}</span>
+                  <span>{currentConfig.gateway || "Not assigned"}</span>
                 </div>
                 <div className="network-config-current-item">
                   <label>Current DNS:</label>
-                  <span>{currentConfig.dns || 'Not assigned'}</span>
+                  <span>{currentConfig.dns || "Not assigned"}</span>
                 </div>
               </div>
             </div>
@@ -309,21 +346,21 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
 
           {/* Modal Actions */}
           <div className="network-config-modal-actions">
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="network-config-btn network-config-btn-cancel"
-              onClick={onClose}
+              onClick={handleClose}
               disabled={isSubmitting}
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="network-config-btn network-config-btn-submit"
               disabled={isSubmitting || isLoading}
             >
               <FaSave className="network-config-btn-icon" />
-              {isSubmitting ? 'Saving...' : 'Save Configuration'}
+              {isSubmitting ? "Saving..." : "Save Configuration"}
             </button>
           </div>
         </form>

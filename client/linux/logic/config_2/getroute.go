@@ -1,7 +1,6 @@
 package config_2
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"os/exec"
@@ -31,7 +30,7 @@ func HandleRouteTable(w http.ResponseWriter, r *http.Request) {
 
 	// Check for GET method
 	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only GET method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -41,18 +40,13 @@ func HandleRouteTable(w http.ResponseWriter, r *http.Request) {
 	// Get the routing table
 	routes, err := getRoutingTable()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		errorResp := map[string]string{
-			"error":   "Failed to get routing table",
-			"details": err.Error(),
-		}
-		json.NewEncoder(w).Encode(errorResp)
+		sendError(w, "Failed to get routing table: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	fmt.Println("Sending route table response...")
-	// Send the routing table using NewEncoder().Encode()
-	json.NewEncoder(w).Encode(routes)
+	// Send successful GET response with data
+	sendGetSuccess(w, routes)
 }
 
 // getRoutingTable retrieves the routing table from the system
@@ -237,3 +231,4 @@ func splitByWhitespace(s string) []string {
 	s = re.ReplaceAllString(s, " ")
 	return strings.Split(strings.TrimSpace(s), " ")
 }
+

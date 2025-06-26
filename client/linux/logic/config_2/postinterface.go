@@ -28,25 +28,25 @@ func HandleUpdateInterface(w http.ResponseWriter, r *http.Request) {
 	var request UpdateInterfaceRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		sendError(w, "Failed to parse request body", err)
+		sendError(w, "Failed to parse request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validate request data
 	if request.Interface == "" {
-		sendError(w, "Interface name is required", fmt.Errorf("missing interface name"))
+		sendError(w, "Interface name is required", http.StatusBadRequest)
 		return
 	}
 
 	if request.Status != "enable" && request.Status != "disable" {
-		sendError(w, "Status must be 'enable' or 'disable'", fmt.Errorf("invalid status: %s", request.Status))
+		sendError(w, "Status must be 'enable' or 'disable'", http.StatusBadRequest)
 		return
 	}
 
 	// Update interface status
 	err = updateInterfaceStatus(request.Interface, request.Status)
 	if err != nil {
-		sendError(w, fmt.Sprintf("Failed to %s interface %s", request.Status, request.Interface), err)
+		sendError(w, fmt.Sprintf("Failed to %s interface %s", request.Status, request.Interface), http.StatusInternalServerError)
 		return
 	}
 

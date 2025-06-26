@@ -13,26 +13,67 @@ type BasicInfo struct {
 	Timezone string `json:"timezone"`
 }
 
+// Standard response structures
+type ErrorResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
 func HandleBasicInfo(w http.ResponseWriter, r *http.Request) {
+	// Check for GET method
 	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only GET method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	hostname, _ := exec.Command("hostname").Output()
+	// Set content type
+	w.Header().Set("Content-Type", "application/json")
 
-	// Run timedatectl command
-	timedatectlOutput, _ := exec.Command("timedatectl").Output()
+	// Get hostname
+	hostnameOutput, err := exec.Command("hostname").Output()
+	if err != nil {
+		sendError(w, "Failed to get hostname: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	// Extract only the timezone information from timedatectl output
+	// Get timezone information
+	timedatectlOutput, err := exec.Command("timedatectl").Output()
+	if err != nil {
+		sendError(w, "Failed to get timezone information: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Extract timezone from timedatectl output
 	timezone := extractTimezone(string(timedatectlOutput))
+	if timezone == "" {
+		sendError(w, "Failed to extract timezone from system output", http.StatusInternalServerError)
+		return
+	}
 
+	// Prepare response data
 	data := BasicInfo{
-		Hostname: string(hostname),
+		Hostname: strings.TrimSpace(string(hostnameOutput)),
 		Timezone: timezone,
 	}
 
+	// Send successful GET response with data
+	sendGetSuccess(w, data)
+}
+
+// sendGetSuccess sends successful GET response with data
+func sendGetSuccess(w http.ResponseWriter, data interface{}) {
+	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(data)
+}
+
+// sendError sends standardized error response
+func sendError(w http.ResponseWriter, message string, statusCode int) {
+	w.WriteHeader(statusCode)
+	errorResp := ErrorResponse{
+		Status:  "failed",
+		Message: message,
+	}
+	json.NewEncoder(w).Encode(errorResp)
 }
 
 // extractTimezone parses the timedatectl output to extract just the timezone value
@@ -53,11 +94,29 @@ func extractTimezone(output string) string {
 			// If regex doesn't match, get everything after "Time zone:" and trim whitespace
 			parts := strings.SplitN(line, "Time zone:", 2)
 			if len(parts) == 2 {
-				return strings.TrimSpace(parts[1])
+				// Extract just the timezone part before any additional info
+				timezone := strings.TrimSpace(parts[1])
+				// Remove anything after the first space or parenthesis
+				if idx := strings.Index(timezone, " "); idx != -1 {
+					timezone = timezone[:idx]
+				}
+				if idx := strings.Index(timezone, "("); idx != -1 {
+					timezone = timezone[:idx]
+				}
+				return strings.TrimSpace(timezone)
 			}
 		}
 	}
 
 	// Return empty string if timezone not found
 	return ""
+}
+
+// sendPostSuccess sends successful POST response
+func sendPostSuccess(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusOK)
+	response := SuccessResponse{
+		Status: "success",
+	}
+	json.NewEncoder(w).Encode(response)
 }

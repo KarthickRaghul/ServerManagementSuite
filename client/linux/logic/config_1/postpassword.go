@@ -14,11 +14,6 @@ type PasswordChange struct {
 	NewPassword string `json:"new"`
 }
 
-type PasswordChangeResponse struct {
-	Status  string `json:"status"`
-	Message string `json:"message,omitempty"`
-}
-
 // Secure password change function using chpasswd
 func changePassword(username, newPassword string) error {
 	// Check if running as root
@@ -38,52 +33,40 @@ func changePassword(username, newPassword string) error {
 }
 
 func HandlePasswordChange(w http.ResponseWriter, r *http.Request) {
-	// Set content type to JSON
-	w.Header().Set("Content-Type", "application/json")
-
+	// Check for POST method
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(PasswordChangeResponse{
-			Status:  "failed",
-			Message: "Only POST method allowed",
-		})
+		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Set content type
+	w.Header().Set("Content-Type", "application/json")
+
+	// Parse request body
 	var p PasswordChange
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(PasswordChangeResponse{
-			Status:  "failed",
-			Message: "Invalid input format",
-		})
+		sendError(w, "Invalid JSON input: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Validate input
 	if p.Username == "" || p.NewPassword == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(PasswordChangeResponse{
-			Status:  "failed",
-			Message: "Username and new password are required",
-		})
+		sendError(w, "Username and new password are required", http.StatusBadRequest)
+		return
+	}
+
+	// Additional validation for username (basic security check)
+	if strings.Contains(p.Username, ":") || strings.Contains(p.Username, "\n") {
+		sendError(w, "Invalid username format", http.StatusBadRequest)
 		return
 	}
 
 	// Use the secure password change function
 	if err := changePassword(p.Username, p.NewPassword); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(PasswordChangeResponse{
-			Status:  "failed",
-			Message: fmt.Sprintf("Password change failed: %v", err),
-		})
+		sendError(w, "Password change failed: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Success response
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(PasswordChangeResponse{
-		Status:  "success",
-		Message: fmt.Sprintf("Password changed successfully for user: %s", p.Username),
-	})
+	// Send successful POST response
+	sendPostSuccess(w)
 }

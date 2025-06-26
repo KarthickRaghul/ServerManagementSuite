@@ -28,7 +28,7 @@ func HandleRestartInterfaces(w http.ResponseWriter, r *http.Request) {
 	// Get all network interfaces
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		sendError(w, "Failed to get network interfaces", err)
+		sendError(w, "Failed to get network interfaces", http.StatusInternalServerError)
 		return
 	}
 

@@ -1,7 +1,6 @@
 package config_1
 
 import (
-	"encoding/json"
 	"net/http"
 	"os/exec"
 	"regexp"
@@ -13,20 +12,25 @@ type Overview struct {
 }
 
 func HandleOverview(w http.ResponseWriter, r *http.Request) {
+	// Check for GET method
 	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only GET method allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	// Set content type
+	w.Header().Set("Content-Type", "application/json")
 
 	// Get system uptime
 	uptime := getSystemUptime()
 
+	// Prepare response data
 	data := Overview{
 		Uptime: uptime,
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(data)
+	// Send successful GET response with data
+	sendGetSuccess(w, data)
 }
 
 // getSystemUptime returns the system uptime in a human-readable format
@@ -61,3 +65,4 @@ func getSystemUptime() string {
 	// If all else fails, return a default message
 	return "Unable to determine uptime"
 }
+

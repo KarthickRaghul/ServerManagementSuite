@@ -1,71 +1,75 @@
 // components/server/ResourceOptimization/ResourceOptimization.tsx
-import React, { useState } from 'react';
-import UsageStats from './UsageStats';
-import ResourceCard from './ResourceCard';
-import ServiceGrid from './ServiceGrid';
-import { FaSync, FaChartLine, FaServer, FaPlay, FaInfoCircle } from 'react-icons/fa';
-import { useHealthMetrics } from '../../../hooks/server/useHealthMetrics';
-import { useServerOverview } from '../../../hooks/server/useServerOverview';
-import { useResourceOptimization } from '../../../hooks/server/useResourceOptimization';
-import { useNotification } from '../../../context/NotificationContext';
+import React, { useState } from "react";
+import UsageStats from "./UsageStats";
+import ResourceCard from "./ResourceCard";
+import ServiceGrid from "./ServiceGrid";
+import {
+  FaSync,
+  FaChartLine,
+  FaServer,
+  FaPlay,
+  FaInfoCircle,
+  FaSpinner,
+  FaExclamationTriangle,
+  FaCog,
+  FaRocket,
+} from "react-icons/fa";
+import { useHealthMetrics } from "../../../hooks/server/useHealthMetrics";
+import { useServerOverview } from "../../../hooks/server/useServerOverview";
+import { useResourceOptimization } from "../../../hooks/server/useResourceOptimization";
+import { useNotification } from "../../../context/NotificationContext";
 import "./Resource.css";
 
 const ResourceOptimization: React.FC = () => {
-  const [serviceToRestart, setServiceToRestart] = useState('');
-  
-  const { metrics, loading: metricsLoading, error: metricsError, refreshMetrics } = useHealthMetrics();
+  const [serviceToRestart, setServiceToRestart] = useState("");
+
+  const {
+    healthData,
+    loading: metricsLoading,
+    error: metricsError,
+    refreshMetrics,
+  } = useHealthMetrics();
   const { data: overviewData, loading: overviewLoading } = useServerOverview();
-  const { 
-    cleanupInfo, 
-    services, 
-    loading: resourceLoading, 
+  const {
+    cleanupInfo,
+    services,
+    loading: resourceLoading,
     error: resourceError,
     optimizing,
     restartingService,
     optimizeSystem,
     restartService,
-    refreshData
+    refreshData,
   } = useResourceOptimization();
   const { addNotification } = useNotification();
 
   const handleRefreshData = async () => {
-    await Promise.all([refreshMetrics(), refreshData()]);
-    addNotification({
-      title: 'Data Refreshed',
-      message: 'Resource data has been refreshed successfully',
-      type: 'info',
-      duration: 3000
-    });
+    try {
+      await Promise.all([refreshMetrics(), refreshData()]);
+      // Success notification is handled by the hooks
+    } catch (err) {
+      // Error notification is already handled by the hooks
+      console.error("Failed to refresh data:", err);
+    }
   };
 
   const handleOptimizeSystem = async () => {
     try {
-      const success = await optimizeSystem();
-      if (success) {
-        addNotification({
-          title: 'System Optimized',
-          message: 'Temporary files have been cleaned successfully',
-          type: 'success',
-          duration: 4000
-        });
-      }
+      await optimizeSystem();
+      // Success/error notifications are handled by the hook
     } catch (err) {
-      addNotification({
-        title: 'Optimization Failed',
-        message: err instanceof Error ? err.message : 'Failed to optimize system',
-        type: 'error',
-        duration: 5000
-      });
+      // Error notification is already handled by the hook
+      console.error("Failed to optimize system:", err);
     }
   };
 
   const handleRestartService = async () => {
     if (!serviceToRestart.trim()) {
       addNotification({
-        title: 'Service Name Required',
-        message: 'Please enter a service name to restart',
-        type: 'warning',
-        duration: 3000
+        title: "Service Name Required",
+        message: "Please enter a service name to restart",
+        type: "warning",
+        duration: 3000,
       });
       return;
     }
@@ -73,35 +77,29 @@ const ResourceOptimization: React.FC = () => {
     try {
       const success = await restartService(serviceToRestart.trim());
       if (success) {
-        addNotification({
-          title: 'Service Restarted',
-          message: `Service "${serviceToRestart}" has been restarted successfully`,
-          type: 'success',
-          duration: 4000
-        });
-        setServiceToRestart(''); // Clear the input after successful restart
+        setServiceToRestart(""); // Clear the input after successful restart
       }
+      // Success/error notifications are handled by the hook
     } catch (err) {
-      addNotification({
-        title: 'Restart Failed',
-        message: err instanceof Error ? err.message : `Failed to restart service "${serviceToRestart}"`,
-        type: 'error',
-        duration: 5000
-      });
+      // Error notification is already handled by the hook
+      console.error("Failed to restart service:", err);
     }
   };
 
   const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const getTotalCleanupSize = (): string => {
-    if (!cleanupInfo) return '0 B';
-    const total = Object.values(cleanupInfo.sizes).reduce((sum, size) => sum + size, 0);
+    if (!cleanupInfo) return "0 B";
+    const total = Object.values(cleanupInfo.sizes).reduce(
+      (sum, size) => sum + size,
+      0,
+    );
     return formatBytes(total);
   };
 
@@ -109,52 +107,109 @@ const ResourceOptimization: React.FC = () => {
     return services.length;
   };
 
+  // ✅ Enhanced loading state
+  if (metricsLoading && !healthData && resourceLoading && !cleanupInfo) {
+    return (
+      <div className="resource-dashboard">
+        <div className="resource-dashboard-loading">
+          <div className="resource-dashboard-loading-spinner">
+            <FaSpinner className="spinning" />
+          </div>
+          <p>Loading resource optimization data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Enhanced error state
+  if ((metricsError || resourceError) && !healthData && !cleanupInfo) {
+    return (
+      <div className="resource-dashboard">
+        <div className="resource-dashboard-error">
+          <div className="resource-dashboard-error-icon">
+            <FaExclamationTriangle />
+          </div>
+          <div className="resource-dashboard-error-content">
+            <h4>Failed to Load Resource Data</h4>
+            <p>{metricsError || resourceError}</p>
+            <button
+              className="resource-btn resource-btn-primary"
+              onClick={handleRefreshData}
+              disabled={metricsLoading || resourceLoading}
+            >
+              <FaSync
+                className={metricsLoading || resourceLoading ? "spinning" : ""}
+              />
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="resource-dashboard">
       {/* Header Section */}
       <div className="resource-header-section">
         <div className="resource-title-section">
-          <h1 className="resource-page-title">Resource Optimization</h1>
-          <p className="resource-page-subtitle">System performance monitoring and optimization tools</p>
+          <div className="resource-title-icon">
+            <FaRocket />
+          </div>
+          <div>
+            <h1 className="resource-page-title">Resource Optimization</h1>
+            <p className="resource-page-subtitle">
+              System performance monitoring and optimization tools
+            </p>
+          </div>
         </div>
         <div className="resource-header-actions">
-          <button 
+          <button
             className="resource-btn resource-btn-secondary"
             onClick={handleRefreshData}
             disabled={metricsLoading || resourceLoading}
           >
-            <FaSync className={`resource-btn-icon ${(metricsLoading || resourceLoading) ? 'spinning' : ''}`} />
-            Refresh Data
+            <FaSync
+              className={`resource-btn-icon ${metricsLoading || resourceLoading ? "spinning" : ""}`}
+            />
+            {metricsLoading || resourceLoading
+              ? "Refreshing..."
+              : "Refresh Data"}
           </button>
         </div>
       </div>
 
-      {/* Show errors */}
-      {(metricsError || resourceError) && (
+      {/* Error Banner */}
+      {(metricsError || resourceError) && (healthData || cleanupInfo) && (
         <div className="resource-error-banner">
-          <p>Error: {metricsError || resourceError}</p>
+          <FaExclamationTriangle />
+          <p>Warning: {metricsError || resourceError}</p>
         </div>
       )}
 
       {/* Metrics Section */}
       <div className="resource-metrics-container">
+        <div className="resource-metrics-header">
+          <FaChartLine className="resource-metrics-icon" />
+          <h2>System Performance</h2>
+        </div>
         <div className="resource-metrics-grid">
-          <UsageStats 
-            label="Memory Usage" 
-            value={metrics?.ram || 0} 
-            type="memory" 
+          <UsageStats
+            label="Memory Usage"
+            value={healthData?.ram?.usage_percent || 0}
+            type="memory"
             loading={metricsLoading}
           />
-          <UsageStats 
-            label="CPU Usage" 
-            value={metrics?.cpu || 0} 
-            type="cpu" 
+          <UsageStats
+            label="CPU Usage"
+            value={healthData?.cpu?.usage_percent || 0}
+            type="cpu"
             loading={metricsLoading}
           />
-          <UsageStats 
-            label="Disk Usage" 
-            value={metrics?.disk || 0} 
-            type="disk" 
+          <UsageStats
+            label="Disk Usage"
+            value={healthData?.disk?.usage_percent || 0}
+            type="disk"
             loading={metricsLoading}
           />
           <div className="resource-uptime-card">
@@ -163,7 +218,7 @@ const ResourceOptimization: React.FC = () => {
             </div>
             <div className="resource-uptime-info">
               <p className="resource-uptime-value">
-                {overviewLoading ? 'Loading...' : (overviewData?.uptime || 'N/A')}
+                {overviewLoading ? "Loading..." : overviewData?.uptime || "N/A"}
               </p>
               <p className="resource-uptime-label">Server Uptime</p>
             </div>
@@ -175,7 +230,7 @@ const ResourceOptimization: React.FC = () => {
       <div className="resource-cards-container">
         <div className="resource-section-header">
           <h2 className="resource-section-title">
-            <FaChartLine className="resource-section-icon" />
+            <FaCog className="resource-section-icon" />
             System Optimization
           </h2>
         </div>
@@ -186,46 +241,59 @@ const ResourceOptimization: React.FC = () => {
             description="Clean system temporary files and cache"
             stats={[
               getTotalCleanupSize(),
-              cleanupInfo ? `${cleanupInfo.folders.length} folders` : 'Loading...'
+              cleanupInfo
+                ? `${cleanupInfo.folders.length} folders`
+                : "Loading...",
             ]}
             type="cleanup"
             onAction={handleOptimizeSystem}
             loading={optimizing}
             disabled={!cleanupInfo || optimizing}
           />
-          
-          {/* Service Restart Card */}
+
+          {/* ✅ Enhanced Service Restart Card */}
           <div className="resource-service-restart-card">
             <div className="resource-optimization-header">
               <div className="resource-optimization-icon resource-service-restart-icon">
                 <FaServer />
               </div>
               <div className="resource-optimization-info">
-                <h4 className="resource-optimization-title">Service Management</h4>
-                <p className="resource-optimization-description">Restart system daemon services</p>
+                <h4 className="resource-optimization-title">
+                  Service Management
+                </h4>
+                <p className="resource-optimization-description">
+                  Restart system daemon services
+                </p>
               </div>
             </div>
-            
+
             <div className="resource-optimization-stats">
               <div className="resource-optimization-stat">
-                <span className="resource-optimization-stat-value">{getServicesCount()}</span>
-                <span className="resource-optimization-stat-label">Services Available</span>
+                <span className="resource-optimization-stat-value">
+                  {getServicesCount()}
+                </span>
+                <span className="resource-optimization-stat-label">
+                  Services Available
+                </span>
               </div>
               <div className="resource-optimization-stat">
                 <span className="resource-optimization-stat-value">
-                  {restartingService ? '1' : '0'}
+                  {restartingService ? "1" : "0"}
                 </span>
-                <span className="resource-optimization-stat-label">Currently Restarting</span>
+                <span className="resource-optimization-stat-label">
+                  Currently Restarting
+                </span>
               </div>
             </div>
 
             <div className="resource-service-restart-notice">
               <FaInfoCircle className="resource-service-notice-icon" />
               <span className="resource-service-notice-text">
-                Only daemon services can be restarted. Enter the exact service name below.
+                Only daemon services can be restarted. Enter the exact service
+                name below.
               </span>
             </div>
-            
+
             <div className="resource-service-restart-controls">
               <input
                 type="text"
@@ -234,15 +302,16 @@ const ResourceOptimization: React.FC = () => {
                 value={serviceToRestart}
                 onChange={(e) => setServiceToRestart(e.target.value)}
                 disabled={!!restartingService}
+                onKeyPress={(e) => e.key === "Enter" && handleRestartService()}
               />
-              <button 
+              <button
                 className="resource-service-restart-btn"
                 onClick={handleRestartService}
                 disabled={!serviceToRestart.trim() || !!restartingService}
               >
                 {restartingService ? (
                   <>
-                    <FaSync className="resource-service-btn-icon spinning" />
+                    <FaSpinner className="resource-service-btn-icon spinning" />
                     Restarting...
                   </>
                 ) : (
@@ -260,14 +329,29 @@ const ResourceOptimization: React.FC = () => {
       {/* Service Overview Section */}
       <div className="resource-services-container">
         <div className="resource-section-header">
-          <h2 className="resource-section-title">Service Overview</h2>
-          <p className="resource-section-subtitle">View running system services ({services.length} services)</p>
+          <h2 className="resource-section-title">
+            <FaServer className="resource-section-icon" />
+            Service Overview
+          </h2>
+          <p className="resource-section-subtitle">
+            View running system services ({services.length} services)
+          </p>
         </div>
-        <ServiceGrid 
-          services={services}
-          loading={resourceLoading}
-        />
+        <ServiceGrid services={services} loading={resourceLoading} />
       </div>
+
+      {/* ✅ Loading indicator when updating */}
+      {(metricsLoading || resourceLoading || optimizing) &&
+        (healthData || cleanupInfo) && (
+          <div className="resource-dashboard-updating">
+            <FaSpinner className="spinning" />
+            <span>
+              {optimizing
+                ? "Optimizing system..."
+                : "Updating resource data..."}
+            </span>
+          </div>
+        )}
     </div>
   );
 };

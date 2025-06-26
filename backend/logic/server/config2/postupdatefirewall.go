@@ -25,7 +25,7 @@ type firewallUpdateRequest struct {
 	Source      string `json:"source"`      // optional
 	Destination string `json:"destination"` // optional
 
-	// ✅ Windows-specific fields
+	// Windows-specific fields
 	Name          string `json:"name,omitempty"`          // Windows rule name
 	DisplayName   string `json:"displayName,omitempty"`   // Windows display name
 	Direction     string `json:"direction,omitempty"`     // Inbound/Outbound
@@ -40,234 +40,78 @@ type firewallUpdateRequest struct {
 	Service       string `json:"service,omitempty"`       // Windows service name
 }
 
-type responseJSON2 struct {
-	Status  string `json:"status"`
-	Error   string `json:"error,omitempty"`
-	Details string `json:"details,omitempty"`
-	Debug   string `json:"debug,omitempty"`   // ✅ Added debug field
-	Payload string `json:"payload,omitempty"` // ✅ Added payload field for debugging
-}
-
-// ✅ Enhanced logging function with request ID
+// Enhanced logging function with request ID
 func logWithRequestID(requestID, level, component, message string, args ...interface{}) {
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
 	formattedMessage := fmt.Sprintf(message, args...)
 	log.Printf("[%s] [%s] [%s] [%s] %s", timestamp, requestID, level, component, formattedMessage)
 }
 
-// ✅ Generate unique request ID
+// Generate unique request ID
 func generateRequestID() string {
 	return fmt.Sprintf("fw-%d", time.Now().UnixNano())
 }
 
 func HandlePostUpdateFirewall(queries *serverdb.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// ✅ Generate unique request ID for tracing
+		// Generate unique request ID for tracing
 		requestID := generateRequestID()
 
-		// ✅ Enhanced request logging
+		// Enhanced request logging
 		logWithRequestID(requestID, "INFO", "FIREWALL", "=== FIREWALL REQUEST START ===")
 		logWithRequestID(requestID, "INFO", "FIREWALL", "Method: %s, URL: %s, RemoteAddr: %s", r.Method, r.URL.Path, r.RemoteAddr)
-		logWithRequestID(requestID, "INFO", "FIREWALL", "User-Agent: %s", r.Header.Get("User-Agent"))
-		logWithRequestID(requestID, "INFO", "FIREWALL", "Content-Type: %s", r.Header.Get("Content-Type"))
 
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("X-Request-ID", requestID) // ✅ Add request ID to response headers
+		w.Header().Set("X-Request-ID", requestID) // Add request ID to response headers
 
+		// Only allow POST
 		if r.Method != http.MethodPost {
 			logWithRequestID(requestID, "ERROR", "FIREWALL", "Method not allowed: %s", r.Method)
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			json.NewEncoder(w).Encode(responseJSON2{
-				Status: "failure",
-				Error:  "Method not allowed",
-				Debug:  fmt.Sprintf("Expected POST, got %s", r.Method),
-			})
+			sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		bodyBytes, err := io.ReadAll(r.Body)
-		if err != nil {
-			logWithRequestID(requestID, "ERROR", "FIREWALL", "Failed to read request body: %v", err)
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(responseJSON2{
-				Status: "failure",
-				Error:  "Failed to read request body",
-				Debug:  err.Error(),
-			})
-			return
-		}
-
-		// ✅ Log raw request body for debugging
-		logWithRequestID(requestID, "DEBUG", "FIREWALL", "Raw request body: %s", string(bodyBytes))
-
+		// Parse request body
 		var req firewallUpdateRequest
-		if err := json.Unmarshal(bodyBytes, &req); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			logWithRequestID(requestID, "ERROR", "FIREWALL", "Failed to unmarshal request: %v", err)
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(responseJSON2{
-				Status:  "failure",
-				Error:   "Invalid request format",
-				Debug:   fmt.Sprintf("JSON unmarshal error: %v", err),
-				Payload: string(bodyBytes),
-			})
+			sendError(w, "Invalid request format: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
-		// ✅ Log parsed request structure
+		// Log parsed request structure
 		logWithRequestID(requestID, "DEBUG", "FIREWALL", "Parsed request: %+v", req)
 
 		// Basic validation
 		if req.Host == "" || req.Action == "" {
 			logWithRequestID(requestID, "ERROR", "FIREWALL", "Missing required fields - Host: '%s', Action: '%s'", req.Host, req.Action)
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(responseJSON2{
-				Status: "failure",
-				Error:  "Host and action are required",
-				Debug:  fmt.Sprintf("Host='%s', Action='%s'", req.Host, req.Action),
-			})
+			sendError(w, "Host and action are required", http.StatusBadRequest)
 			return
 		}
 
 		logWithRequestID(requestID, "INFO", "FIREWALL", "Processing firewall %s for host: %s", req.Action, req.Host)
 
+		// Lookup device and get access token
 		device, err := queries.GetServerDeviceByIP(context.Background(), req.Host)
 		if err == sql.ErrNoRows {
 			logWithRequestID(requestID, "ERROR", "FIREWALL", "Device not found: %s", req.Host)
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(responseJSON2{
-				Status: "failure",
-				Error:  "Device not registered",
-				Debug:  fmt.Sprintf("No device found with IP: %s", req.Host),
-			})
+			sendError(w, "Device not registered", http.StatusNotFound)
 			return
 		} else if err != nil {
 			logWithRequestID(requestID, "ERROR", "FIREWALL", "Database error: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(responseJSON2{
-				Status: "failure",
-				Error:  "Database error",
-				Debug:  err.Error(),
-			})
+			sendError(w, "Database error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		logWithRequestID(requestID, "DEBUG", "FIREWALL", "Found device: ID=%s, Tag=%s", device.ID, device.Tag)
+		logWithRequestID(requestID, "DEBUG", "FIREWALL", "Found device: ID=%s, Tag=%s, OS=%s", device.ID, device.Tag, device.Os)
 
-		// ✅ Create client payload WITHOUT the host field
-		clientPayload := map[string]interface{}{
-			"action": req.Action,
-		}
-
-		// ✅ Enhanced firewall type detection with detailed logging
-		isWindowsFirewall := req.Name != "" || req.DisplayName != "" || req.Direction != "" || req.ActionType != ""
-
-		if isWindowsFirewall {
-			// Windows firewall request
-			logWithRequestID(requestID, "INFO", "FIREWALL", "🪟 Detected Windows firewall request")
-
-			// ✅ Log each Windows field being processed
-			windowsFields := []string{}
-
-			if req.Name != "" {
-				clientPayload["name"] = req.Name
-				windowsFields = append(windowsFields, fmt.Sprintf("name=%s", req.Name))
-			}
-			if req.DisplayName != "" {
-				clientPayload["displayName"] = req.DisplayName
-				windowsFields = append(windowsFields, fmt.Sprintf("displayName=%s", req.DisplayName))
-			}
-			if req.Direction != "" {
-				clientPayload["direction"] = req.Direction
-				windowsFields = append(windowsFields, fmt.Sprintf("direction=%s", req.Direction))
-			}
-			if req.ActionType != "" {
-				clientPayload["actionType"] = req.ActionType
-				windowsFields = append(windowsFields, fmt.Sprintf("actionType=%s", req.ActionType))
-			}
-			if req.Enabled != "" {
-				clientPayload["enabled"] = req.Enabled
-				windowsFields = append(windowsFields, fmt.Sprintf("enabled=%s", req.Enabled))
-			}
-			if req.Profile != "" {
-				clientPayload["profile"] = req.Profile
-				windowsFields = append(windowsFields, fmt.Sprintf("profile=%s", req.Profile))
-			}
-			if req.Protocol != "" {
-				clientPayload["protocol"] = req.Protocol
-				windowsFields = append(windowsFields, fmt.Sprintf("protocol=%s", req.Protocol))
-			}
-			if req.LocalPort != "" {
-				clientPayload["localPort"] = req.LocalPort
-				windowsFields = append(windowsFields, fmt.Sprintf("localPort=%s", req.LocalPort))
-			}
-			if req.RemotePort != "" {
-				clientPayload["remotePort"] = req.RemotePort
-				windowsFields = append(windowsFields, fmt.Sprintf("remotePort=%s", req.RemotePort))
-			}
-			if req.LocalAddress != "" {
-				clientPayload["localAddress"] = req.LocalAddress
-				windowsFields = append(windowsFields, fmt.Sprintf("localAddress=%s", req.LocalAddress))
-			}
-			if req.RemoteAddress != "" {
-				clientPayload["remoteAddress"] = req.RemoteAddress
-				windowsFields = append(windowsFields, fmt.Sprintf("remoteAddress=%s", req.RemoteAddress))
-			}
-			if req.Program != "" {
-				clientPayload["program"] = req.Program
-				windowsFields = append(windowsFields, fmt.Sprintf("program=%s", req.Program))
-			}
-			if req.Service != "" {
-				clientPayload["service"] = req.Service
-				windowsFields = append(windowsFields, fmt.Sprintf("service=%s", req.Service))
-			}
-
-			logWithRequestID(requestID, "DEBUG", "FIREWALL", "Windows fields: [%s]", strings.Join(windowsFields, ", "))
-		} else {
-			// ✅ Linux firewall request - use legacy format for compatibility
-			logWithRequestID(requestID, "INFO", "FIREWALL", "🐧 Detected Linux firewall request")
-
-			linuxFields := []string{}
-
-			// ✅ For Linux, always send the rule field for backward compatibility
-			if req.Rule != "" {
-				clientPayload["rule"] = req.Rule
-				linuxFields = append(linuxFields, fmt.Sprintf("rule=%s", req.Rule))
-			} else {
-				// ✅ Default rule if not provided
-				clientPayload["rule"] = "accept"
-				linuxFields = append(linuxFields, "rule=accept(default)")
-			}
-
-			if req.Protocol != "" {
-				clientPayload["protocol"] = req.Protocol
-				linuxFields = append(linuxFields, fmt.Sprintf("protocol=%s", req.Protocol))
-			}
-			if req.Port != "" {
-				clientPayload["port"] = req.Port
-				linuxFields = append(linuxFields, fmt.Sprintf("port=%s", req.Port))
-			}
-			if req.Source != "" {
-				clientPayload["source"] = req.Source
-				linuxFields = append(linuxFields, fmt.Sprintf("source=%s", req.Source))
-			}
-			if req.Destination != "" {
-				clientPayload["destination"] = req.Destination
-				linuxFields = append(linuxFields, fmt.Sprintf("destination=%s", req.Destination))
-			}
-
-			logWithRequestID(requestID, "DEBUG", "FIREWALL", "Linux fields: [%s]", strings.Join(linuxFields, ", "))
-		}
+		// Process firewall request based on OS
+		clientPayload := processFirewallUpdateRequest(req, device.Os, requestID)
 
 		// Convert to JSON for client
 		clientBody, err := json.Marshal(clientPayload)
 		if err != nil {
 			logWithRequestID(requestID, "ERROR", "FIREWALL", "Failed to marshal client payload: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(responseJSON2{
-				Status: "failure",
-				Error:  "Failed to prepare client request",
-				Debug:  err.Error(),
-			})
+			sendError(w, "Failed to prepare client request: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -280,28 +124,20 @@ func HandlePostUpdateFirewall(queries *serverdb.Queries) http.HandlerFunc {
 		clientReq, err := http.NewRequest("POST", clientURL, bytes.NewReader(clientBody))
 		if err != nil {
 			logWithRequestID(requestID, "ERROR", "FIREWALL", "Failed to create client request: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(responseJSON2{
-				Status: "failure",
-				Error:  "Failed to create client request",
-				Debug:  err.Error(),
-			})
+			sendError(w, "Failed to create client request: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		clientReq.Header.Set("Authorization", "Bearer "+device.AccessToken)
 		clientReq.Header.Set("Content-Type", "application/json")
-		clientReq.Header.Set("X-Request-ID", requestID) // ✅ Forward request ID
-
-		// ✅ Log request headers
-		logWithRequestID(requestID, "DEBUG", "FIREWALL", "Client request headers: %v", clientReq.Header)
+		clientReq.Header.Set("X-Request-ID", requestID)
 
 		// Add timeout to prevent hanging
 		httpClient := &http.Client{
 			Timeout: 30 * time.Second,
 		}
 
-		// ✅ Log timing information
+		// Log timing information
 		startTime := time.Now()
 		logWithRequestID(requestID, "INFO", "FIREWALL", "Sending HTTP request to client...")
 
@@ -310,60 +146,180 @@ func HandlePostUpdateFirewall(queries *serverdb.Queries) http.HandlerFunc {
 
 		if err != nil {
 			logWithRequestID(requestID, "ERROR", "FIREWALL", "Failed to reach client after %v: %v", duration, err)
-			w.WriteHeader(http.StatusBadGateway)
-			json.NewEncoder(w).Encode(responseJSON2{
-				Status:  "failure",
-				Error:   "Failed to reach client",
-				Details: err.Error(),
-				Debug:   fmt.Sprintf("Request duration: %v, URL: %s", duration, clientURL),
-			})
+			sendError(w, "Failed to reach client: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 		defer resp.Body.Close()
 
 		logWithRequestID(requestID, "INFO", "FIREWALL", "Client responded in %v with status: %d", duration, resp.StatusCode)
 
-		// ✅ Log response headers
-		logWithRequestID(requestID, "DEBUG", "FIREWALL", "Client response headers: %v", resp.Header)
+		// Handle client error responses
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			logWithRequestID(requestID, "ERROR", "FIREWALL", "Client returned non-200 status: %d", resp.StatusCode)
 
-		// Read response body for debugging
+			var clientError ErrorResponse
+			if json.Unmarshal(body, &clientError) == nil && clientError.Status == "failed" {
+				sendError(w, "Client error: "+clientError.Message, http.StatusBadGateway)
+			} else {
+				sendError(w, "Client error: "+string(body), http.StatusBadGateway)
+			}
+			return
+		}
+
+		// Read client response
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			logWithRequestID(requestID, "ERROR", "FIREWALL", "Failed to read response body: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(responseJSON2{
-				Status: "failure",
-				Error:  "Failed to read client response",
-				Debug:  err.Error(),
-			})
+			sendError(w, "Failed to read client response: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 
 		logWithRequestID(requestID, "DEBUG", "FIREWALL", "Client response body: %s", string(body))
 
-		if resp.StatusCode != http.StatusOK {
-			logWithRequestID(requestID, "ERROR", "FIREWALL", "Client returned non-200 status: %d", resp.StatusCode)
-
-			// ✅ Try to parse client error for better debugging
-			var clientError map[string]interface{}
-			if json.Unmarshal(body, &clientError) == nil {
-				logWithRequestID(requestID, "DEBUG", "FIREWALL", "Parsed client error: %+v", clientError)
-			}
-
-			w.WriteHeader(http.StatusBadGateway)
-			json.NewEncoder(w).Encode(responseJSON2{
-				Status:  "failure",
-				Error:   fmt.Sprintf("Client returned status %d", resp.StatusCode),
-				Details: string(body),
-				Debug:   fmt.Sprintf("Request ID: %s, Duration: %v, Client URL: %s", requestID, duration, clientURL),
-			})
+		// Parse client response
+		var clientResp interface{}
+		if err := json.Unmarshal(body, &clientResp); err != nil {
+			logWithRequestID(requestID, "ERROR", "FIREWALL", "Failed to parse client response: %v", err)
+			sendError(w, "Invalid client response: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 
-		// Success - forward client response
-		w.WriteHeader(resp.StatusCode)
-		w.Write(body)
+		// Process response based on OS
+		processedResp := processFirewallUpdateResponse(clientResp, device.Os)
+
+		// Send successful response
+		sendGetSuccess(w, processedResp)
 		logWithRequestID(requestID, "INFO", "FIREWALL", "✅ Firewall %s completed successfully for %s in %v", req.Action, req.Host, duration)
 		logWithRequestID(requestID, "INFO", "FIREWALL", "=== FIREWALL REQUEST END ===")
 	}
+}
+
+// Process firewall update request based on OS
+func processFirewallUpdateRequest(req firewallUpdateRequest, osType string, requestID string) map[string]interface{} {
+	clientPayload := map[string]interface{}{
+		"action": req.Action,
+	}
+
+	if strings.ToLower(osType) == "windows" {
+		logWithRequestID(requestID, "INFO", "FIREWALL", "🪟 Processing Windows firewall request")
+		return processWindowsFirewallUpdateRequest(req, clientPayload, requestID)
+	}
+
+	// Default Linux behavior
+	logWithRequestID(requestID, "INFO", "FIREWALL", "🐧 Processing Linux firewall request")
+	return processLinuxFirewallUpdateRequest(req, clientPayload, requestID)
+}
+
+// Process Linux firewall update request
+func processLinuxFirewallUpdateRequest(req firewallUpdateRequest, clientPayload map[string]interface{}, requestID string) map[string]interface{} {
+	linuxFields := []string{}
+
+	// For Linux, always send the rule field for backward compatibility
+	if req.Rule != "" {
+		clientPayload["rule"] = req.Rule
+		linuxFields = append(linuxFields, fmt.Sprintf("rule=%s", req.Rule))
+	} else {
+		// Default rule if not provided
+		clientPayload["rule"] = "accept"
+		linuxFields = append(linuxFields, "rule=accept(default)")
+	}
+
+	if req.Protocol != "" {
+		clientPayload["protocol"] = req.Protocol
+		linuxFields = append(linuxFields, fmt.Sprintf("protocol=%s", req.Protocol))
+	}
+	if req.Port != "" {
+		clientPayload["port"] = req.Port
+		linuxFields = append(linuxFields, fmt.Sprintf("port=%s", req.Port))
+	}
+	if req.Source != "" {
+		clientPayload["source"] = req.Source
+		linuxFields = append(linuxFields, fmt.Sprintf("source=%s", req.Source))
+	}
+	if req.Destination != "" {
+		clientPayload["destination"] = req.Destination
+		linuxFields = append(linuxFields, fmt.Sprintf("destination=%s", req.Destination))
+	}
+
+	logWithRequestID(requestID, "DEBUG", "FIREWALL", "Linux fields: [%s]", strings.Join(linuxFields, ", "))
+	return clientPayload
+}
+
+// Process Windows firewall update request
+func processWindowsFirewallUpdateRequest(req firewallUpdateRequest, clientPayload map[string]interface{}, requestID string) map[string]interface{} {
+	windowsFields := []string{}
+
+	if req.Name != "" {
+		clientPayload["name"] = req.Name
+		windowsFields = append(windowsFields, fmt.Sprintf("name=%s", req.Name))
+	}
+	if req.DisplayName != "" {
+		clientPayload["displayName"] = req.DisplayName
+		windowsFields = append(windowsFields, fmt.Sprintf("displayName=%s", req.DisplayName))
+	}
+	if req.Direction != "" {
+		clientPayload["direction"] = req.Direction
+		windowsFields = append(windowsFields, fmt.Sprintf("direction=%s", req.Direction))
+	}
+	if req.ActionType != "" {
+		clientPayload["actionType"] = req.ActionType
+		windowsFields = append(windowsFields, fmt.Sprintf("actionType=%s", req.ActionType))
+	}
+	if req.Enabled != "" {
+		clientPayload["enabled"] = req.Enabled
+		windowsFields = append(windowsFields, fmt.Sprintf("enabled=%s", req.Enabled))
+	}
+	if req.Profile != "" {
+		clientPayload["profile"] = req.Profile
+		windowsFields = append(windowsFields, fmt.Sprintf("profile=%s", req.Profile))
+	}
+	if req.Protocol != "" {
+		clientPayload["protocol"] = req.Protocol
+		windowsFields = append(windowsFields, fmt.Sprintf("protocol=%s", req.Protocol))
+	}
+	if req.LocalPort != "" {
+		clientPayload["localPort"] = req.LocalPort
+		windowsFields = append(windowsFields, fmt.Sprintf("localPort=%s", req.LocalPort))
+	}
+	if req.RemotePort != "" {
+		clientPayload["remotePort"] = req.RemotePort
+		windowsFields = append(windowsFields, fmt.Sprintf("remotePort=%s", req.RemotePort))
+	}
+	if req.LocalAddress != "" {
+		clientPayload["localAddress"] = req.LocalAddress
+		windowsFields = append(windowsFields, fmt.Sprintf("localAddress=%s", req.LocalAddress))
+	}
+	if req.RemoteAddress != "" {
+		clientPayload["remoteAddress"] = req.RemoteAddress
+		windowsFields = append(windowsFields, fmt.Sprintf("remoteAddress=%s", req.RemoteAddress))
+	}
+	if req.Program != "" {
+		clientPayload["program"] = req.Program
+		windowsFields = append(windowsFields, fmt.Sprintf("program=%s", req.Program))
+	}
+	if req.Service != "" {
+		clientPayload["service"] = req.Service
+		windowsFields = append(windowsFields, fmt.Sprintf("service=%s", req.Service))
+	}
+
+	logWithRequestID(requestID, "DEBUG", "FIREWALL", "Windows fields: [%s]", strings.Join(windowsFields, ", "))
+	return clientPayload
+}
+
+// Process firewall update response based on OS
+func processFirewallUpdateResponse(resp interface{}, osType string) interface{} {
+	if strings.ToLower(osType) == "windows" {
+		return processWindowsFirewallUpdateResponse(resp)
+	}
+
+	// Default Linux behavior
+	return resp
+}
+
+// Windows-specific firewall update response processing (placeholder for future differences)
+func processWindowsFirewallUpdateResponse(resp interface{}) interface{} {
+	// For now, return same format as Linux
+	// Future: might need different response handling for Windows Firewall
+	return resp
 }

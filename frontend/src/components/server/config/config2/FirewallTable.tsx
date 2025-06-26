@@ -1,17 +1,27 @@
 // components/server/config2/FirewallTable.tsx
-import React, { useState } from 'react';
-import { FaShieldAlt, FaTrash, FaPlus, FaLock, FaUnlock, FaToggleOn, FaToggleOff, FaSpinner } from 'react-icons/fa';
-import { useConfig2 } from '../../../../hooks/server/useConfig2';
-import FirewallRuleModal from './FirewallRuleModal';
-import './FirewallTable.css';
+import React, { useState } from "react";
+import {
+  FaShieldAlt,
+  FaTrash,
+  FaPlus,
+  FaLock,
+  FaUnlock,
+  FaToggleOn,
+  FaToggleOff,
+  FaSpinner,
+  FaExclamationTriangle,
+} from "react-icons/fa";
+import { useConfig2 } from "../../../../hooks/server/useConfig2";
+import FirewallRuleModal from "./FirewallRuleModal";
+import "./FirewallTable.css";
 
 interface WindowsFirewallRule {
   Name: string;
   DisplayName: string;
-  Direction: 'Inbound' | 'Outbound';
-  Action: 'Allow' | 'Block';
-  Enabled: 'True' | 'False';
-  Profile: 'Public' | 'Private' | 'Domain' | 'Any';
+  Direction: "Inbound" | "Outbound";
+  Action: "Allow" | "Block";
+  Enabled: "True" | "False";
+  Profile: "Public" | "Private" | "Domain" | "Any";
 }
 
 interface LinuxFirewallRule {
@@ -28,7 +38,7 @@ interface LinuxFirewallRule {
 }
 
 interface LinuxFirewallData {
-  type: 'iptables';
+  type: "iptables";
   chains: Array<{
     name: string;
     policy: string;
@@ -39,73 +49,99 @@ interface LinuxFirewallData {
 
 const FirewallTable: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
-  const [selectedChain, setSelectedChain] = useState('All');
-  const { firewallData, loading, updateFirewallRule, fetchFirewallRules } = useConfig2();
+  const [selectedChain, setSelectedChain] = useState("All");
+  const { firewallData, loading, error, updateFirewallRule } = useConfig2();
 
   // ✅ Enhanced firewall type detection
-  const firewallType: 'windows' | 'linux' = 
-    Array.isArray(firewallData) && firewallData.length > 0 && 'Name' in firewallData[0] 
-      ? 'windows' 
-      : 'linux';
+  const firewallType: "windows" | "linux" =
+    Array.isArray(firewallData) &&
+    firewallData.length > 0 &&
+    "Name" in firewallData[0]
+      ? "windows"
+      : "linux";
 
   const handleAddRule = async (ruleData: any) => {
-    const success = await updateFirewallRule(ruleData);
-    if (success) {
-      await fetchFirewallRules();
-      return true;
+    try {
+      const success = await updateFirewallRule(ruleData);
+      if (success) {
+        setShowModal(false);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      // Error notification is already handled by the hook
+      return false;
     }
-    return false;
   };
 
   // ✅ Enhanced delete handling for both Windows and Linux
-  const handleDeleteRule = async (rule: WindowsFirewallRule | LinuxFirewallRule) => {
-    const confirmMessage = firewallType === 'windows' 
-      ? `Are you sure you want to delete the rule "${(rule as WindowsFirewallRule).DisplayName || (rule as WindowsFirewallRule).Name}"?`
-      : `Are you sure you want to delete this firewall rule?`;
-      
+  const handleDeleteRule = async (
+    rule: WindowsFirewallRule | LinuxFirewallRule,
+  ) => {
+    const confirmMessage =
+      firewallType === "windows"
+        ? `Are you sure you want to delete the rule "${(rule as WindowsFirewallRule).DisplayName || (rule as WindowsFirewallRule).Name}"?`
+        : `Are you sure you want to delete this firewall rule?`;
+
     if (window.confirm(confirmMessage)) {
       let deleteData: any;
-      
-      if (firewallType === 'windows') {
+
+      if (firewallType === "windows") {
         const windowsRule = rule as WindowsFirewallRule;
         // ✅ Windows delete request
         deleteData = {
-          action: 'delete',
-          name: windowsRule.Name // Use the rule name for deletion
+          action: "delete",
+          name: windowsRule.Name, // Use the rule name for deletion
         };
       } else {
         const linuxRule = rule as LinuxFirewallRule;
         deleteData = {
-          action: 'delete',
+          action: "delete",
           rule: linuxRule.target.toLowerCase(),
           protocol: linuxRule.protocol,
           port: extractPortFromOptions(linuxRule.options),
-          source: linuxRule.source,
-          destination: linuxRule.destination
+          source:
+            linuxRule.source !== "0.0.0.0/0" ? linuxRule.source : undefined,
+          destination:
+            linuxRule.destination !== "0.0.0.0/0"
+              ? linuxRule.destination
+              : undefined,
         };
       }
-      
-      console.log('🔍 Deleting firewall rule:', deleteData);
-      
-      const success = await updateFirewallRule(deleteData);
-      if (success) {
-        await fetchFirewallRules();
+
+      console.log("🔍 Deleting firewall rule:", deleteData);
+
+      try {
+        const success = await updateFirewallRule(deleteData);
+        if (success) {
+          // Firewall rules will be automatically refreshed by the hook
+          return;
+        }
+      } catch (err) {
+        // Error notification is already handled by the hook
+        console.error("Failed to delete firewall rule:", err);
       }
     }
   };
 
   // ✅ Windows rule toggle functionality
   const handleToggleRule = async (rule: WindowsFirewallRule) => {
-    if (firewallType === 'windows') {
-      const newEnabled = rule.Enabled === 'True' ? 'False' : 'True';
-      const success = await updateFirewallRule({
-        action: 'toggle',
-        name: rule.Name,
-        enabled: newEnabled
-      });
-      
-      if (success) {
-        await fetchFirewallRules();
+    if (firewallType === "windows") {
+      const newEnabled = rule.Enabled === "True" ? "False" : "True";
+      try {
+        const success = await updateFirewallRule({
+          action: "toggle",
+          name: rule.Name,
+          enabled: newEnabled,
+        });
+
+        if (success) {
+          // Firewall rules will be automatically refreshed by the hook
+          return;
+        }
+      } catch (err) {
+        // Error notification is already handled by the hook
+        console.error("Failed to toggle firewall rule:", err);
       }
     }
   };
@@ -116,121 +152,141 @@ const FirewallTable: React.FC = () => {
     const portMatch = options.match(/--dport (\d+)/);
     const sportMatch = options.match(/--sport (\d+)/);
     const rangeMatch = options.match(/dpts:(\d+:\d+)/);
-    
+
     if (dptMatch) return dptMatch[1];
     if (sptMatch) return sptMatch[1];
     if (portMatch) return portMatch[1];
     if (sportMatch) return sportMatch[1];
     if (rangeMatch) return rangeMatch[1];
-    
-    return 'Any';
+
+    return "Any";
   };
 
   const getActionColor = (action: string): string => {
     switch (action.toUpperCase()) {
-      case 'ALLOW':
-      case 'ACCEPT':
-        return 'firewall-target-accept';
-      case 'BLOCK':
-      case 'DROP':
-        return 'firewall-target-drop';
-      case 'REJECT':
-        return 'firewall-target-reject';
+      case "ALLOW":
+      case "ACCEPT":
+        return "firewall-target-accept";
+      case "BLOCK":
+      case "DROP":
+        return "firewall-target-drop";
+      case "REJECT":
+        return "firewall-target-reject";
       default:
-        return 'firewall-target-default';
+        return "firewall-target-default";
     }
   };
 
   // ✅ Enhanced Windows table rendering
   const renderWindowsTable = () => {
-    const windowsRules = Array.isArray(firewallData) ? firewallData as WindowsFirewallRule[] : [];
-    
+    const windowsRules = Array.isArray(firewallData)
+      ? (firewallData as WindowsFirewallRule[])
+      : [];
+
     return (
-      <table className="firewall-table">
-        <thead>
-          <tr>
-            <th>Name</th>
-            <th>Display Name</th>
-            <th>Direction</th>
-            <th>Action</th>
-            <th>Enabled</th>
-            <th>Profile</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {windowsRules.map((rule, index) => (
-            <tr key={`${rule.Name}-${index}`} className="firewall-table-row">
-              <td className="firewall-rule-name">{rule.Name}</td>
-              <td className="firewall-display-name">{rule.DisplayName}</td>
-              <td>
-                <span className={`firewall-direction-badge ${rule.Direction.toLowerCase()}`}>
-                  {rule.Direction}
-                </span>
-              </td>
-              <td>
-                <span className={`firewall-target-badge ${getActionColor(rule.Action)}`}>
-                  {rule.Action}
-                </span>
-              </td>
-              <td>
-                <button
-                  className={`firewall-toggle-btn ${rule.Enabled === 'True' ? 'enabled' : 'disabled'}`}
-                  onClick={() => handleToggleRule(rule)}
-                  disabled={loading.updating}
-                  title={`${rule.Enabled === 'True' ? 'Disable' : 'Enable'} rule`}
-                >
-                  {loading.updating ? <FaSpinner className="spinning" /> : 
-                    (rule.Enabled === 'True' ? <FaToggleOn /> : <FaToggleOff />)
-                  }
-                  {rule.Enabled === 'True' ? 'Enabled' : 'Disabled'}
-                </button>
-              </td>
-              <td className="firewall-profile">{rule.Profile}</td>
-              <td>
-                <button 
-                  className="firewall-table-delete-btn" 
-                  onClick={() => handleDeleteRule(rule)}
-                  disabled={loading.updating}
-                  title="Delete Rule"
-                >
-                  {loading.updating ? <FaSpinner className="spinning" /> : <FaTrash />}
-                </button>
-              </td>
+      <div className="firewall-table-wrapper">
+        <table className="firewall-table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Display Name</th>
+              <th>Direction</th>
+              <th>Action</th>
+              <th>Enabled</th>
+              <th>Profile</th>
+              <th>Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {windowsRules.map((rule, index) => (
+              <tr key={`${rule.Name}-${index}`} className="firewall-table-row">
+                <td className="firewall-rule-name">{rule.Name}</td>
+                <td className="firewall-display-name">{rule.DisplayName}</td>
+                <td>
+                  <span
+                    className={`firewall-direction-badge ${rule.Direction.toLowerCase()}`}
+                  >
+                    {rule.Direction}
+                  </span>
+                </td>
+                <td>
+                  <span
+                    className={`firewall-target-badge ${getActionColor(rule.Action)}`}
+                  >
+                    {rule.Action}
+                  </span>
+                </td>
+                <td>
+                  <button
+                    className={`firewall-toggle-btn ${rule.Enabled === "True" ? "enabled" : "disabled"}`}
+                    onClick={() => handleToggleRule(rule)}
+                    disabled={loading.updating}
+                    title={`${rule.Enabled === "True" ? "Disable" : "Enable"} rule`}
+                  >
+                    {loading.updating ? (
+                      <FaSpinner className="spinning" />
+                    ) : rule.Enabled === "True" ? (
+                      <FaToggleOn />
+                    ) : (
+                      <FaToggleOff />
+                    )}
+                    {rule.Enabled === "True" ? "Enabled" : "Disabled"}
+                  </button>
+                </td>
+                <td className="firewall-profile">{rule.Profile}</td>
+                <td className="firewall-table-actions">
+                  <button
+                    className="firewall-table-delete-btn"
+                    onClick={() => handleDeleteRule(rule)}
+                    disabled={loading.updating}
+                    title="Delete Rule"
+                  >
+                    {loading.updating ? (
+                      <FaSpinner className="spinning" />
+                    ) : (
+                      <FaTrash />
+                    )}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     );
   };
 
   const renderLinuxTable = () => {
     const linuxData = firewallData as LinuxFirewallData;
-    
+
     const getFilteredRules = (): LinuxFirewallRule[] => {
       if (!linuxData?.chains) return [];
-      
-      if (selectedChain === 'All') {
+
+      if (selectedChain === "All") {
         const allRules: LinuxFirewallRule[] = [];
-        linuxData.chains.forEach(chain => {
-          chain.rules.forEach(rule => {
+        linuxData.chains.forEach((chain) => {
+          chain.rules.forEach((rule) => {
             allRules.push({
               ...rule,
               chainName: chain.name,
               chainPolicy: chain.policy,
-              port: extractPortFromOptions(rule.options)
+              port: extractPortFromOptions(rule.options),
             });
           });
         });
         return allRules;
       } else {
-        const selectedChainData = linuxData.chains.find(chain => chain.name === selectedChain);
-        return selectedChainData ? selectedChainData.rules.map(rule => ({
-          ...rule,
-          chainName: selectedChainData.name,
-          chainPolicy: selectedChainData.policy,
-          port: extractPortFromOptions(rule.options)
-        })) : [];
+        const selectedChainData = linuxData.chains.find(
+          (chain) => chain.name === selectedChain,
+        );
+        return selectedChainData
+          ? selectedChainData.rules.map((rule) => ({
+              ...rule,
+              chainName: selectedChainData.name,
+              chainPolicy: selectedChainData.policy,
+              port: extractPortFromOptions(rule.options),
+            }))
+          : [];
       }
     };
 
@@ -240,14 +296,21 @@ const FirewallTable: React.FC = () => {
       <>
         <div className="firewall-chain-selector">
           <label className="firewall-chain-label">Filter by Chain:</label>
-          <select 
+          <select
             className="firewall-chain-select"
             value={selectedChain}
             onChange={(e) => setSelectedChain(e.target.value)}
             disabled={loading.updating}
           >
-            <option value="All">All Chains ({linuxData?.chains?.reduce((total, chain) => total + chain.rules.length, 0) || 0} rules)</option>
-            {linuxData?.chains?.map(chain => (
+            <option value="All">
+              All Chains (
+              {linuxData?.chains?.reduce(
+                (total, chain) => total + chain.rules.length,
+                0,
+              ) || 0}{" "}
+              rules)
+            </option>
+            {linuxData?.chains?.map((chain) => (
               <option key={chain.name} value={chain.name}>
                 {chain.name} ({chain.rules.length} rules)
               </option>
@@ -255,65 +318,112 @@ const FirewallTable: React.FC = () => {
           </select>
         </div>
 
-        <table className="firewall-table">
-          <thead>
-            <tr>
-              {selectedChain === 'All' && <th>Chain</th>}
-              <th>Rule #</th>
-              <th>Target</th>
-              <th>Protocol</th>
-              <th>Source</th>
-              <th>Destination</th>
-              <th>Port</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRules.map((rule, index) => (
-              <tr key={`${rule.chainName}-${rule.number}-${index}`} className="firewall-table-row">
-                {selectedChain === 'All' && (
+        <div className="firewall-table-wrapper">
+          <table className="firewall-table">
+            <thead>
+              <tr>
+                {selectedChain === "All" && <th>Chain</th>}
+                <th>Rule #</th>
+                <th>Target</th>
+                <th>Protocol</th>
+                <th>Source</th>
+                <th>Destination</th>
+                <th>Port</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredRules.map((rule, index) => (
+                <tr
+                  key={`${rule.chainName}-${rule.number}-${index}`}
+                  className="firewall-table-row"
+                >
+                  {selectedChain === "All" && (
+                    <td>
+                      <span className="firewall-chain-badge">
+                        {rule.chainName}
+                      </span>
+                    </td>
+                  )}
+                  <td className="firewall-rule-number">{rule.number}</td>
                   <td>
-                    <span className="firewall-chain-badge">
-                      {rule.chainName}
+                    <span
+                      className={`firewall-target-badge ${getActionColor(rule.target)}`}
+                    >
+                      {rule.target}
                     </span>
                   </td>
-                )}
-                <td className="firewall-rule-number">{rule.number}</td>
-                <td>
-                  <span className={`firewall-target-badge ${getActionColor(rule.target)}`}>
-                    {rule.target}
-                  </span>
-                </td>
-                <td className="firewall-protocol">{rule.protocol}</td>
-                <td className="firewall-source">{rule.source}</td>
-                <td className="firewall-destination">{rule.destination}</td>
-                <td className="firewall-port">{rule.port}</td>
-                <td>
-                  <button 
-                    className="firewall-table-delete-btn" 
-                    onClick={() => handleDeleteRule(rule)}
-                    disabled={loading.updating}
-                    title="Delete Rule"
-                  >
-                    {loading.updating ? <FaSpinner className="spinning" /> : <FaTrash />}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  <td className="firewall-protocol">{rule.protocol}</td>
+                  <td className="firewall-source">{rule.source}</td>
+                  <td className="firewall-destination">{rule.destination}</td>
+                  <td className="firewall-port">{rule.port}</td>
+                  <td className="firewall-table-actions">
+                    <button
+                      className="firewall-table-delete-btn"
+                      onClick={() => handleDeleteRule(rule)}
+                      disabled={loading.updating}
+                      title="Delete Rule"
+                    >
+                      {loading.updating ? (
+                        <FaSpinner className="spinning" />
+                      ) : (
+                        <FaTrash />
+                      )}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </>
     );
   };
 
   const getRulesCount = (): number => {
-    if (firewallType === 'windows') {
+    if (firewallType === "windows") {
       return Array.isArray(firewallData) ? firewallData.length : 0;
     } else {
       const linuxData = firewallData as LinuxFirewallData;
-      return linuxData?.chains?.reduce((total, chain) => total + chain.rules.length, 0) || 0;
+      return (
+        linuxData?.chains?.reduce(
+          (total, chain) => total + chain.rules.length,
+          0,
+        ) || 0
+      );
     }
   };
+
+  // ✅ Enhanced loading state
+  if (loading.firewallData && !firewallData) {
+    return (
+      <div className="firewall-table-card">
+        <div className="firewall-table-loading">
+          <div className="firewall-table-loading-spinner">
+            <FaSpinner className="spinning" />
+          </div>
+          <p>Loading firewall rules...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Enhanced error state
+  if (error && !firewallData) {
+    return (
+      <div className="firewall-table-card">
+        <div className="firewall-table-error">
+          <div className="firewall-table-error-icon">
+            <FaExclamationTriangle />
+          </div>
+          <div className="firewall-table-error-content">
+            <h4>Failed to Load Firewall Rules</h4>
+            <p>{error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="firewall-table-card">
@@ -324,10 +434,17 @@ const FirewallTable: React.FC = () => {
           </div>
           <div>
             <h3 className="firewall-table-title">
-              {firewallType === 'windows' ? 'Windows Firewall' : 'iptables Firewall'} Management
+              {firewallType === "windows"
+                ? "Windows Firewall"
+                : "iptables Firewall"}{" "}
+              Management
             </h3>
             <p className="firewall-table-description">
-              Manage {firewallType === 'windows' ? 'Windows Defender Firewall' : 'iptables'} rules
+              Manage{" "}
+              {firewallType === "windows"
+                ? "Windows Defender Firewall"
+                : "iptables"}{" "}
+              rules ({getRulesCount()} rules)
             </p>
           </div>
         </div>
@@ -345,33 +462,42 @@ const FirewallTable: React.FC = () => {
               </span>
             )}
           </div>
-          <button 
+          <button
             className="firewall-table-add-btn"
             onClick={() => setShowModal(true)}
             disabled={loading.updating}
+            title="Add new firewall rule"
           >
-            {loading.updating ? <FaSpinner className="spinning" /> : <FaPlus className="firewall-table-add-icon" />}
+            {loading.updating ? (
+              <FaSpinner className="spinning" />
+            ) : (
+              <FaPlus className="firewall-table-add-icon" />
+            )}
             Add Rule
           </button>
         </div>
       </div>
 
       <div className="firewall-table-content">
-        {loading.firewallData ? (
-          <div className="firewall-table-loading">
+        <div className="firewall-table-container">
+          {getRulesCount() === 0 ? (
+            <div className="firewall-table-empty">
+              <FaShieldAlt className="firewall-table-empty-icon" />
+              <p>No firewall rules configured</p>
+              <small>Click "Add Rule" to create your first firewall rule</small>
+            </div>
+          ) : firewallType === "windows" ? (
+            renderWindowsTable()
+          ) : (
+            renderLinuxTable()
+          )}
+        </div>
+
+        {/* ✅ Loading indicator when updating */}
+        {loading.updating && (
+          <div className="firewall-table-updating">
             <FaSpinner className="spinning" />
-            Loading firewall rules...
-          </div>
-        ) : (
-          <div className="firewall-table-container">
-            {getRulesCount() === 0 ? (
-              <div className="firewall-table-empty">
-                <FaShieldAlt className="firewall-table-empty-icon" />
-                <p>No firewall rules configured</p>
-              </div>
-            ) : (
-              firewallType === 'windows' ? renderWindowsTable() : renderLinuxTable()
-            )}
+            <span>Updating firewall rules...</span>
           </div>
         )}
       </div>

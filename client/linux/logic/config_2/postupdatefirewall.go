@@ -27,21 +27,21 @@ func HandleUpdateFirewall(w http.ResponseWriter, r *http.Request) {
 
 	var req UpdateFirewallRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		sendError(w, "Failed to parse request body", err)
+		sendError(w, "Failed to parse request body", http.StatusBadRequest)
 		return
 	}
 
 	// Validation
 	if req.Action != "add" && req.Action != "delete" {
-		sendError(w, "Action must be 'add' or 'delete'", fmt.Errorf("invalid action: %s", req.Action))
+		sendError(w, "Action must be 'add' or 'delete'",http.StatusInternalServerError)
 		return
 	}
 	if req.Rule == "" || req.Protocol == "" || req.Port == "" {
-		sendError(w, "Rule, protocol, and port are required", fmt.Errorf("missing required fields"))
+		sendError(w, "Rule, protocol, and port are required", http.StatusInternalServerError)
 		return
 	}
 	if req.Rule != "accept" && req.Rule != "drop" && req.Rule != "reject" {
-		sendError(w, "Rule must be 'accept', 'drop', or 'reject'", fmt.Errorf("invalid rule: %s", req.Rule))
+		sendError(w, "Rule must be 'accept', 'drop', or 'reject'", http.StatusInternalServerError)
 		return
 	}
 
@@ -69,9 +69,9 @@ func HandleUpdateFirewall(w http.ResponseWriter, r *http.Request) {
 	}
 
 	cmd := exec.Command("iptables", cmdArgs...)
-	output, err := cmd.CombinedOutput()
+	_, err := cmd.CombinedOutput()
 	if err != nil {
-		sendError(w, "Failed to update firewall rule", fmt.Errorf("%v, output: %s", err, string(output)))
+		sendError(w, "Failed to update firewall rule", http.StatusInternalServerError)
 		return
 	}
 

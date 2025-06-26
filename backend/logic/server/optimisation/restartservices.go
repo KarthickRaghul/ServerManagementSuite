@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
+	"time"
 
 	"backend/config"
 	serverdb "backend/db/gen/server"
@@ -17,70 +19,138 @@ type restartServiceRequest struct {
 	Service string `json:"service"`
 }
 
-type responseJSON1 struct {
-	Status string `json:"status"`
-}
-
 func PostRestartService(queries *serverdb.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		// Only allow POST
 		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			json.NewEncoder(w).Encode(responseJSON1{Status: "failure"})
+			sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		bodyBytes, err := io.ReadAll(r.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(responseJSON1{Status: "failure"})
-			return
-		}
-
+		// Parse request body
 		var req restartServiceRequest
-		if err := json.Unmarshal(bodyBytes, &req); err != nil || req.Host == "" || req.Service == "" {
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(responseJSON1{Status: "failure"})
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			sendError(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
+		// Validate required fields
+		if req.Host == "" || req.Service == "" {
+			sendError(w, "Host and service are required", http.StatusBadRequest)
+			return
+		}
+
+		// Lookup device and get access token
 		device, err := queries.GetServerDeviceByIP(context.Background(), req.Host)
 		if err == sql.ErrNoRows {
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(responseJSON1{Status: "failure"})
+			sendError(w, "Device not registered", http.StatusNotFound)
 			return
 		} else if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(responseJSON1{Status: "failure"})
+			sendError(w, "Database error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// ✅ Use config for client URL (reads from .env file)
-		clientURL := config.GetClientURL(req.Host, "/client/restartservice")
+		// Process request based on OS
+		clientPayload := processRestartServiceRequest(req, device.Os)
 
-		clientReq, err := http.NewRequest("POST", clientURL, bytes.NewReader(bodyBytes))
+		jsonPayload, err := json.Marshal(clientPayload)
 		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(responseJSON1{Status: "failure"})
+			sendError(w, "Failed to prepare request: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
+
+		// Use config for client URL (reads from .env file)
+		clientURL := config.GetClientURL(req.Host, "/client/resource/restartservice")
+
+		clientReq, err := http.NewRequest("POST", clientURL, bytes.NewBuffer(jsonPayload))
+		if err != nil {
+			sendError(w, "Failed to create request: "+err.Error(), http.StatusInternalServerError)
+			return
+		}
+
 		clientReq.Header.Set("Authorization", "Bearer "+device.AccessToken)
 		clientReq.Header.Set("Content-Type", "application/json")
 
-		resp, err := http.DefaultClient.Do(clientReq)
-		if err != nil || resp.StatusCode != http.StatusOK {
-			w.WriteHeader(http.StatusBadGateway)
-			json.NewEncoder(w).Encode(responseJSON1{Status: "failure"})
+		httpClient := &http.Client{
+			Timeout: 30 * time.Second,
+		}
+
+		resp, err := httpClient.Do(clientReq)
+		if err != nil {
+			sendError(w, "Failed to reach client: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 		defer resp.Body.Close()
 
-		w.WriteHeader(resp.StatusCode)
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			http.Error(w, "Failed to read response from client", http.StatusInternalServerError)
+		// Handle client error responses
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+
+			var clientError ErrorResponse
+			if json.Unmarshal(body, &clientError) == nil && clientError.Status == "failed" {
+				sendError(w, "Client error: "+clientError.Message, http.StatusBadGateway)
+			} else {
+				sendError(w, "Client error: "+string(body), http.StatusBadGateway)
+			}
 			return
 		}
-		w.Write(body)
+
+		// Read client response
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			sendError(w, "Failed to read client response: "+err.Error(), http.StatusBadGateway)
+			return
+		}
+
+		// Parse client response
+		var clientResp interface{}
+		if err := json.Unmarshal(body, &clientResp); err != nil {
+			sendError(w, "Invalid client response: "+err.Error(), http.StatusBadGateway)
+			return
+		}
+
+		// Process response based on OS
+		processedResp := processRestartServiceResponse(clientResp, device.Os)
+
+		// Send successful response
+		sendGetSuccess(w, processedResp)
 	}
+}
+
+// Process restart service request based on OS
+func processRestartServiceRequest(req restartServiceRequest, osType string) map[string]string {
+	if strings.ToLower(osType) == "windows" {
+		return processWindowsRestartServiceRequest(req)
+	}
+
+	// Default Linux behavior
+	return map[string]string{
+		"service": strings.TrimSpace(req.Service),
+	}
+}
+
+// Process restart service response based on OS
+func processRestartServiceResponse(resp interface{}, osType string) interface{} {
+	if strings.ToLower(osType) == "windows" {
+		return processWindowsRestartServiceResponse(resp)
+	}
+
+	// Default Linux behavior
+	return resp
+}
+
+// Windows-specific restart service request processing (placeholder for future differences)
+func processWindowsRestartServiceRequest(req restartServiceRequest) map[string]string {
+	// For now, return same format as Linux
+	// Future: Windows might have different service names or commands
+	return map[string]string{
+		"service": strings.TrimSpace(req.Service),
+	}
+}
+
+// Windows-specific restart service response processing (placeholder for future differences)
+func processWindowsRestartServiceResponse(resp interface{}) interface{} {
+	// For now, return same format as Linux
+	// Future: Windows might have different response structure
+	return resp
 }

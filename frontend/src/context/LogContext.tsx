@@ -1,8 +1,14 @@
 // context/LogContext.tsx
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AuthService from '../auth/auth';
-import { useAppContext } from './AppContext';
-import { useNotification } from './NotificationContext';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import AuthService from "../auth/auth";
+import { useAppContext } from "./AppContext";
+import { useNotification } from "./NotificationContext";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -37,7 +43,7 @@ interface LogContextType {
     totalLogs: number;
   };
   getUniqueApplications: () => string[];
-  exportLogs: (format: 'csv' | 'json' | 'txt') => void;
+  exportLogs: (format: "csv" | "json" | "txt") => void;
   clearFilters: () => void;
 }
 
@@ -46,7 +52,7 @@ const LogContext = createContext<LogContextType | undefined>(undefined);
 export const useLogContext = () => {
   const context = useContext(LogContext);
   if (context === undefined) {
-    throw new Error('useLogContext must be used within a LogProvider');
+    throw new Error("useLogContext must be used within a LogProvider");
   }
   return context;
 };
@@ -61,14 +67,14 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [filters, setFilters] = useState<LogFilters>({
-    search: '',
-    level: '',
-    application: '',
-    date: '',
-    time: '',
-    lines: 100
+    search: "",
+    level: "",
+    application: "",
+    date: "",
+    time: "",
+    lines: 100,
   });
-  
+
   const { activeDevice } = useAppContext();
   const { addNotification } = useNotification();
 
@@ -76,10 +82,10 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
   const fetchLogs = async (customFilters?: Partial<LogFilters>) => {
     if (!activeDevice) {
       addNotification({
-        title: 'Log Fetch Error',
-        message: 'No active device selected',
-        type: 'error',
-        duration: 5000
+        title: "Log Fetch Error",
+        message: "No active device selected",
+        type: "error",
+        duration: 5000,
       });
       return;
     }
@@ -89,10 +95,10 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
 
     try {
       const currentFilters = { ...filters, ...customFilters };
-      
+
       // ✅ Prepare request body with validated formats
       const requestBody: any = {
-        host: activeDevice.ip
+        host: activeDevice.ip,
       };
 
       // ✅ Add lines filter
@@ -105,69 +111,80 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
         const dateValue = currentFilters.date.trim();
         if (/^\d{4}-\d{2}-\d{2}$/.test(dateValue)) {
           requestBody.date = dateValue;
-          console.log('🔍 [LOG] Date filter applied:', dateValue);
+          console.log("🔍 [LOG] Date filter applied:", dateValue);
         } else {
-          console.warn('⚠️ [LOG] Invalid date format, skipping:', dateValue);
+          console.warn("⚠️ [LOG] Invalid date format, skipping:", dateValue);
         }
       }
 
       // ✅ Validate and format time (HH:MM:SS)
       if (currentFilters.time) {
         let timeValue = currentFilters.time.trim();
-        
+
         // Convert HH:MM to HH:MM:SS if needed
         if (/^\d{2}:\d{2}$/.test(timeValue)) {
-          timeValue += ':00';
+          timeValue += ":00";
         }
-        
+
         if (/^\d{2}:\d{2}:\d{2}$/.test(timeValue)) {
           requestBody.time = timeValue;
-          console.log('🔍 [LOG] Time filter applied:', timeValue);
+          console.log("🔍 [LOG] Time filter applied:", timeValue);
         } else {
-          console.warn('⚠️ [LOG] Invalid time format, skipping:', timeValue);
+          console.warn("⚠️ [LOG] Invalid time format, skipping:", timeValue);
         }
       }
 
-      console.log('🔍 [LOG] Sending request to backend:', requestBody);
+      console.log("🔍 [LOG] Sending request to backend:", requestBody);
 
-      const response = await AuthService.makeAuthenticatedRequest(`${BACKEND_URL}/api/server/log`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await AuthService.makeAuthenticatedRequest(
+        `${BACKEND_URL}/api/server/log`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
         },
-        body: JSON.stringify(requestBody)
-      });
+      );
 
       if (response.ok) {
         const data: LogEntry[] = await response.json();
-        console.log('✅ [LOG] Received logs from backend:', data.length, 'entries');
-        
+        console.log(
+          "✅ [LOG] Received logs from backend:",
+          data.length,
+          "entries",
+        );
+
         setOriginalLogs(data);
         applyClientSideFilters(data, currentFilters);
-        
+
         if (data.length === 0) {
           addNotification({
-            title: 'No Logs Found',
-            message: 'No logs found for the selected date/time. Try a different date.',
-            type: 'info',
-            duration: 3000
+            title: "No Logs Found",
+            message:
+              "No logs found for the selected date/time. Try a different date.",
+            type: "info",
+            duration: 3000,
           });
         }
       } else {
         const errorText = await response.text();
-        throw new Error(`Failed to fetch logs: ${response.status} - ${errorText}`);
+        throw new Error(
+          `Failed to fetch logs: ${response.status} - ${errorText}`,
+        );
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to fetch logs';
-      console.error('❌ [LOG] Error fetching logs:', err);
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to fetch logs";
+      console.error("❌ [LOG] Error fetching logs:", err);
       setError(errorMessage);
       setLogs([]);
       setOriginalLogs([]);
       addNotification({
-        title: 'Log Fetch Error',
+        title: "Log Fetch Error",
         message: errorMessage,
-        type: 'error',
-        duration: 5000
+        type: "error",
+        duration: 5000,
       });
     } finally {
       setLoading(false);
@@ -175,45 +192,57 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
   };
 
   // ✅ Enhanced client-side filtering
-  const applyClientSideFilters = (data: LogEntry[], currentFilters: LogFilters) => {
+  const applyClientSideFilters = (
+    data: LogEntry[],
+    currentFilters: LogFilters,
+  ) => {
     let filteredData = [...data];
 
-    console.log('🔍 [LOG] Applying client-side filters:', {
+    console.log("🔍 [LOG] Applying client-side filters:", {
       search: currentFilters.search,
       level: currentFilters.level,
       application: currentFilters.application,
-      totalEntries: data.length
+      totalEntries: data.length,
     });
 
     // Apply search filter (case-insensitive)
     if (currentFilters.search && currentFilters.search.trim()) {
       const searchTerm = currentFilters.search.toLowerCase().trim();
-      filteredData = filteredData.filter(log => 
-        log.message.toLowerCase().includes(searchTerm) ||
-        log.application.toLowerCase().includes(searchTerm) ||
-        log.level.toLowerCase().includes(searchTerm)
+      filteredData = filteredData.filter(
+        (log) =>
+          log.message.toLowerCase().includes(searchTerm) ||
+          log.application.toLowerCase().includes(searchTerm) ||
+          log.level.toLowerCase().includes(searchTerm),
       );
-      console.log(`🔍 [LOG] Search filter applied: ${filteredData.length} entries match "${searchTerm}"`);
+      console.log(
+        `🔍 [LOG] Search filter applied: ${filteredData.length} entries match "${searchTerm}"`,
+      );
     }
 
     // Apply level filter
     if (currentFilters.level) {
       const levelFilter = currentFilters.level.toLowerCase();
-      filteredData = filteredData.filter(log => 
-        log.level.toLowerCase() === levelFilter
+      filteredData = filteredData.filter(
+        (log) => log.level.toLowerCase() === levelFilter,
       );
-      console.log(`🔍 [LOG] Level filter applied: ${filteredData.length} entries match level "${levelFilter}"`);
+      console.log(
+        `🔍 [LOG] Level filter applied: ${filteredData.length} entries match level "${levelFilter}"`,
+      );
     }
 
     // Apply application filter
     if (currentFilters.application) {
-      filteredData = filteredData.filter(log => 
-        log.application === currentFilters.application
+      filteredData = filteredData.filter(
+        (log) => log.application === currentFilters.application,
       );
-      console.log(`🔍 [LOG] Application filter applied: ${filteredData.length} entries match "${currentFilters.application}"`);
+      console.log(
+        `🔍 [LOG] Application filter applied: ${filteredData.length} entries match "${currentFilters.application}"`,
+      );
     }
 
-    console.log(`✅ [LOG] Final filtered results: ${filteredData.length} of ${data.length} entries`);
+    console.log(
+      `✅ [LOG] Final filtered results: ${filteredData.length} of ${data.length} entries`,
+    );
     setLogs(filteredData);
   };
 
@@ -221,29 +250,31 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
   const updateFilters = (newFilters: Partial<LogFilters>) => {
     const updatedFilters = { ...filters, ...newFilters };
     setFilters(updatedFilters);
-    
-    console.log('🔄 [LOG] Filters updated:', newFilters);
-    
+
+    console.log("🔄 [LOG] Filters updated:", newFilters);
+
     // ✅ Define which filters require server refetch
-    const serverSideFilters = ['date', 'time', 'lines'];
-    const shouldRefetch = Object.keys(newFilters).some(key => {
+    const serverSideFilters = ["date", "time", "lines"];
+    const shouldRefetch = Object.keys(newFilters).some((key) => {
       if (!serverSideFilters.includes(key)) return false;
-      
+
       const newValue = newFilters[key as keyof LogFilters];
       const oldValue = filters[key as keyof LogFilters];
-      
+
       // Handle empty string vs undefined/null comparison
-      const normalizedNew = newValue === '' ? undefined : newValue;
-      const normalizedOld = oldValue === '' ? undefined : oldValue;
-      
+      const normalizedNew = newValue === "" ? undefined : newValue;
+      const normalizedOld = oldValue === "" ? undefined : oldValue;
+
       return normalizedNew !== normalizedOld;
     });
-    
+
     if (shouldRefetch) {
-      console.log('🔄 [LOG] Server-side filter changed, refetching logs...');
+      console.log("🔄 [LOG] Server-side filter changed, refetching logs...");
       fetchLogs(updatedFilters);
     } else {
-      console.log('🔄 [LOG] Client-side filter changed, applying local filters...');
+      console.log(
+        "🔄 [LOG] Client-side filter changed, applying local filters...",
+      );
       // Apply client-side filters only
       applyClientSideFilters(originalLogs, updatedFilters);
     }
@@ -251,20 +282,26 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
 
   // ✅ Enhanced log statistics
   const getLogStats = () => {
-    const today = new Date().toISOString().split('T')[0];
-    const todayLogs = originalLogs.filter(log => {
+    const today = new Date().toISOString().split("T")[0];
+    const todayLogs = originalLogs.filter((log) => {
       try {
-        const logDate = new Date(log.timestamp).toISOString().split('T')[0];
+        const logDate = new Date(log.timestamp).toISOString().split("T")[0];
         return logDate === today;
       } catch {
         return false;
       }
     });
-    
+
     // Calculate stats from filtered logs (what user sees)
-    const errorCount = logs.filter(log => log.level.toLowerCase() === 'error').length;
-    const warningCount = logs.filter(log => log.level.toLowerCase() === 'warning').length;
-    const infoCount = logs.filter(log => log.level.toLowerCase() === 'info').length;
+    const errorCount = logs.filter(
+      (log) => log.level.toLowerCase() === "error",
+    ).length;
+    const warningCount = logs.filter(
+      (log) => log.level.toLowerCase() === "warning",
+    ).length;
+    const infoCount = logs.filter(
+      (log) => log.level.toLowerCase() === "info",
+    ).length;
     const totalToday = todayLogs.length;
 
     return {
@@ -272,77 +309,79 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
       warningCount,
       infoCount,
       totalToday,
-      totalLogs: logs.length // Show filtered count
+      totalLogs: logs.length, // Show filtered count
     };
   };
 
   // ✅ Enhanced unique applications from original logs
   const getUniqueApplications = () => {
-    const apps = [...new Set(originalLogs.map(log => log.application))];
+    const apps = [...new Set(originalLogs.map((log) => log.application))];
     return apps
-      .filter(app => app && app !== 'unknown' && app.trim() !== '')
+      .filter((app) => app && app !== "unknown" && app.trim() !== "")
       .sort((a, b) => a.localeCompare(b));
   };
 
   // ✅ Enhanced export with better metadata
-  const exportLogs = (format: 'csv' | 'json' | 'txt') => {
+  const exportLogs = (format: "csv" | "json" | "txt") => {
     try {
       const dataToExport = logs; // Export filtered logs
-      
+
       if (dataToExport.length === 0) {
         addNotification({
-          title: 'Export Failed',
-          message: 'No logs to export',
-          type: 'warning',
-          duration: 3000
+          title: "Export Failed",
+          message: "No logs to export",
+          type: "warning",
+          duration: 3000,
         });
         return;
       }
-      
+
       switch (format) {
-        case 'csv':
+        case "csv":
           exportAsCSV(dataToExport);
           break;
-        case 'json':
+        case "json":
           exportAsJSON(dataToExport);
           break;
-        case 'txt':
+        case "txt":
           exportAsTXT(dataToExport);
           break;
       }
-      
+
       addNotification({
-        title: 'Export Successful',
+        title: "Export Successful",
         message: `${dataToExport.length} logs exported as ${format.toUpperCase()}`,
-        type: 'success',
-        duration: 3000
+        type: "success",
+        duration: 3000,
       });
     } catch (err) {
-      console.error('❌ [LOG] Export failed:', err);
+      console.error("❌ [LOG] Export failed:", err);
       addNotification({
-        title: 'Export Failed',
+        title: "Export Failed",
         message: `Failed to export logs as ${format.toUpperCase()}`,
-        type: 'error',
-        duration: 5000
+        type: "error",
+        duration: 5000,
       });
     }
   };
 
   const exportAsCSV = (data: LogEntry[]) => {
-    const headers = ['Timestamp', 'Level', 'Application', 'Message'];
+    const headers = ["Timestamp", "Level", "Application", "Message"];
     const csvContent = [
-      headers.join(','),
-      ...data.map(log => [
-        `"${log.timestamp}"`,
-        `"${log.level}"`,
-        `"${log.application}"`,
-        `"${log.message.replace(/"/g, '""')}"`
-      ].join(','))
-    ].join('\n');
+      headers.join(","),
+      ...data.map((log) =>
+        [
+          `"${log.timestamp}"`,
+          `"${log.level}"`,
+          `"${log.application}"`,
+          `"${log.message.replace(/"/g, '""')}"`,
+        ].join(","),
+      ),
+    ].join("\n");
 
-    const timestamp = new Date().toISOString().split('T')[0];
+    const timestamp = new Date().toISOString().split("T")[0];
     const filename = `logs_${activeDevice?.ip}_${timestamp}.csv`;
-    downloadFile(csvContent, filename, 'text/csv');
+    downloadFile(csvContent, filename, "text/csv");
   };
 
   const exportAsJSON = (data: LogEntry[]) => {
@@ -353,15 +392,15 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
         exportDate: new Date().toISOString(),
         totalEntries: data.length,
         originalEntries: originalLogs.length,
-        filtersApplied: filters
+        filtersApplied: filters,
       },
-      logs: data
+      logs: data,
     };
     const jsonContent = JSON.stringify(exportData, null, 2);
-    
-    const timestamp = new Date().toISOString().split('T')[0];
+
+    const timestamp = new Date().toISOString().split("T")[0];
     const filename = `logs_${activeDevice?.ip}_${timestamp}.json`;
-    downloadFile(jsonContent, filename, 'application/json');
+    downloadFile(jsonContent, filename, "application/json");
   };
 
   const exportAsTXT = (data: LogEntry[]) => {
@@ -373,23 +412,32 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
       `Total Entries: ${data.length}`,
       `Original Entries: ${originalLogs.length}`,
       `Filters Applied: ${JSON.stringify(filters)}`,
-      '='.repeat(80),
-      ''
-    ].join('\n');
-    
-    const textContent = header + data.map(log => 
-      `${log.timestamp} [${log.level.toUpperCase().padEnd(7)}] ${log.application.padEnd(15)}: ${log.message}`
-    ).join('\n');
-    
-    const fileTimestamp = new Date().toISOString().split('T')[0];
+      "=".repeat(80),
+      "",
+    ].join("\n");
+
+    const textContent =
+      header +
+      data
+        .map(
+          (log) =>
+            `${log.timestamp} [${log.level.toUpperCase().padEnd(7)}] ${log.application.padEnd(15)}: ${log.message}`,
+        )
+        .join("\n");
+
+    const fileTimestamp = new Date().toISOString().split("T")[0];
     const filename = `logs_${activeDevice?.ip}_${fileTimestamp}.txt`;
-    downloadFile(textContent, filename, 'text/plain');
+    downloadFile(textContent, filename, "text/plain");
   };
 
-  const downloadFile = (content: string, filename: string, mimeType: string) => {
+  const downloadFile = (
+    content: string,
+    filename: string,
+    mimeType: string,
+  ) => {
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+    const link = document.createElement("a");
     link.href = url;
     link.download = filename;
     document.body.appendChild(link);
@@ -400,20 +448,20 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
 
   // ✅ Enhanced clearFilters
   const clearFilters = () => {
-    console.log('🧹 [LOG] Clearing all filters');
+    console.log("🧹 [LOG] Clearing all filters");
     const defaultFilters = {
-      search: '',
-      level: '',
-      application: '',
-      date: '',
-      time: '',
-      lines: 100
+      search: "",
+      level: "",
+      application: "",
+      date: "",
+      time: "",
+      lines: 100,
     };
     setFilters(defaultFilters);
-    
+
     // Apply filters to current data first for immediate UI update
     applyClientSideFilters(originalLogs, defaultFilters);
-    
+
     // Then fetch fresh data
     fetchLogs(defaultFilters);
   };
@@ -421,10 +469,13 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
   // ✅ Auto-fetch logs on mount and device change
   useEffect(() => {
     if (activeDevice) {
-      console.log('🔄 [LOG] Active device changed, fetching logs for:', activeDevice.tag);
+      console.log(
+        "🔄 [LOG] Active device changed, fetching logs for:",
+        activeDevice.tag,
+      );
       fetchLogs();
     } else {
-      console.log('⚠️ [LOG] No active device, clearing logs');
+      console.log("⚠️ [LOG] No active device, clearing logs");
       setLogs([]);
       setOriginalLogs([]);
       setError(null);
@@ -433,8 +484,13 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
 
   // ✅ Debug logging for filter changes
   useEffect(() => {
-    console.log('🔍 [LOG] Current filters:', filters);
-    console.log('📊 [LOG] Current logs count:', logs.length, 'of', originalLogs.length);
+    console.log("🔍 [LOG] Current filters:", filters);
+    console.log(
+      "📊 [LOG] Current logs count:",
+      logs.length,
+      "of",
+      originalLogs.length,
+    );
   }, [filters, logs.length, originalLogs.length]);
 
   const value: LogContextType = {
@@ -447,12 +503,8 @@ export const LogProvider: React.FC<LogProviderProps> = ({ children }) => {
     getLogStats,
     getUniqueApplications,
     exportLogs,
-    clearFilters
+    clearFilters,
   };
 
-  return (
-    <LogContext.Provider value={value}>
-      {children}
-    </LogContext.Provider>
-  );
+  return <LogContext.Provider value={value}>{children}</LogContext.Provider>;
 };

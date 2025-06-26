@@ -52,8 +52,131 @@ type HealthStats struct {
 	OpenPorts []OpenPort `json:"open_ports"`
 }
 
-// getActiveInterface returns the primary non-loopback, non-virtual, UP interface
+// Standard response structures
+type ErrorResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
 
+func HandleHealthConfig(w http.ResponseWriter, r *http.Request) {
+	// Check for GET method
+	if r.Method != http.MethodGet {
+		sendError(w, "Only GET method allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Set content type
+	w.Header().Set("Content-Type", "application/json")
+
+	// CPU
+	cpuPercent, err := cpu.Percent(time.Second, false)
+	if err != nil {
+		sendError(w, "Failed to get CPU stats: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// RAM
+	vmStat, err := mem.VirtualMemory()
+	if err != nil {
+		sendError(w, "Failed to get RAM stats: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Disk
+	diskStat, err := disk.Usage("/")
+	if err != nil {
+		sendError(w, "Failed to get disk stats: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Network
+	activeIface, _ := getActiveInterface()
+	var netStat *NetStats
+	if activeIface != "" {
+		netIOs, err := psnet.IOCounters(true)
+		if err == nil {
+			for _, iface := range netIOs {
+				if iface.Name == activeIface {
+					netStat = &NetStats{
+						Name:      iface.Name,
+						BytesSent: bytesToMB(iface.BytesSent),
+						BytesRecv: bytesToMB(iface.BytesRecv),
+					}
+					break
+				}
+			}
+		}
+	}
+
+	// Open ports (LISTEN)
+	conns, err := psnet.Connections("inet")
+	openPorts := []OpenPort{}
+	if err == nil {
+		for _, conn := range conns {
+			if conn.Status == "LISTEN" && conn.Laddr.Port != 0 {
+				protocol := "tcp"
+				if conn.Type == 2 {
+					protocol = "udp"
+				}
+				processName := ""
+				if conn.Pid > 0 {
+					processName = getProcessName(conn.Pid)
+				}
+				openPorts = append(openPorts, OpenPort{
+					Protocol: protocol,
+					Port:     conn.Laddr.Port,
+					Process:  processName,
+				})
+			}
+		}
+	}
+
+	// Compose result
+	stats := HealthStats{
+		CPU: CPUStats{
+			UsagePercent: 0,
+		},
+		RAM: RAMStats{
+			Total:        bytesToMB(vmStat.Total),
+			Used:         bytesToMB(vmStat.Used),
+			Free:         bytesToMB(vmStat.Free),
+			UsagePercent: vmStat.UsedPercent,
+		},
+		Disk: DiskStats{
+			Total:        bytesToMB(diskStat.Total),
+			Used:         bytesToMB(diskStat.Used),
+			Free:         bytesToMB(diskStat.Free),
+			UsagePercent: diskStat.UsedPercent,
+		},
+		Net:       netStat,
+		OpenPorts: openPorts,
+	}
+
+	if len(cpuPercent) > 0 {
+		stats.CPU.UsagePercent = cpuPercent[0]
+	}
+
+	// Send successful GET response with data
+	sendGetSuccess(w, stats)
+}
+
+// sendGetSuccess sends successful GET response with data
+func sendGetSuccess(w http.ResponseWriter, data interface{}) {
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(data)
+}
+
+// sendError sends standardized error response
+func sendError(w http.ResponseWriter, message string, statusCode int) {
+	w.WriteHeader(statusCode)
+	errorResp := ErrorResponse{
+		Status:  "failed",
+		Message: message,
+	}
+	json.NewEncoder(w).Encode(errorResp)
+}
+
+// getActiveInterface returns the primary non-loopback, non-virtual, UP interface
 func getActiveInterface() (string, error) {
 	ifaces, err := net.Interfaces()
 	if err != nil {
@@ -113,94 +236,4 @@ func getProcessName(pid int32) string {
 		return ""
 	}
 	return name
-}
-
-func HandleHealthConfig(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
-	// CPU
-	cpuPercent, _ := cpu.Percent(time.Second, false)
-
-	// RAM
-	vmStat, _ := mem.VirtualMemory()
-
-	// Disk
-	diskStat, _ := disk.Usage("/")
-
-	// Network
-	activeIface, _ := getActiveInterface()
-	var netStat *NetStats
-	if activeIface != "" {
-		netIOs, _ := psnet.IOCounters(true)
-		for _, iface := range netIOs {
-			if iface.Name == activeIface {
-				netStat = &NetStats{
-					Name:      iface.Name,
-					BytesSent: bytesToMB(iface.BytesSent),
-					BytesRecv: bytesToMB(iface.BytesRecv),
-				}
-				break
-			}
-		}
-	}
-
-	// Open ports (LISTEN)
-	conns, _ := psnet.Connections("inet")
-	openPorts := []OpenPort{}
-	for _, conn := range conns {
-		if conn.Status == "LISTEN" && conn.Laddr.Port != 0 {
-			protocol := "tcp"
-			if conn.Type == 2 {
-				protocol = "udp"
-			}
-			processName := ""
-			if conn.Pid > 0 {
-				processName = getProcessName(conn.Pid)
-			}
-			openPorts = append(openPorts, OpenPort{
-				Protocol: protocol,
-				Port:     conn.Laddr.Port,
-				Process:  processName,
-			})
-		}
-	}
-
-	// Compose result
-	stats := HealthStats{
-		CPU: CPUStats{
-			UsagePercent: 0,
-		},
-		RAM: RAMStats{
-			Total:        0,
-			Used:         0,
-			Free:         0,
-			UsagePercent: 0,
-		},
-		Disk: DiskStats{
-			Total:        0,
-			Used:         0,
-			Free:         0,
-			UsagePercent: 0,
-		},
-		Net:       netStat,
-		OpenPorts: openPorts,
-	}
-
-	if len(cpuPercent) > 0 {
-		stats.CPU.UsagePercent = cpuPercent[0]
-	}
-	if vmStat != nil {
-		stats.RAM.Total = bytesToMB(vmStat.Total)
-		stats.RAM.Used = bytesToMB(vmStat.Used)
-		stats.RAM.Free = bytesToMB(vmStat.Free)
-		stats.RAM.UsagePercent = vmStat.UsedPercent
-	}
-	if diskStat != nil {
-		stats.Disk.Total = bytesToMB(diskStat.Total)
-		stats.Disk.Used = bytesToMB(diskStat.Used)
-		stats.Disk.Free = bytesToMB(diskStat.Free)
-		stats.Disk.UsagePercent = diskStat.UsedPercent
-	}
-
-	json.NewEncoder(w).Encode(stats)
 }

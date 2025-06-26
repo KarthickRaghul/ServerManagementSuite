@@ -12,43 +12,38 @@ type MarkSeenRequest struct {
 	AlertIDs []int32 `json:"alert_ids"`
 }
 
-type AlertActionResponse struct {
-	Status  string `json:"status"`
-	Message string `json:"message"`
-	Count   int    `json:"count"`
-}
-
 // HandleMarkAlertsAsSeen - Mark alerts as seen
 func HandleMarkAlertsAsSeen(queries *serverdb.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Only allow POST
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
 		// Check user authorization
 		_, ok := config.GetUserFromContext(r)
 		if !ok {
-			http.Error(w, "User context not found", http.StatusInternalServerError)
+			sendError(w, "User context not found", http.StatusInternalServerError)
 			return
 		}
 
 		// Parse JSON request body
 		var req MarkSeenRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			sendError(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		if len(req.AlertIDs) == 0 {
-			http.Error(w, "No alert IDs provided", http.StatusBadRequest)
+			sendError(w, "No alert IDs provided", http.StatusBadRequest)
 			return
 		}
 
 		// Mark alerts as seen
 		err := queries.MarkMultipleAlertsAsSeen(r.Context(), req.AlertIDs)
 		if err != nil {
-			http.Error(w, "Failed to mark alerts as seen", http.StatusInternalServerError)
+			sendError(w, "Failed to mark alerts as seen: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -58,7 +53,7 @@ func HandleMarkAlertsAsSeen(queries *serverdb.Queries) http.HandlerFunc {
 			Count:   len(req.AlertIDs),
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		// Send successful response
+		sendGetSuccess(w, response)
 	}
 }

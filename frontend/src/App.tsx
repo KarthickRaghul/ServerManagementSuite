@@ -7,7 +7,6 @@ import Login from "./pages/login/Login";
 import Config from "./pages/config/config";
 import Health from "./pages/health/health";
 import Logs from "./pages/log/log";
-import Backup from "./pages/backup/backup";
 import Alert from "./pages/alert/alert";
 import Resource from "./pages/resource/resource";
 import Settings from "./pages/settings/SettingsPage";
@@ -29,101 +28,89 @@ export default function App() {
             <Routes>
               {/* Public route - Login page */}
               <Route path="/login" element={<Login />} />
-              
+
               {/* Admin only routes */}
-              <Route 
-                path="/" 
+              <Route
+                path="/"
                 element={
                   <ProtectedRoute>
-                    <RoleProtectedRoute allowedRoles={['admin']}>
+                    <RoleProtectedRoute allowedRoles={["admin"]}>
                       <Config />
                     </RoleProtectedRoute>
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/backup" 
+              <Route
+                path="/resource"
                 element={
                   <ProtectedRoute>
-                    <RoleProtectedRoute allowedRoles={['admin']}>
-                      <ConnectionProtectedRoute>
-                        <Backup />
-                      </ConnectionProtectedRoute>
-                    </RoleProtectedRoute>
-                  </ProtectedRoute>
-                } 
-              />
-              <Route 
-                path="/resource" 
-                element={
-                  <ProtectedRoute>
-                    <RoleProtectedRoute allowedRoles={['admin']}>
+                    <RoleProtectedRoute allowedRoles={["admin"]}>
                       <ConnectionProtectedRoute>
                         <Resource />
                       </ConnectionProtectedRoute>
                     </RoleProtectedRoute>
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/settings" 
+              <Route
+                path="/settings"
                 element={
                   <ProtectedRoute>
-                    <RoleProtectedRoute allowedRoles={['admin']}>
+                    <RoleProtectedRoute allowedRoles={["admin"]}>
                       <ConnectionProtectedRoute>
                         <Settings />
                       </ConnectionProtectedRoute>
                     </RoleProtectedRoute>
                   </ProtectedRoute>
-                } 
+                }
               />
-              
+
               {/* Routes accessible by both admin and viewer */}
-              <Route 
-                path="/health" 
+              <Route
+                path="/health"
                 element={
                   <ProtectedRoute>
-                    <RoleProtectedRoute allowedRoles={['admin', 'viewer']}>
+                    <RoleProtectedRoute allowedRoles={["admin", "viewer"]}>
                       <ConnectionProtectedRoute>
                         <Health />
                       </ConnectionProtectedRoute>
                     </RoleProtectedRoute>
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/log" 
+              <Route
+                path="/log"
                 element={
                   <ProtectedRoute>
-                    <RoleProtectedRoute allowedRoles={['admin', 'viewer']}>
+                    <RoleProtectedRoute allowedRoles={["admin", "viewer"]}>
                       <ConnectionProtectedRoute>
                         <Logs />
                       </ConnectionProtectedRoute>
                     </RoleProtectedRoute>
                   </ProtectedRoute>
-                } 
+                }
               />
-              <Route 
-                path="/alert" 
+              <Route
+                path="/alert"
                 element={
                   <ProtectedRoute>
-                    <RoleProtectedRoute allowedRoles={['admin', 'viewer']}>
+                    <RoleProtectedRoute allowedRoles={["admin", "viewer"]}>
                       <ConnectionProtectedRoute>
                         <Alert />
                       </ConnectionProtectedRoute>
                     </RoleProtectedRoute>
                   </ProtectedRoute>
-                } 
+                }
               />
-              
+
               {/* 404 page */}
-              <Route 
-                path="*" 
+              <Route
+                path="*"
                 element={
                   <ProtectedRoute>
                     <NotFound />
                   </ProtectedRoute>
-                } 
+                }
               />
             </Routes>
             <NotificationContainer />

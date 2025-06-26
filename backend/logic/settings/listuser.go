@@ -11,26 +11,26 @@ func HandleListUsers(queries *generaldb.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Check if it's a GET request
 		if r.Method != http.MethodGet {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			sendError(w, "Only GET method allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
 		// Check admin authorization
 		user, ok := config.GetUserFromContext(r)
 		if !ok {
-			http.Error(w, "User context not found", http.StatusInternalServerError)
+			sendError(w, "User context not found", http.StatusInternalServerError)
 			return
 		}
 
 		if user.Role != "admin" {
-			http.Error(w, "Admin access required", http.StatusForbidden)
+			sendError(w, "Admin access required", http.StatusForbidden)
 			return
 		}
 
 		// Get all users from database
 		users, err := queries.ListUsers(r.Context())
 		if err != nil {
-			http.Error(w, "Failed to fetch users", http.StatusInternalServerError)
+			sendError(w, "Failed to fetch users: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -51,7 +51,14 @@ func HandleListUsers(queries *generaldb.Queries) http.HandlerFunc {
 			"count":  len(userList),
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		// Send successful response
+		sendGetSuccess(w, response)
 	}
+}
+
+// sendGetSuccess sends successful GET response with data
+func sendGetSuccess(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(data)
 }

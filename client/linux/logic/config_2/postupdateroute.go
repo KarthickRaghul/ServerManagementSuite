@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
-	"time"
 )
 
 // ChangeRouteRequest represents the request format for changing the route table
@@ -93,7 +92,7 @@ func isPrivateIP(ip net.IP) bool {
 func HandleUpdateRoute(w http.ResponseWriter, r *http.Request) {
 	// Check for POST method
 	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -101,32 +100,32 @@ func HandleUpdateRoute(w http.ResponseWriter, r *http.Request) {
 
 	var req ChangeRouteRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		sendErrorResponse(w, "Failed to parse request body", err)
+		sendError(w, "Failed to parse request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Validate action
 	if req.Action != "add" && req.Action != "delete" {
-		sendErrorResponse(w, "Action must be 'add' or 'delete'", fmt.Errorf("invalid action: %s", req.Action))
+		sendError(w, fmt.Sprintf("Action must be 'add' or 'delete', got '%s'", req.Action), http.StatusBadRequest)
 		return
 	}
 
 	// Validate required fields
 	if req.Destination == "" || req.Gateway == "" {
-		sendErrorResponse(w, "Destination and gateway are required", fmt.Errorf("missing fields"))
+		sendError(w, "Destination and gateway are required", http.StatusBadRequest)
 		return
 	}
 
-	// ✅ Validate and fix network address
+	// Validate and fix network address
 	correctedDestination, err := validateAndFixNetwork(req.Destination)
 	if err != nil {
-		sendErrorResponse(w, "Invalid destination network", err)
+		sendError(w, "Invalid destination network: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Validate gateway IP
 	if net.ParseIP(req.Gateway) == nil {
-		sendErrorResponse(w, "Invalid gateway IP address", fmt.Errorf("gateway %s is not a valid IP", req.Gateway))
+		sendError(w, fmt.Sprintf("Invalid gateway IP address: %s", req.Gateway), http.StatusBadRequest)
 		return
 	}
 
@@ -149,18 +148,13 @@ func HandleUpdateRoute(w http.ResponseWriter, r *http.Request) {
 	cmd := exec.Command("ip", cmdArgs...)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		sendErrorResponse(w, "Failed to change route", fmt.Errorf("%v, output: %s", err, string(output)))
+		sendError(w, fmt.Sprintf("Failed to %s route: %v, output: %s", req.Action, err, string(output)), http.StatusInternalServerError)
 		return
 	}
 
-	// Success response
-	response := RouteResponse{
-		Status:    "success",
-		Operation: fmt.Sprintf("route %s", req.Action),
-		Details:   fmt.Sprintf("Destination: %s, Gateway: %s, Interface: %s, Metric: %s", correctedDestination, req.Gateway, req.Interface, req.Metric),
-		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
-		User:      "system",
-	}
+	// Log the action
+	fmt.Printf("Route %s successful: Destination: %s, Gateway: %s\n", req.Action, correctedDestination, req.Gateway)
 
-	json.NewEncoder(w).Encode(response)
+	// Send success response
+	sendPostSuccess(w)
 }

@@ -1,335 +1,322 @@
 /* components/server/alert/AlertDetailModal.css */
 .monitoring-alerts-detail-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    backdrop-filter: blur(4px);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  backdrop-filter: blur(4px);
+  animation: monitoring-alerts-detail-fade-in 0.3s ease-out;
+}
+
+.monitoring-alerts-detail-modal {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+  border: 1px solid #ef4444;
+  animation: monitoring-alerts-detail-slide-in 0.3s ease-out;
+}
+
+.monitoring-alerts-detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 24px 0 24px;
+  border-bottom: 1px solid #475569;
+  margin-bottom: 24px;
+}
+
+.monitoring-alerts-detail-title-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.monitoring-alerts-detail-icon {
+  color: #ef4444;
+  font-size: 20px;
+  animation: monitoring-alerts-pulse-red 2s ease-in-out infinite;
+}
+
+.monitoring-alerts-detail-title {
+  margin: 0;
+  color: #e2e8f0;
+  font-size: 20px;
+  font-weight: 700;
+  font-family: "Inter", sans-serif;
+}
+
+.monitoring-alerts-detail-close {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.monitoring-alerts-detail-close:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.monitoring-alerts-detail-content {
+  padding: 0 24px 24px 24px;
+}
+
+.monitoring-alerts-detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.monitoring-alerts-detail-field {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: rgba(15, 23, 42, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.monitoring-alerts-detail-label {
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+  min-width: 80px;
+}
+
+.monitoring-alerts-detail-value {
+  color: #e2e8f0;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+  text-align: right;
+}
+
+.monitoring-alerts-detail-severity-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-family: "Inter", sans-serif;
+  display: inline-block;
+  min-width: 60px;
+  text-align: center;
+}
+
+.monitoring-alerts-detail-severity-critical {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.monitoring-alerts-detail-severity-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.monitoring-alerts-detail-severity-info {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.monitoring-alerts-detail-status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-family: "Inter", sans-serif;
+  display: inline-block;
+  min-width: 60px;
+  text-align: center;
+}
+
+.monitoring-alerts-detail-status-badge.seen {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.monitoring-alerts-detail-status-badge.unseen {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.monitoring-alerts-detail-message {
+  margin-bottom: 24px;
+}
+
+.monitoring-alerts-detail-message-content {
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  padding: 16px;
+  color: #e2e8f0;
+  font-size: 14px;
+  line-height: 1.6;
+  font-family: "Inter", sans-serif;
+  margin-top: 8px;
+  word-wrap: break-word;
+}
+
+.monitoring-alerts-detail-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 16px;
+  border-top: 1px solid #475569;
+}
+
+.monitoring-alerts-detail-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-family: "Inter", sans-serif;
+  min-width: 120px;
+  justify-content: center;
+}
+
+.monitoring-alerts-detail-btn-acknowledge {
+  background: linear-gradient(135deg, #3b82f6, #60a5fa);
+  color: white;
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+}
+
+.monitoring-alerts-detail-btn-acknowledge:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2563eb, #3b82f6);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+}
+
+.monitoring-alerts-detail-btn-resolve {
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white;
+  box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+}
+
+.monitoring-alerts-detail-btn-resolve:hover:not(:disabled) {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+}
+
+.monitoring-alerts-detail-btn-cancel {
+  background: rgba(75, 85, 99, 0.8);
+  color: #d1d5db;
+  border: 1px solid #4b5563;
+}
+
+.monitoring-alerts-detail-btn-cancel:hover {
+  background: rgba(107, 114, 128, 0.9);
+  border-color: #6b7280;
+  transform: translateY(-1px);
+}
+
+.monitoring-alerts-detail-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.monitoring-alerts-detail-btn-icon {
+  font-size: 12px;
+}
+
+/* Animations */
+@keyframes monitoring-alerts-detail-fade-in {
+  from {
+    opacity: 0;
   }
-  
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes monitoring-alerts-detail-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
   .monitoring-alerts-detail-modal {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    border-radius: 16px;
-    width: 90%;
-    max-width: 600px;
-    height: 65vh;
-    overflow-y: auto;
-    box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
-    border: 1px solid #475569;
-    animation: monitoring-alerts-detail-slide-in 0.3s ease-out;
+    width: 95%;
+    margin: 20px;
+    max-height: 90vh;
   }
-  
-  @keyframes monitoring-alerts-detail-slide-in {
-    from {
-      opacity: 0;
-      transform: translateY(-20px) scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-  
-  .monitoring-alerts-detail-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 24px 24px 0 24px;
-    border-bottom: 1px solid #475569;
-    margin-bottom: 24px;
-  }
-  
-  .monitoring-alerts-detail-title-section {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  
-  .monitoring-alerts-detail-icon {
-    color: #ef4444;
-    font-size: 20px;
-  }
-  
-  .monitoring-alerts-detail-title {
-    margin: 0;
-    color: #e2e8f0;
-    font-size: 20px;
-    font-weight: 700;
-    font-family: "Inter", sans-serif;
-  }
-  
-  .monitoring-alerts-detail-close {
-    background: none;
-    border: none;
-    color: #94a3b8;
-    font-size: 18px;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 6px;
-    transition: all 0.2s ease;
-  }
-  
-  .monitoring-alerts-detail-close:hover {
-    color: #e2e8f0;
-    background: rgba(255, 255, 255, 0.1);
-  }
-  
+
+  .monitoring-alerts-detail-header,
   .monitoring-alerts-detail-content {
-    padding: 0 24px 24px 24px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
-  
-  .monitoring-alerts-detail-info {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-    margin-bottom: 24px;
-  }
-  
-  .monitoring-alerts-detail-field {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 16px;
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-  
-  .monitoring-alerts-detail-label {
-    color: #94a3b8;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: "Inter", sans-serif;
-    min-width: 80px;
-  }
-  
-  .monitoring-alerts-detail-value {
-    color: #e2e8f0;
-    font-size: 14px;
-    font-family: "Inter", sans-serif;
-  }
-  
-  .monitoring-alerts-detail-severity-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-family: "Inter", sans-serif;
-    display: inline-block;
-    min-width: 60px;
-    text-align: center;
-  }
-  
-  .monitoring-alerts-detail-severity-critical {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-  }
-  
-  .monitoring-alerts-detail-severity-warning {
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-    border: 1px solid rgba(245, 158, 11, 0.3);
-  }
-  
-  .monitoring-alerts-detail-severity-info {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-    border: 1px solid rgba(59, 130, 246, 0.3);
-  }
-  
-  .monitoring-alerts-detail-status-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-family: "Inter", sans-serif;
-    display: inline-block;
-    min-width: 60px;
-    text-align: center;
-  }
-  
-  .monitoring-alerts-detail-status-badge.seen {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.3);
-  }
-  
-  .monitoring-alerts-detail-status-badge.unseen {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-  }
-  
-  .monitoring-alerts-detail-message {
-    margin-bottom: 24px;
-  }
-  
-  .monitoring-alerts-detail-message-content {
-    background: rgba(15, 23, 42, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 8px;
-    padding: 16px;
-    color: #e2e8f0;
-    font-size: 14px;
-    line-height: 1.6;
-    font-family: "Inter", sans-serif;
-    margin-top: 8px;
-  }
-  
+
   .monitoring-alerts-detail-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    padding-top: 20px;
-    border-top: 1px solid #475569;
-  }
-  
-  .monitoring-alerts-detail-btn {
-    padding: 12px 20px;
-    border: none;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 14px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
+    flex-direction: column;
     gap: 8px;
-    transition: all 0.3s ease;
-    font-family: "Inter", sans-serif;
-    min-width: 120px;
-    justify-content: center;
   }
-  
-  .monitoring-alerts-detail-btn-acknowledge {
-    background: linear-gradient(135deg, #3b82f6, #60a5fa);
-    color: white;
-    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+
+  .monitoring-alerts-detail-btn {
+    width: 100%;
   }
-  
-  .monitoring-alerts-detail-btn-acknowledge:hover:not(:disabled) {
-    background: linear-gradient(135deg, #2563eb, #3b82f6);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+
+  .monitoring-alerts-detail-field {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
   }
-  
-  .monitoring-alerts-detail-btn-resolve {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
-    color: white;
-    box-shadow: 0 4px 15px rgba(34, 197, 94, 0.3);
+
+  .monitoring-alerts-detail-value {
+    text-align: left;
   }
-  
-  .monitoring-alerts-detail-btn-resolve:hover:not(:disabled) {
-    background: linear-gradient(135deg, #16a34a, #15803d);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(34, 197, 94, 0.4);
+}
+
+@media (max-width: 480px) {
+  .monitoring-alerts-detail-title {
+    font-size: 18px;
   }
-  
-  .monitoring-alerts-detail-btn-cancel {
-    background: rgba(75, 85, 99, 0.8);
-    color: #d1d5db;
-    border: 1px solid #4b5563;
+
+  .monitoring-alerts-detail-message-content {
+    padding: 12px;
+    font-size: 13px;
   }
-  
-  .monitoring-alerts-detail-btn-cancel:hover {
-    background: rgba(107, 114, 128, 0.9);
-    border-color: #6b7280;
-    transform: translateY(-1px);
+
+  .monitoring-alerts-detail-btn {
+    padding: 8px 16px;
+    font-size: 13px;
   }
-  
-  .monitoring-alerts-detail-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-  
-  .monitoring-alerts-detail-btn-icon {
-    font-size: 12px;
-  }
-  
-  /* Additional styles for the main dashboard */
-  .monitoring-alerts-loading {
-    text-align: center;
-    padding: 60px 20px;
-    color: #94a3b8;
-    font-family: "Inter", sans-serif;
-  }
-  
-  .monitoring-alerts-empty {
-    text-align: center;
-    padding: 60px 20px;
-    color: #94a3b8;
-    font-family: "Inter", sans-serif;
-  }
-  
-  .monitoring-alerts-empty-icon {
-    font-size: 48px;
-    margin-bottom: 16px;
-    opacity: 0.7;
-  }
-  
-  .monitoring-alerts-status-badge {
-    padding: 4px 12px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-family: "Inter", sans-serif;
-    display: inline-block;
-    min-width: 60px;
-    text-align: center;
-  }
-  
-  .monitoring-alerts-status-badge.seen {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.3);
-  }
-  
-  .monitoring-alerts-status-badge.notseen {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-  }
-  
-  .monitoring-alerts-error-banner {
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 12px;
-    padding: 16px;
-    color: #ef4444;
-    margin-bottom: 24px;
-    font-family: "Inter", sans-serif;
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .monitoring-alerts-detail-modal {
-      width: 95%;
-      margin: 20px;
-    }
-    
-    .monitoring-alerts-detail-actions {
-      flex-direction: column;
-    }
-    
-    .monitoring-alerts-detail-btn {
-      width: 100%;
-    }
-    
-    .monitoring-alerts-detail-field {
-      flex-direction: column;
-      gap: 8px;
-      align-items: flex-start;
-    }
-  }
-  
+}
+

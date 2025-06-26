@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // SSHKeyRequest defines the expected JSON structure for SSH key uploads
@@ -12,66 +13,47 @@ type SSHKeyRequest struct {
 	Key string `json:"key"`
 }
 
-// SSHKeyResponse defines the JSON response structure
-type SSHKeyResponse struct {
-	Status  string `json:"status"`
-	Message string `json:"message,omitempty"`
-}
-
 func HandleSSHUpload(w http.ResponseWriter, r *http.Request) {
-	// Set content type to JSON
-	w.Header().Set("Content-Type", "application/json")
-
+	// Check for POST method
 	if r.Method != http.MethodPost {
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(SSHKeyResponse{
-			Status:  "failed",
-			Message: "Only POST method allowed",
-		})
+		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	// Set content type
+	w.Header().Set("Content-Type", "application/json")
 
 	// Parse the JSON request
 	var keyRequest SSHKeyRequest
 	decoder := json.NewDecoder(r.Body)
 	if err := decoder.Decode(&keyRequest); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(SSHKeyResponse{
-			Status:  "failed",
-			Message: "Failed to parse JSON request",
-		})
+		sendError(w, "Failed to parse JSON request: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	// Validate that the key was provided
 	if keyRequest.Key == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(SSHKeyResponse{
-			Status:  "failed",
-			Message: "SSH key is empty",
-		})
+		sendError(w, "SSH key is empty", http.StatusBadRequest)
+		return
+	}
+
+	// Basic validation of SSH key format
+	if !isValidSSHKey(keyRequest.Key) {
+		sendError(w, "Invalid SSH key format", http.StatusBadRequest)
 		return
 	}
 
 	// Get the user's home directory and construct the .ssh path
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(SSHKeyResponse{
-			Status:  "failed",
-			Message: "Failed to determine home directory",
-		})
+		sendError(w, "Failed to determine home directory: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Create the .ssh directory if it doesn't exist
 	sshDir := filepath.Join(homeDir, ".ssh")
 	if err := os.MkdirAll(sshDir, 0700); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(SSHKeyResponse{
-			Status:  "failed",
-			Message: "Failed to create .ssh directory",
-		})
+		sendError(w, "Failed to create .ssh directory: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -80,7 +62,7 @@ func HandleSSHUpload(w http.ResponseWriter, r *http.Request) {
 
 	// Append a newline if the key doesn't end with one
 	sshKey := keyRequest.Key
-	if sshKey[len(sshKey)-1] != '\n' {
+	if !strings.HasSuffix(sshKey, "\n") {
 		sshKey += "\n"
 	}
 
@@ -88,28 +70,41 @@ func HandleSSHUpload(w http.ResponseWriter, r *http.Request) {
 	// Using os.O_APPEND to add to existing keys rather than overwrite
 	file, err := os.OpenFile(sshPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(SSHKeyResponse{
-			Status:  "failed",
-			Message: "Failed to open authorized_keys file",
-		})
+		sendError(w, "Failed to open authorized_keys file: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	defer file.Close()
 
 	if _, err := file.WriteString(sshKey); err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(SSHKeyResponse{
-			Status:  "failed",
-			Message: "Failed to write SSH key",
-		})
+		sendError(w, "Failed to write SSH key: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// Success response
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(SSHKeyResponse{
-		Status:  "success",
-		Message: "SSH key uploaded successfully",
-	})
+	// Send successful POST response
+	sendPostSuccess(w)
+}
+
+// isValidSSHKey performs basic validation of SSH key format
+func isValidSSHKey(key string) bool {
+	key = strings.TrimSpace(key)
+
+	// Check if key starts with common SSH key types
+	validPrefixes := []string{
+		"ssh-rsa",
+		"ssh-dss",
+		"ssh-ed25519",
+		"ecdsa-sha2-nistp256",
+		"ecdsa-sha2-nistp384",
+		"ecdsa-sha2-nistp521",
+	}
+
+	for _, prefix := range validPrefixes {
+		if strings.HasPrefix(key, prefix) {
+			// Basic check: should have at least 3 parts (type, key, optional comment)
+			parts := strings.Fields(key)
+			return len(parts) >= 2
+		}
+	}
+
+	return false
 }

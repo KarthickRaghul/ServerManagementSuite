@@ -45,9 +45,7 @@ func parseApplication(line string) string {
 		if strings.Contains(servicePart, "[") {
 			servicePart = strings.Split(servicePart, "[")[0]
 		}
-		if strings.HasSuffix(servicePart, ":") {
-			servicePart = strings.TrimSuffix(servicePart, ":")
-		}
+		servicePart = strings.TrimSuffix(servicePart, ":")
 		return servicePart
 	}
 	return "unknown"

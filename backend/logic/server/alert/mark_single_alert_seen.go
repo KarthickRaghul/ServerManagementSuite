@@ -1,7 +1,6 @@
 package alert
 
 import (
-	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -12,35 +11,36 @@ import (
 // HandleMarkSingleAlertAsSeen - Mark single alert as seen (for convenience)
 func HandleMarkSingleAlertAsSeen(queries *serverdb.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Only allow PUT
 		if r.Method != http.MethodPut {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			sendError(w, "Only PUT method allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
 		// Check user authorization
 		_, ok := config.GetUserFromContext(r)
 		if !ok {
-			http.Error(w, "User context not found", http.StatusInternalServerError)
+			sendError(w, "User context not found", http.StatusInternalServerError)
 			return
 		}
 
-		// Get alert ID from URL path or query parameter
+		// Get alert ID from URL query parameter
 		alertIDStr := r.URL.Query().Get("id")
 		if alertIDStr == "" {
-			http.Error(w, "Alert ID is required", http.StatusBadRequest)
+			sendError(w, "Alert ID is required", http.StatusBadRequest)
 			return
 		}
 
 		alertID, err := strconv.ParseInt(alertIDStr, 10, 32)
 		if err != nil {
-			http.Error(w, "Invalid alert ID", http.StatusBadRequest)
+			sendError(w, "Invalid alert ID: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// Mark alert as seen
 		err = queries.MarkAlertAsSeen(r.Context(), int32(alertID))
 		if err != nil {
-			http.Error(w, "Failed to mark alert as seen", http.StatusInternalServerError)
+			sendError(w, "Failed to mark alert as seen: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -50,7 +50,8 @@ func HandleMarkSingleAlertAsSeen(queries *serverdb.Queries) http.HandlerFunc {
 			Count:   1,
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		// Send successful response
+		sendGetSuccess(w, response)
 	}
 }
+

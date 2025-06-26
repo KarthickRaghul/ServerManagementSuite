@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os/exec"
 	"strings"
-	"time"
 )
 
 type RestartRequest struct {
@@ -21,42 +20,35 @@ type RestartResponse struct {
 }
 
 func HandleRestartService(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-
+	// Check for POST method
 	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Set content type
+	w.Header().Set("Content-Type", "application/json")
+
 	var req RestartRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid JSON body", http.StatusBadRequest)
+		sendError(w, "Invalid JSON body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	serviceName := strings.TrimSpace(req.Service)
 	if serviceName == "" {
-		http.Error(w, "Service name is required", http.StatusBadRequest)
+		sendError(w, "Service name is required", http.StatusBadRequest)
 		return
-	}
-
-	resp := RestartResponse{
-		Service:   serviceName,
-		Timestamp: time.Now().Format(time.RFC3339),
 	}
 
 	// Use systemctl to restart the service
 	cmd := exec.Command("systemctl", "restart", serviceName)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		resp.Status = "error"
-		resp.Message = fmt.Sprintf("Failed to restart service: %v, Output: %s", err, string(output))
-		json.NewEncoder(w).Encode(resp)
+		sendError(w, fmt.Sprintf("Failed to restart service '%s': %v, Output: %s", serviceName, err, string(output)), http.StatusInternalServerError)
 		return
 	}
 
-	resp.Status = "success"
-	resp.Message = fmt.Sprintf("Service '%s' restarted successfully", serviceName)
-	json.NewEncoder(w).Encode(resp)
+	// Send success response
+	sendPostSuccess(w)
 }
-

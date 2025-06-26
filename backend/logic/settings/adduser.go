@@ -5,10 +5,23 @@ import (
 	"encoding/json"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
+	"strings"
 )
+
+// Standard response structures
+type ErrorResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
 
 func HandleAddUser(queries *generaldb.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Only allow POST
+		if r.Method != http.MethodPost {
+			sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
 		// Parse request body
 		var req struct {
 			Name     string `json:"username"`
@@ -18,37 +31,43 @@ func HandleAddUser(queries *generaldb.Queries) http.HandlerFunc {
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			sendError(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// Validate required fields
 		if req.Name == "" || req.Role == "" || req.Email == "" || req.Password == "" {
-			http.Error(w, "All fields are required", http.StatusBadRequest)
+			sendError(w, "All fields are required", http.StatusBadRequest)
+			return
+		}
+
+		// Validate role
+		if req.Role != "admin" && req.Role != "viewer" {
+			sendError(w, "Role must be 'admin' or 'viewer'", http.StatusBadRequest)
 			return
 		}
 
 		// Hash the password
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 		if err != nil {
-			http.Error(w, "Failed to hash password", http.StatusInternalServerError)
+			sendError(w, "Failed to hash password: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		// Create user in database
 		newUser, err := queries.CreateUser(r.Context(), generaldb.CreateUserParams{
-			Name:         req.Name,
-			Role:         req.Role,
-			Email:        req.Email,
+			Name:         strings.TrimSpace(req.Name),
+			Role:         strings.TrimSpace(req.Role),
+			Email:        strings.TrimSpace(req.Email),
 			PasswordHash: string(hashedPassword), // Store hashed password
 		})
 		if err != nil {
 			// Check for duplicate email/name errors
-			if err.Error() == "pq: duplicate key value violates unique constraint" {
-				http.Error(w, "User with this email or name already exists", http.StatusConflict)
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				sendError(w, "User with this email or name already exists", http.StatusConflict)
 				return
 			}
-			http.Error(w, "Failed to create user", http.StatusInternalServerError)
+			sendError(w, "Failed to create user: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -64,8 +83,24 @@ func HandleAddUser(queries *generaldb.Queries) http.HandlerFunc {
 			},
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(response)
+		// Send successful response
+		sendPostSuccess(w, response)
 	}
+}
+
+// Standard response functions
+func sendPostSuccess(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(data)
+}
+
+func sendError(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	errorResp := ErrorResponse{
+		Status:  "failed",
+		Message: message,
+	}
+	json.NewEncoder(w).Encode(errorResp)
 }

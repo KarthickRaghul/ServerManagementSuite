@@ -1,13 +1,13 @@
-// hooks/useActiveDevice.ts
-import { useAppContext } from '../../context/AppContext';
+// hooks/common/useActiveDevice.ts
+import { useAppContext } from "../../context/AppContext";
 
 export const useActiveDevice = () => {
-  const { 
-    activeDevice, 
-    devices, 
-    devicesLoading: loading, 
+  const {
+    activeDevice,
+    devices,
+    devicesLoading: loading,
     devicesError: error,
-    updateActiveDevice 
+    updateActiveDevice,
   } = useAppContext();
 
   const getHostForRequest = () => {
@@ -20,6 +20,6 @@ export const useActiveDevice = () => {
     loading,
     error,
     updateActiveDevice,
-    getHostForRequest
+    getHostForRequest,
   };
 };

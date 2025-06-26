@@ -30,46 +30,55 @@ func HandleUpdateNetworkConfig(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Current Date and Time (UTC):", time.Now().UTC().Format("2006-01-02 15:04:05"))
 	fmt.Println("Handling network configuration update request...")
 
+	// Check for POST method
 	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Set content type
 	w.Header().Set("Content-Type", "application/json")
 
+	// Parse request body
 	var request NetworkUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		sendErrorResponse(w, "Failed to parse request body", err)
+		sendError(w, "Failed to parse request body: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Validate method
 	if request.Method != "static" && request.Method != "dynamic" {
-		sendErrorResponse(w, "Invalid method, must be 'static' or 'dynamic'", nil)
+		sendError(w, "Invalid method, must be 'static' or 'dynamic'", http.StatusBadRequest)
 		return
 	}
 
+	// Validate static configuration requirements
 	if request.Method == "static" && request.IP == "" {
-		sendErrorResponse(w, "IP address is required for static configuration", nil)
+		sendError(w, "IP address is required for static configuration", http.StatusBadRequest)
 		return
 	}
 
+	// Get active interface
 	activeInterface, err := getActiveInterface()
 	if err != nil {
-		sendErrorResponse(w, "Failed to get active network interface", err)
+		sendError(w, "Failed to get active network interface: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Get current configuration
 	oldConfig, err := getCurrentNetworkConfig(activeInterface)
 	if err != nil {
-		sendErrorResponse(w, "Failed to get current network configuration", err)
+		sendError(w, "Failed to get current network configuration: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Apply network configuration
 	var details string
 	var success bool
 	if request.Method == "dynamic" {
 		success, details = setDynamicIP(activeInterface)
 	} else {
+		// Fill in missing static configuration with current values
 		if request.Subnet == "" {
 			request.Subnet = oldConfig.Subnet
 		}
@@ -82,20 +91,16 @@ func HandleUpdateNetworkConfig(w http.ResponseWriter, r *http.Request) {
 		success, details = setStaticIP(activeInterface, request.IP, request.Subnet, request.Gateway, request.DNS)
 	}
 
-	message := "Failed to update network configuration"
-	if success {
-		message = "Network configuration updated successfully"
+	// Check if configuration was successful
+	if !success {
+		sendError(w, "Failed to update network configuration: "+details, http.StatusInternalServerError)
+		return
 	}
 
-	response := NetworkUpdateResponse{
-		Success:   success,
-		Message:   message,
-		Details:   details,
-		OldConfig: oldConfig,
-		NewConfig: &request,
-	}
-	json.NewEncoder(w).Encode(response)
+	// Send success response
+	sendPostSuccess(w)
 }
+
 
 func getCurrentNetworkConfig(iface string) (*NetworkUpdateRequest, error) {
 	config := &NetworkUpdateRequest{}

@@ -39,6 +39,27 @@ type FirewallResponse struct {
 	Active bool            `json:"active"`
 }
 
+// Standard response structures
+type ErrorResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
+type SuccessResponse struct {
+	Status string `json:"status"`
+}
+
+
+// sendPostSuccess sends successful POST response
+func sendPostSuccess(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusOK)
+	response := SuccessResponse{
+		Status: "success",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+
 // HandleFirewallRules handles requests to get the firewall rules
 func HandleFirewallRules(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted):",
@@ -48,7 +69,7 @@ func HandleFirewallRules(w http.ResponseWriter, r *http.Request) {
 
 	// Check for GET method
 	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only GET method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -58,18 +79,29 @@ func HandleFirewallRules(w http.ResponseWriter, r *http.Request) {
 	// Try to get firewall rules using different methods
 	firewallRules, err := getFirewallRules()
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		errorResp := map[string]string{
-			"error":   "Failed to get firewall rules",
-			"details": err.Error(),
-		}
-		json.NewEncoder(w).Encode(errorResp)
+		sendError(w, "Failed to get firewall rules: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	fmt.Println("Sending firewall rules response...")
-	// Send the firewall rules using NewEncoder().Encode()
-	json.NewEncoder(w).Encode(firewallRules)
+	// Send successful GET response with data
+	sendGetSuccess(w, firewallRules)
+}
+
+// sendGetSuccess sends successful GET response with data
+func sendGetSuccess(w http.ResponseWriter, data interface{}) {
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(data)
+}
+
+// sendError sends standardized error response
+func sendError(w http.ResponseWriter, message string, statusCode int) {
+	w.WriteHeader(statusCode)
+	errorResp := ErrorResponse{
+		Status:  "failed",
+		Message: message,
+	}
+	json.NewEncoder(w).Encode(errorResp)
 }
 
 // getFirewallRules retrieves firewall rules from the system
@@ -518,3 +550,4 @@ func getFirewallDRules() ([]FirewallChain, bool, error) {
 
 	return chains, isActive, nil
 }
+

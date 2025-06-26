@@ -53,6 +53,6 @@ WHERE time > $1
 ORDER BY time DESC;
 
 -- name: DeleteOldAlerts :exec
-DELETE FROM alerts 
-WHERE time < $1;
+delete from alerts 
+where time < $1;
 

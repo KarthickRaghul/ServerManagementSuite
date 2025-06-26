@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"backend/config"
@@ -27,51 +28,48 @@ func HandleBasicChange(queries *serverdb.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Only allow POST
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
 		// Parse frontend request
 		var req frontendRequestbasic
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			sendError(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// Validate required fields
 		if req.Host == "" || req.HostName == "" || req.TimeZone == "" {
-			http.Error(w, "Host, hostname, and timezone are required", http.StatusBadRequest)
+			sendError(w, "Host, hostname, and timezone are required", http.StatusBadRequest)
 			return
 		}
 
-		// Get device access token from database
+		// Lookup device and get access token
 		device, err := queries.GetServerDeviceByIP(context.Background(), req.Host)
 		if err == sql.ErrNoRows {
-			http.Error(w, "Device not registered", http.StatusNotFound)
+			sendError(w, "Device not registered", http.StatusNotFound)
 			return
 		} else if err != nil {
-			http.Error(w, "Database error", http.StatusInternalServerError)
+			sendError(w, "Database error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Prepare payload for client
-		clientPayload := map[string]string{
-			"hostname": req.HostName,
-			"timezone": req.TimeZone,
-		}
+		// Process request based on OS
+		clientPayload := processBasicChangeRequest(req, device.Os)
 
 		jsonPayload, err := json.Marshal(clientPayload)
 		if err != nil {
-			http.Error(w, "Failed to prepare request", http.StatusInternalServerError)
+			sendError(w, "Failed to prepare request: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// ✅ Use config for client URL (reads from .env file)
+		// Use config for client URL (reads from .env file)
 		clientURL := config.GetClientURL(req.Host, "/client/config1/basic_update")
 
 		clientReq, err := http.NewRequest("POST", clientURL, bytes.NewBuffer(jsonPayload))
 		if err != nil {
-			http.Error(w, "Failed to create request", http.StatusInternalServerError)
+			sendError(w, "Failed to create request: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -86,32 +84,83 @@ func HandleBasicChange(queries *serverdb.Queries) http.HandlerFunc {
 
 		resp, err := httpClient.Do(clientReq)
 		if err != nil {
-			// Return failed status if client unreachable
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(clientResponsebasic{Status: "failed"})
+			sendError(w, "Failed to reach client: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 		defer resp.Body.Close()
 
+		// Handle client error responses
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+
+			// Try to parse client error response (standardized format)
+			var clientError ErrorResponse
+			if json.Unmarshal(body, &clientError) == nil && clientError.Status == "failed" {
+				sendError(w, "Client error: "+clientError.Message, http.StatusBadGateway)
+			} else {
+				sendError(w, "Client error: "+string(body), http.StatusBadGateway)
+			}
+			return
+		}
+
 		// Read client response
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(clientResponsebasic{Status: "failed"})
+			sendError(w, "Failed to read client response: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 
 		// Parse client response
 		var clientResp clientResponsebasic
 		if err := json.Unmarshal(body, &clientResp); err != nil {
-			// If can't parse, assume failed
-			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(clientResponsebasic{Status: "failed"})
+			sendError(w, "Invalid client response: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 
-		// Forward the exact response from client to frontend
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(clientResp)
+		// Process response based on OS
+		processedResp := processBasicChangeResponse(clientResp, device.Os)
+
+		// Send successful response
+		sendGetSuccess(w, processedResp)
 	}
+}
+
+// Process request based on OS
+func processBasicChangeRequest(req frontendRequestbasic, osType string) map[string]string {
+	if strings.ToLower(osType) == "windows" {
+		return processWindowsBasicChangeRequest(req)
+	}
+
+	// Default Linux behavior
+	return map[string]string{
+		"hostname": strings.TrimSpace(req.HostName),
+		"timezone": strings.TrimSpace(req.TimeZone),
+	}
+}
+
+// Process response based on OS
+func processBasicChangeResponse(resp clientResponsebasic, osType string) interface{} {
+	if strings.ToLower(osType) == "windows" {
+		return processWindowsBasicChangeResponse(resp)
+	}
+
+	// Default Linux behavior
+	return resp
+}
+
+// Windows-specific request processing (placeholder for future differences)
+func processWindowsBasicChangeRequest(req frontendRequestbasic) map[string]string {
+	// For now, return same format as Linux
+	// Add Windows-specific fields when needed
+	return map[string]string{
+		"hostname": strings.TrimSpace(req.HostName),
+		"timezone": strings.TrimSpace(req.TimeZone),
+	}
+}
+
+// Windows-specific response processing (placeholder for future differences)
+func processWindowsBasicChangeResponse(resp clientResponsebasic) interface{} {
+	// For now, return same format as Linux
+	// Add Windows-specific processing when needed
+	return resp
 }

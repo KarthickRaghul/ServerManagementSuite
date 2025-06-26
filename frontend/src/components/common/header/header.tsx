@@ -128,63 +128,60 @@ const Header: React.FC = () => {
       </div>
 
       <div className="header-component-right">
-        {/* Device Dropdown - Only for Admin */}
-        {isAdmin && (
+        <div
+          className="header-component-server-dropdown-wrapper"
+          ref={dropdownRef}
+        >
           <div
-            className="header-component-server-dropdown-wrapper"
-            ref={dropdownRef}
+            className="header-component-server-dropdown"
+            onClick={() => setDropdownOpen(!dropdownOpen)}
           >
-            <div
-              className="header-component-server-dropdown"
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-            >
-              {getDeviceDisplayText()}
-              <IoIosArrowDown
-                className={`header-component-dropdown-icon ${dropdownOpen ? "header-component-rotated" : ""}`}
-              />
-            </div>
-            {dropdownOpen && (
-              <div className="header-component-server-dropdown-menu">
-                {devicesLoading && (
-                  <div className="header-component-server-dropdown-item">
-                    Loading devices...
-                  </div>
-                )}
-                {devicesError && (
-                  <div className="header-component-server-dropdown-item">
-                    <span>Error: {devicesError}</span>
-                    <button
-                      onClick={handleRefreshDevices}
-                      style={{ marginLeft: "8px", fontSize: "12px" }}
-                    >
-                      Retry
-                    </button>
-                  </div>
-                )}
-                {!devicesLoading && !devicesError && devices.length === 0 && (
-                  <div className="header-component-server-dropdown-item">
-                    No server devices registered
-                  </div>
-                )}
-                {!devicesLoading &&
-                  !devicesError &&
-                  devices.map((device) => (
-                    <div
-                      key={device.id}
-                      className={`header-component-server-dropdown-item ${
-                        activeDevice?.id === device.id
-                          ? "header-component-active-device"
-                          : ""
-                      }`}
-                      onClick={() => handleDeviceSelect(device)}
-                    >
-                      {device.tag} ({device.ip})
-                    </div>
-                  ))}
-              </div>
-            )}
+            {getDeviceDisplayText()}
+            <IoIosArrowDown
+              className={`header-component-dropdown-icon ${dropdownOpen ? "header-component-rotated" : ""}`}
+            />
           </div>
-        )}
+          {dropdownOpen && (
+            <div className="header-component-server-dropdown-menu">
+              {devicesLoading && (
+                <div className="header-component-server-dropdown-item">
+                  Loading devices...
+                </div>
+              )}
+              {devicesError && (
+                <div className="header-component-server-dropdown-item">
+                  <span>Error: {devicesError}</span>
+                  <button
+                    onClick={handleRefreshDevices}
+                    style={{ marginLeft: "8px", fontSize: "12px" }}
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+              {!devicesLoading && !devicesError && devices.length === 0 && (
+                <div className="header-component-server-dropdown-item">
+                  No server devices registered
+                </div>
+              )}
+              {!devicesLoading &&
+                !devicesError &&
+                devices.map((device) => (
+                  <div
+                    key={device.id}
+                    className={`header-component-server-dropdown-item ${
+                      activeDevice?.id === device.id
+                        ? "header-component-active-device"
+                        : ""
+                    }`}
+                    onClick={() => handleDeviceSelect(device)}
+                  >
+                    {device.tag} ({device.ip})
+                  </div>
+                ))}
+            </div>
+          )}
+        </div>
 
         {/* Server Status Indicator */}
         <div className="header-component-server-status">

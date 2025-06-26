@@ -13,6 +13,7 @@ import (
 type InterfaceInfo struct {
 	Mode   string `json:"mode"`
 	Status string `json:"status"`
+	Power  string `json:"power"`
 }
 
 // NetworkConfigResponse represents the response format you specified
@@ -26,13 +27,16 @@ type NetworkConfigResponse struct {
 	Interface map[string]InterfaceInfo `json:"interface"`
 }
 
+// ErrorResponse represents the standard error response format
+
+
 // HandleNetworkConfig provides network configuration as an HTTP response
 // in the exact format specified
 func HandleNetworkConfig(w http.ResponseWriter, r *http.Request) {
 
 	// Check for GET method
 	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only GET method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -42,7 +46,7 @@ func HandleNetworkConfig(w http.ResponseWriter, r *http.Request) {
 	// Get all network interfaces
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		sendError(w, "Failed to get network interfaces", err)
+		sendError(w, "Failed to get network interfaces: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -86,32 +90,36 @@ func HandleNetworkConfig(w http.ResponseWriter, r *http.Request) {
 	// Process each interface
 	interfaceCount := 1
 	for _, iface := range interfaces {
-		// Skip loopback, non-up interfaces, and virtual interfaces
+		// Skip loopback and virtual interfaces
 		if iface.Flags&net.FlagLoopback != 0 ||
-			iface.Flags&net.FlagUp == 0 ||
 			strings.Contains(iface.Name, "docker") ||
 			strings.Contains(iface.Name, "veth") ||
 			strings.Contains(iface.Name, "br-") {
 			continue
 		}
 
-		// Determine if this interface is active
-		isActive := iface.Name == activeRoute.Interface
+		// Determine power status (up/down)
+		power := "off"
+		if iface.Flags&net.FlagUp != 0 {
+			power = "on"
+		}
 
-		// Add interface to the map with appropriate status
+		// Determine if this interface is the active one
 		status := "inactive"
-		if isActive {
+		if iface.Name == activeRoute.Interface {
 			status = "active"
 		}
 
+		// Add interface to the map
 		response.Interface[fmt.Sprintf("%d", interfaceCount)] = InterfaceInfo{
 			Mode:   iface.Name,
 			Status: status,
+			Power:  power,
 		}
 		interfaceCount++
 
 		// Get IP address and subnet for active interface
-		if isActive {
+		if status == "active" {
 			// Use IP address from the route if available
 			if activeRoute.SourceIP != "" {
 				response.IPAddress = activeRoute.SourceIP
@@ -307,12 +315,3 @@ func getSystemUptime() (string, error) {
 	return fmt.Sprintf("%dd %dh %dm %ds", days, hours, minutes, secs), nil
 }
 
-// sendError sends an error response in JSON format
-func sendError(w http.ResponseWriter, message string, err error) {
-	w.WriteHeader(http.StatusInternalServerError)
-	errorResp := map[string]string{
-		"error":   message,
-		"details": err.Error(),
-	}
-	json.NewEncoder(w).Encode(errorResp)
-}

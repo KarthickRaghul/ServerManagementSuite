@@ -1,10 +1,16 @@
 // components/server/config2/NetworkBasicInfo.tsx
-import React, { useState } from 'react';
-import { FaNetworkWired, FaEdit, FaWifi, FaServer, FaSpinner } from 'react-icons/fa';
-import { useConfig2 } from '../../../../hooks/server/useConfig2';
-import { useNotification } from '../../../../context/NotificationContext';
-import NetworkConfigModal from './NetworkConfigModal';
-import './NetworkBasicInfo.css';
+import React, { useState } from "react";
+import {
+  FaNetworkWired,
+  FaEdit,
+  FaWifi,
+  FaServer,
+  FaSpinner,
+  FaExclamationTriangle,
+} from "react-icons/fa";
+import { useConfig2 } from "../../../../hooks/server/useConfig2";
+import NetworkConfigModal from "./NetworkConfigModal";
+import "./NetworkBasicInfo.css";
 
 interface NetworkUpdateData {
   method: string;
@@ -16,35 +22,24 @@ interface NetworkUpdateData {
 
 const NetworkBasicInfo: React.FC = () => {
   const [showConfigModal, setShowConfigModal] = useState(false);
-  const { networkBasics, loading, updateNetwork } = useConfig2();
-  const { addNotification } = useNotification();
+  const { networkBasics, loading, error, updateNetwork } = useConfig2();
 
   const handleUpdateNetwork = async (networkData: NetworkUpdateData) => {
     try {
       const success = await updateNetwork(networkData);
       if (success) {
-        addNotification({
-          title: 'Network Updated',
-          message: 'Network configuration has been updated successfully',
-          type: 'success',
-          duration: 3000
-        });
         setShowConfigModal(false);
         return true;
       } else {
-        throw new Error('Failed to update network configuration');
+        return false;
       }
     } catch (err) {
-      addNotification({
-        title: 'Network Update Failed',
-        message: err instanceof Error ? err.message : 'Failed to update network configuration',
-        type: 'error',
-        duration: 5000
-      });
+      // Error notification is already handled by the hook
       return false;
     }
   };
 
+  // ✅ Enhanced loading state
   if (loading.networkBasics && !networkBasics) {
     return (
       <div className="network-basic-info-card">
@@ -53,6 +48,23 @@ const NetworkBasicInfo: React.FC = () => {
             <FaSpinner className="spinning" />
           </div>
           <p>Loading network information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ Enhanced error state
+  if (error && !networkBasics) {
+    return (
+      <div className="network-basic-info-card">
+        <div className="network-basic-info-error">
+          <div className="network-basic-info-error-icon">
+            <FaExclamationTriangle />
+          </div>
+          <div className="network-basic-info-error-content">
+            <h4>Failed to Load Network Information</h4>
+            <p>{error}</p>
+          </div>
         </div>
       </div>
     );
@@ -68,10 +80,12 @@ const NetworkBasicInfo: React.FC = () => {
             </div>
             <div>
               <h3 className="network-basic-info-title">Network Settings</h3>
-              <p className="network-basic-info-description">Current network configuration</p>
+              <p className="network-basic-info-description">
+                Current network configuration
+              </p>
             </div>
           </div>
-          <button 
+          <button
             className="network-basic-info-edit-btn"
             onClick={() => setShowConfigModal(true)}
             disabled={loading.updating}
@@ -84,10 +98,15 @@ const NetworkBasicInfo: React.FC = () => {
         <div className="network-basic-info-content">
           <div className="network-basic-info-method-section">
             <div className="network-basic-info-method-indicator">
-              <div className={`network-basic-info-method-badge ${networkBasics?.ip_method || 'unknown'}`}>
+              <div
+                className={`network-basic-info-method-badge ${networkBasics?.ip_method || "unknown"}`}
+              >
                 <span className="network-basic-info-method-text">
-                  {networkBasics?.ip_method === 'static' ? 'Static IP' : 
-                   networkBasics?.ip_method === 'dynamic' ? 'Dynamic IP' : 'Unknown'}
+                  {networkBasics?.ip_method === "static"
+                    ? "Static IP"
+                    : networkBasics?.ip_method === "dynamic"
+                      ? "Dynamic IP"
+                      : "Unknown"}
                 </span>
               </div>
             </div>
@@ -100,7 +119,7 @@ const NetworkBasicInfo: React.FC = () => {
               </div>
               <div className="network-basic-info-detail-content">
                 <label>IP Address</label>
-                <span>{networkBasics?.ip_address || 'Not configured'}</span>
+                <span>{networkBasics?.ip_address || "Not configured"}</span>
               </div>
             </div>
 
@@ -110,7 +129,7 @@ const NetworkBasicInfo: React.FC = () => {
               </div>
               <div className="network-basic-info-detail-content">
                 <label>Gateway</label>
-                <span>{networkBasics?.gateway || 'Not configured'}</span>
+                <span>{networkBasics?.gateway || "Not configured"}</span>
               </div>
             </div>
 
@@ -120,7 +139,7 @@ const NetworkBasicInfo: React.FC = () => {
               </div>
               <div className="network-basic-info-detail-content">
                 <label>Subnet</label>
-                <span>{networkBasics?.subnet || 'Not configured'}</span>
+                <span>{networkBasics?.subnet || "Not configured"}</span>
               </div>
             </div>
 
@@ -130,19 +149,32 @@ const NetworkBasicInfo: React.FC = () => {
               </div>
               <div className="network-basic-info-detail-content">
                 <label>DNS Servers</label>
-                <span>{networkBasics?.dns || 'Not configured'}</span>
+                <span>{networkBasics?.dns || "Not configured"}</span>
               </div>
             </div>
           </div>
 
+          {/* ✅ Enhanced status bar with uptime */}
           <div className="network-basic-info-status-bar">
             <div className="network-basic-info-status-indicator">
-              <div className={`network-basic-info-status-dot ${networkBasics?.ip_address ? 'online' : 'offline'}`}></div>
+              <div
+                className={`network-basic-info-status-dot ${networkBasics?.ip_address ? "online" : "offline"}`}
+              ></div>
               <span className="network-basic-info-status-text">
-                {networkBasics?.ip_address ? 'Network Active' : 'Network Inactive'}
+                {networkBasics?.ip_address
+                  ? "Network Active"
+                  : "Network Inactive"}
               </span>
             </div>
           </div>
+
+          {/* ✅ Loading indicator when updating */}
+          {loading.updating && (
+            <div className="network-basic-info-updating">
+              <FaSpinner className="spinning" />
+              <span>Updating network configuration...</span>
+            </div>
+          )}
         </div>
       </div>
 

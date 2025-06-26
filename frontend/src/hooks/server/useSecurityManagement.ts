@@ -1,15 +1,19 @@
-// hooks/useSecurityManagement.ts
-import { useState } from 'react';
-import AuthService from '../../auth/auth';
-import { useAppContext } from '../../context/AppContext';
+// hooks/server/useSecurityManagement.ts
+import { useState } from "react";
+import AuthService from "../../auth/auth";
+import { useAppContext } from "../../context/AppContext";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-
-
 
 interface SecurityResponse {
   status: string;
   message?: string;
+}
+
+// ✅ Standardized error response interface
+interface ErrorResponse {
+  status: string;
+  message: string;
 }
 
 export const useSecurityManagement = () => {
@@ -18,9 +22,10 @@ export const useSecurityManagement = () => {
   const [error, setError] = useState<string | null>(null);
   const { activeDevice } = useAppContext();
 
+  // ✅ Enhanced uploadSSHKey with standardized error handling
   const uploadSSHKey = async (sshKey: string): Promise<boolean> => {
     if (!activeDevice) {
-      throw new Error('No active device selected');
+      throw new Error("No active device selected");
     }
 
     setUploadingSSH(true);
@@ -30,40 +35,59 @@ export const useSecurityManagement = () => {
       const response = await AuthService.makeAuthenticatedRequest(
         `${BACKEND_URL}/api/admin/server/config1/ssh`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             host: activeDevice.ip,
-            key: sshKey.trim()
-          })
-        }
+            key: sshKey.trim(),
+          }),
+        },
       );
 
       if (response.ok) {
         const data: SecurityResponse = await response.json();
-        if (data.status === 'success') {
+
+        // ✅ Check for standardized error response
+        if (data.status === "failed") {
+          throw new Error(data.message || "SSH key upload failed");
+        }
+
+        if (data.status === "success") {
           return true;
         } else {
-          throw new Error('SSH key upload failed: Invalid response status');
+          throw new Error("Invalid response status from server");
         }
       } else {
-        throw new Error(`Failed to upload SSH key: ${response.status}`);
+        // ✅ Handle HTTP error responses
+        const errorData = (await response
+          .json()
+          .catch(() => ({}))) as ErrorResponse;
+        throw new Error(
+          errorData.message || `Failed to upload SSH key: ${response.status}`,
+        );
       }
     } catch (err) {
-      console.error('Error uploading SSH key:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to upload SSH key';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to upload SSH key";
+      console.error("Error uploading SSH key:", err);
       setError(errorMessage);
-      throw new Error(errorMessage);
+
+      // ✅ Re-throw error for component to handle notifications
+      throw err;
     } finally {
       setUploadingSSH(false);
     }
   };
 
-  const updatePassword = async (username: string, password: string): Promise<boolean> => {
+  // ✅ Enhanced updatePassword with standardized error handling
+  const updatePassword = async (
+    username: string,
+    password: string,
+  ): Promise<boolean> => {
     if (!activeDevice) {
-      throw new Error('No active device selected');
+      throw new Error("No active device selected");
     }
 
     setUpdatingPassword(true);
@@ -73,33 +97,48 @@ export const useSecurityManagement = () => {
       const response = await AuthService.makeAuthenticatedRequest(
         `${BACKEND_URL}/api/admin/server/config1/pass`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({
             host: activeDevice.ip,
             username: username.trim(),
-            password: password
-          })
-        }
+            password: password,
+          }),
+        },
       );
 
       if (response.ok) {
         const data: SecurityResponse = await response.json();
-        if (data.status === 'success') {
+
+        // ✅ Check for standardized error response
+        if (data.status === "failed") {
+          throw new Error(data.message || "Password update failed");
+        }
+
+        if (data.status === "success") {
           return true;
         } else {
-          throw new Error('Password update failed: Invalid response status');
+          throw new Error("Invalid response status from server");
         }
       } else {
-        throw new Error(`Failed to update password: ${response.status}`);
+        // ✅ Handle HTTP error responses
+        const errorData = (await response
+          .json()
+          .catch(() => ({}))) as ErrorResponse;
+        throw new Error(
+          errorData.message || `Failed to update password: ${response.status}`,
+        );
       }
     } catch (err) {
-      console.error('Error updating password:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to update password';
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update password";
+      console.error("Error updating password:", err);
       setError(errorMessage);
-      throw new Error(errorMessage);
+
+      // ✅ Re-throw error for component to handle notifications
+      throw err;
     } finally {
       setUpdatingPassword(false);
     }
@@ -110,6 +149,6 @@ export const useSecurityManagement = () => {
     updatingPassword,
     error,
     uploadSSHKey,
-    updatePassword
+    updatePassword,
   };
 };

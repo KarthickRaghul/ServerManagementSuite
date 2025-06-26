@@ -5,10 +5,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	"backend/config"
@@ -24,93 +24,51 @@ type routerUpdateRequest struct {
 	Metric      string `json:"metric"`      // optional
 }
 
-type responseJSON3 struct {
-	Status  string `json:"status"`
-	Error   string `json:"error,omitempty"`
-	Details string `json:"details,omitempty"`
-}
-
 func HandlePostUpdateRouter(queries *serverdb.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
+		// Only allow POST
 		if r.Method != http.MethodPost {
-			w.WriteHeader(http.StatusMethodNotAllowed)
-			json.NewEncoder(w).Encode(responseJSON3{
-				Status: "failure",
-				Error:  "Method not allowed",
-			})
+			sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
-		bodyBytes, err := io.ReadAll(r.Body)
-		if err != nil {
-			log.Printf("❌ [ROUTE] Failed to read request body: %v", err)
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(responseJSON3{
-				Status: "failure",
-				Error:  "Failed to read request body",
-			})
-			return
-		}
-
+		// Parse request body
 		var req routerUpdateRequest
-		if err := json.Unmarshal(bodyBytes, &req); err != nil ||
-			req.Host == "" || req.Action == "" || req.Destination == "" || req.Gateway == "" {
-			log.Printf("❌ [ROUTE] Invalid request data: %v", err)
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(responseJSON3{
-				Status: "failure",
-				Error:  "Invalid request data - host, action, destination, and gateway are required",
-			})
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			log.Printf("❌ [ROUTE] Failed to parse request: %v", err)
+			sendError(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Validate required fields
+		if req.Host == "" || req.Action == "" || req.Destination == "" || req.Gateway == "" {
+			log.Printf("❌ [ROUTE] Missing required fields")
+			sendError(w, "Host, action, destination, and gateway are required", http.StatusBadRequest)
 			return
 		}
 
 		log.Printf("🔍 [ROUTE] Processing route %s for host: %s, destination: %s", req.Action, req.Host, req.Destination)
 
+		// Lookup device and get access token
 		device, err := queries.GetServerDeviceByIP(context.Background(), req.Host)
 		if err == sql.ErrNoRows {
 			log.Printf("❌ [ROUTE] Device not found: %s", req.Host)
-			w.WriteHeader(http.StatusNotFound)
-			json.NewEncoder(w).Encode(responseJSON3{
-				Status: "failure",
-				Error:  "Device not registered",
-			})
+			sendError(w, "Device not registered", http.StatusNotFound)
 			return
 		} else if err != nil {
 			log.Printf("❌ [ROUTE] Database error: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(responseJSON3{
-				Status: "failure",
-				Error:  "Database error",
-			})
+			sendError(w, "Database error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// ✅ Create client payload WITHOUT the host field
-		clientPayload := map[string]string{
-			"action":      req.Action,
-			"destination": req.Destination,
-			"gateway":     req.Gateway,
-		}
-
-		// Add optional fields only if they exist
-		if req.Interface != "" {
-			clientPayload["interface"] = req.Interface
-		}
-		if req.Metric != "" {
-			clientPayload["metric"] = req.Metric
-		}
+		// Process route update request based on OS
+		clientPayload := processRouteUpdateRequest(req, device.Os)
 
 		// Convert to JSON for client
 		clientBody, err := json.Marshal(clientPayload)
 		if err != nil {
 			log.Printf("❌ [ROUTE] Failed to marshal client payload: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(responseJSON3{
-				Status: "failure",
-				Error:  "Failed to prepare client request",
-			})
+			sendError(w, "Failed to prepare client request: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -123,11 +81,7 @@ func HandlePostUpdateRouter(queries *serverdb.Queries) http.HandlerFunc {
 		clientReq, err := http.NewRequest("POST", clientURL, bytes.NewReader(clientBody))
 		if err != nil {
 			log.Printf("❌ [ROUTE] Failed to create client request: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(responseJSON3{
-				Status: "failure",
-				Error:  "Failed to create client request",
-			})
+			sendError(w, "Failed to create client request: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -142,46 +96,111 @@ func HandlePostUpdateRouter(queries *serverdb.Queries) http.HandlerFunc {
 		resp, err := httpClient.Do(clientReq)
 		if err != nil {
 			log.Printf("❌ [ROUTE] Failed to reach client: %v", err)
-			w.WriteHeader(http.StatusBadGateway)
-			json.NewEncoder(w).Encode(responseJSON3{
-				Status:  "failure",
-				Error:   "Failed to reach client",
-				Details: err.Error(),
-			})
+			sendError(w, "Failed to reach client: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 		defer resp.Body.Close()
 
 		log.Printf("🔍 [ROUTE] Client response status: %d", resp.StatusCode)
 
-		// Read response body for debugging
+		// Handle client error responses
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			log.Printf("❌ [ROUTE] Client returned non-200 status: %d", resp.StatusCode)
+
+			var clientError ErrorResponse
+			if json.Unmarshal(body, &clientError) == nil && clientError.Status == "failed" {
+				sendError(w, "Client error: "+clientError.Message, http.StatusBadGateway)
+			} else {
+				sendError(w, "Client error: "+string(body), http.StatusBadGateway)
+			}
+			return
+		}
+
+		// Read client response
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
 			log.Printf("❌ [ROUTE] Failed to read response body: %v", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			json.NewEncoder(w).Encode(responseJSON3{
-				Status: "failure",
-				Error:  "Failed to read client response",
-			})
+			sendError(w, "Failed to read client response: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 
 		log.Printf("🔍 [ROUTE] Client response body: %s", string(body))
 
-		if resp.StatusCode != http.StatusOK {
-			log.Printf("❌ [ROUTE] Client returned non-200 status: %d", resp.StatusCode)
-			w.WriteHeader(http.StatusBadGateway)
-			json.NewEncoder(w).Encode(responseJSON3{
-				Status:  "failure",
-				Error:   fmt.Sprintf("Client returned status %d", resp.StatusCode),
-				Details: string(body),
-			})
+		// Parse client response
+		var clientResp interface{}
+		if err := json.Unmarshal(body, &clientResp); err != nil {
+			log.Printf("❌ [ROUTE] Failed to parse client response: %v", err)
+			sendError(w, "Invalid client response: "+err.Error(), http.StatusBadGateway)
 			return
 		}
 
-		// Success - forward client response
-		w.WriteHeader(resp.StatusCode)
-		w.Write(body)
+		// Process response based on OS
+		processedResp := processRouteUpdateResponse(clientResp, device.Os)
+
+		// Send successful response
+		sendGetSuccess(w, processedResp)
 		log.Printf("✅ [ROUTE] Route %s completed successfully for %s", req.Action, req.Host)
 	}
+}
+
+// Process route update request based on OS
+func processRouteUpdateRequest(req routerUpdateRequest, osType string) map[string]string {
+	if strings.ToLower(osType) == "windows" {
+		return processWindowsRouteUpdateRequest(req)
+	}
+
+	// Default Linux behavior
+	clientPayload := map[string]string{
+		"action":      req.Action,
+		"destination": req.Destination,
+		"gateway":     req.Gateway,
+	}
+
+	// Add optional fields only if they exist
+	if req.Interface != "" {
+		clientPayload["interface"] = req.Interface
+	}
+	if req.Metric != "" {
+		clientPayload["metric"] = req.Metric
+	}
+
+	return clientPayload
+}
+
+// Process route update response based on OS
+func processRouteUpdateResponse(resp interface{}, osType string) interface{} {
+	if strings.ToLower(osType) == "windows" {
+		return processWindowsRouteUpdateResponse(resp)
+	}
+
+	// Default Linux behavior
+	return resp
+}
+
+// Windows-specific route update request processing (placeholder for future differences)
+func processWindowsRouteUpdateRequest(req routerUpdateRequest) map[string]string {
+	// For now, return same format as Linux
+	// Future: Windows might use different route command syntax
+	clientPayload := map[string]string{
+		"action":      req.Action,
+		"destination": req.Destination,
+		"gateway":     req.Gateway,
+	}
+
+	if req.Interface != "" {
+		clientPayload["interface"] = req.Interface
+	}
+	if req.Metric != "" {
+		clientPayload["metric"] = req.Metric
+	}
+
+	return clientPayload
+}
+
+// Windows-specific route update response processing (placeholder for future differences)
+func processWindowsRouteUpdateResponse(resp interface{}) interface{} {
+	// For now, return same format as Linux
+	// Future: might need different response handling for Windows route commands
+	return resp
 }

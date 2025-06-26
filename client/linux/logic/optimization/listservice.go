@@ -2,7 +2,6 @@ package optimization
 
 import (
 	"bufio"
-	"encoding/json"
 	"net/http"
 	"os/exec"
 	"strconv"
@@ -107,6 +106,13 @@ func getAllRegularUsers() ([]string, error) {
 }
 
 func HandleListService(w http.ResponseWriter, r *http.Request) {
+	// Check for GET method
+	if r.Method != http.MethodGet {
+		sendError(w, "Only GET method allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Set content type
 	w.Header().Set("Content-Type", "application/json")
 
 	// Get only user services (no system services)
@@ -119,7 +125,7 @@ func HandleListService(w http.ResponseWriter, r *http.Request) {
 	// Get all processes
 	procs, err := process.Processes()
 	if err != nil {
-		http.Error(w, "Failed to fetch processes", http.StatusInternalServerError)
+		sendError(w, "Failed to fetch processes: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
@@ -169,8 +175,10 @@ func HandleListService(w http.ResponseWriter, r *http.Request) {
 		Timestamp: time.Now().Format("2006-01-02 15:04:05"),
 	}
 
-	json.NewEncoder(w).Encode(result)
+	// Send successful GET response with data
+	sendGetSuccess(w, result)
 }
+
 
 // isUserService checks if a process looks like a user service
 func isUserService(name, cmdline string) bool {

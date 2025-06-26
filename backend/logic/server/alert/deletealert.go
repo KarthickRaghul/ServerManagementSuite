@@ -12,43 +12,56 @@ type DeleteAlertsRequest struct {
 	AlertIDs []int32 `json:"alert_ids"`
 }
 
+type AlertActionResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+	Count   int    `json:"count"`
+}
+
+// Standard response structures
+type ErrorResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
 // HandleDeleteAlerts - Delete/resolve alerts
 func HandleDeleteAlerts(queries *serverdb.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Only allow DELETE
 		if r.Method != http.MethodDelete {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			sendError(w, "Only DELETE method allowed", http.StatusMethodNotAllowed)
 			return
 		}
 
 		// Check user authorization
 		user, ok := config.GetUserFromContext(r)
 		if !ok {
-			http.Error(w, "User context not found", http.StatusInternalServerError)
+			sendError(w, "User context not found", http.StatusInternalServerError)
 			return
 		}
 
 		// Only admin can delete alerts
 		if user.Role != "admin" {
-			http.Error(w, "Admin access required", http.StatusForbidden)
+			sendError(w, "Admin access required", http.StatusForbidden)
 			return
 		}
 
 		// Parse JSON request body
 		var req DeleteAlertsRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			sendError(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		if len(req.AlertIDs) == 0 {
-			http.Error(w, "No alert IDs provided", http.StatusBadRequest)
+			sendError(w, "No alert IDs provided", http.StatusBadRequest)
 			return
 		}
 
 		// Delete alerts
 		err := queries.DeleteMultipleAlerts(r.Context(), req.AlertIDs)
 		if err != nil {
-			http.Error(w, "Failed to delete alerts", http.StatusInternalServerError)
+			sendError(w, "Failed to delete alerts: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -58,7 +71,24 @@ func HandleDeleteAlerts(queries *serverdb.Queries) http.HandlerFunc {
 			Count:   len(req.AlertIDs),
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(response)
+		// Send successful response
+		sendDeleteSuccess(w, response)
 	}
+}
+
+// Standard response functions
+func sendDeleteSuccess(w http.ResponseWriter, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(data)
+}
+
+func sendError(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	errorResp := ErrorResponse{
+		Status:  "failed",
+		Message: message,
+	}
+	json.NewEncoder(w).Encode(errorResp)
 }

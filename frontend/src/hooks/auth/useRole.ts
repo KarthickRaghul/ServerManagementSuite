@@ -1,12 +1,15 @@
-// hooks/useRole.ts
-import { useState, useEffect } from 'react';
-import AuthService from '../../auth/auth';
+// hooks/auth/useRole.ts
+import { useState, useEffect } from "react";
+import AuthService from "../../auth/auth";
 
-export type UserRole = 'admin' | 'viewer' | null;
+export type UserRole = "admin" | "viewer" | null;
 
 export const useRole = () => {
   const [role, setRole] = useState<UserRole>(null);
-  const [userInfo, setUserInfo] = useState<{ username?: string; role?: UserRole }>({});
+  const [userInfo, setUserInfo] = useState<{
+    username?: string;
+    role?: UserRole;
+  }>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,11 +18,11 @@ export const useRole = () => {
       try {
         const userRole = AuthService.getUserRole();
         const userDetails = AuthService.getUserInfo();
-        
+
         setRole(userRole);
         setUserInfo(userDetails || {});
       } catch (error) {
-        console.error('Error getting user role:', error);
+        console.error("Error getting user role:", error);
         setRole(null);
         setUserInfo({});
       } finally {
@@ -30,8 +33,8 @@ export const useRole = () => {
     getUserRole();
   }, []);
 
-  const isAdmin = role === 'admin';
-  const isViewer = role === 'viewer';
+  const isAdmin = role === "admin";
+  const isViewer = role === "viewer";
   const canAccessRoute = (path: string) => AuthService.canAccessRoute(path);
 
   return {
@@ -40,6 +43,6 @@ export const useRole = () => {
     loading,
     isAdmin,
     isViewer,
-    canAccessRoute
+    canAccessRoute,
   };
 };

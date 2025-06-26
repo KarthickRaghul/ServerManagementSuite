@@ -3,16 +3,29 @@ package settings
 import (
 	"backend/config"
 	generaldb "backend/db/gen/general"
+	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
 )
 
 func HandleRemoveUser(queries *generaldb.Queries) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Only allow POST/DELETE method
+		if r.Method != http.MethodPost && r.Method != http.MethodDelete {
+			sendError(w, "Only POST or DELETE method allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
 		// Check admin authorization
 		user, ok := config.GetUserFromContext(r)
 		if !ok {
-			http.Error(w, "User context not found", http.StatusInternalServerError)
+			sendError(w, "User context not found", http.StatusInternalServerError)
+			return
+		}
+
+		if user.Role != "admin" {
+			sendError(w, "Admin access required", http.StatusForbidden)
 			return
 		}
 
@@ -22,33 +35,39 @@ func HandleRemoveUser(queries *generaldb.Queries) http.HandlerFunc {
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			sendError(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
 			return
 		}
 
 		// Validate input
 		if req.Name == "" {
-			http.Error(w, "Username is required", http.StatusBadRequest)
+			sendError(w, "Username is required", http.StatusBadRequest)
 			return
 		}
 
+		// Trim whitespace
+		req.Name = strings.TrimSpace(req.Name)
+
 		// Prevent admin from deleting themselves
 		if req.Name == user.Username {
-			http.Error(w, "Cannot delete your own account", http.StatusBadRequest)
+			sendError(w, "Cannot delete your own account", http.StatusBadRequest)
 			return
 		}
 
 		// Check if user exists before deletion
 		_, err := queries.GetUserByName(r.Context(), req.Name)
-		if err != nil {
-			http.Error(w, "User not found", http.StatusNotFound)
+		if err == sql.ErrNoRows {
+			sendError(w, "User not found", http.StatusNotFound)
+			return
+		} else if err != nil {
+			sendError(w, "Database error: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		// Delete the user (correct parameter - just the name string)
+		// Delete the user
 		err = queries.DeleteUserByName(r.Context(), req.Name)
 		if err != nil {
-			http.Error(w, "Failed to remove user", http.StatusInternalServerError)
+			sendError(w, "Failed to remove user: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
 
@@ -60,8 +79,7 @@ func HandleRemoveUser(queries *generaldb.Queries) http.HandlerFunc {
 			"deleted_by":   user.Username,
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
+		// Send successful response
+		sendGetSuccess(w, response)
 	}
 }
