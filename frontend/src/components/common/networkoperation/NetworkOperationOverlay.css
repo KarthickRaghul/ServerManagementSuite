@@ -1,0 +1,165 @@
+/* components/common/networkoperation/NetworkOperationOverlay.css */
+.network-operation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    backdrop-filter: blur(4px);
+  }
+  
+  .network-operation-overlay-backdrop {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .network-operation-overlay-container {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    position: relative;
+    animation: slideIn 0.3s ease-out;
+  }
+  
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  
+  .network-operation-content {
+    text-align: center;
+  }
+  
+  .network-operation-icon-wrapper {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    font-size: 2rem;
+  }
+  
+  .network-operation-icon-wrapper.restart {
+    background: #e3f2fd;
+    color: #1976d2;
+  }
+  
+  .network-operation-icon-wrapper.warning {
+    background: #fff3e0;
+    color: #f57c00;
+  }
+  
+  .network-operation-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #333;
+  }
+  
+  .network-operation-message {
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+  }
+  
+  .network-operation-countdown {
+    margin: 1.5rem 0;
+  }
+  
+  .countdown-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #1976d2;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    font-size: 1.5rem;
+    font-weight: bold;
+  }
+  
+  .network-operation-info-box {
+    background: #f5f5f5;
+    border-radius: 8px;
+    padding: 1rem;
+    margin: 1.5rem 0;
+    text-align: left;
+  }
+  
+  .network-operation-info-box h4 {
+    margin: 0 0 0.5rem 0;
+    color: #333;
+    font-size: 1rem;
+  }
+  
+  .network-operation-info-box ul {
+    margin: 0;
+    padding-left: 1.2rem;
+  }
+  
+  .network-operation-info-box li {
+    margin-bottom: 0.5rem;
+    color: #666;
+  }
+  
+  .network-operation-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1.5rem;
+  }
+  
+  .network-operation-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #999;
+    cursor: pointer;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+  
+  .network-operation-close-btn:hover {
+    background: #f5f5f5;
+    color: #666;
+  }
+  
+  .spinning {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  

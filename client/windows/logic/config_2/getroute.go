@@ -87,8 +87,8 @@ func getWindowsRoutingTable() ([]RouteEntry, error) {
 				// Build RouteEntry with default values for missing fields
 				route := RouteEntry{
 					Destination: fields[0],
-					Gateway:     fields[1],
-					Genmask:     fields[2],
+					Gateway:     fields[2],
+					Genmask:     fields[1],
 					Flags:       "U",       // Always assume U (up)
 					Metric:      fields[4], // Metric is usually 5th field
 					Ref:         "0",       // Not available on Windows

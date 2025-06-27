@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import AuthService from "../../auth/auth";
 import { useAppContext } from "../../context/AppContext";
 import { useNotification } from "../../context/NotificationContext";
+import { useNetworkOperation } from "../../context/NetworkOperationContext";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -138,6 +139,7 @@ export const useConfig2 = () => {
     null,
   );
   const [routeTable, setRouteTable] = useState<RouteEntry[]>([]);
+  const { showInterfaceRestartOverlay, showNetworkConfigOverlay } = useNetworkOperation();
   const [firewallData, setFirewallData] = useState<FirewallData | null>(null);
   const [loading, setLoading] = useState<LoadingStates>({
     networkBasics: false,
@@ -343,10 +345,10 @@ export const useConfig2 = () => {
       });
       return false;
     }
-  
+
     setLoading((prev) => ({ ...prev, updating: true }));
     setError(null);
-  
+
     try {
       // Send the request but do not wait for response
       AuthService.makeAuthenticatedRequest(
@@ -364,15 +366,10 @@ export const useConfig2 = () => {
       ).catch(() => {
         // Ignore errors since we do not wait for response
       });
-  
-      // Show immediate notification
-      addNotification({
-        title: "Network Update Initiated",
-        message: "Network update command sent. Please re-add the device if IP address changed.",
-        type: "info",
-        duration: 5000,
-      });
-  
+
+      // Show network operation overlay instead of notification
+      showNetworkConfigOverlay();
+
       return true;
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Failed to update network";
@@ -488,7 +485,8 @@ export const useConfig2 = () => {
     setError(null);
 
     try {
-      const response = await AuthService.makeAuthenticatedRequest(
+      // Send the request but do not wait for response
+      AuthService.makeAuthenticatedRequest(
         `${BACKEND_URL}/api/admin/server/config2/postrestartinterface`,
         {
           method: "POST",
@@ -497,41 +495,16 @@ export const useConfig2 = () => {
           },
           body: JSON.stringify({ host: activeDevice.ip }),
         },
-      );
+      ).catch(() => {
+        // Ignore errors since we do not wait for response
+      });
 
-      if (response.ok) {
-        const data: StandardResponse = await response.json();
+      // Show interface restart overlay
+      showInterfaceRestartOverlay();
 
-        // ✅ Check for standardized error response
-        if (data.status === "failed") {
-          throw new Error(data.message || "Failed to restart interface");
-        }
-
-        if (data.status === "success") {
-          await fetchNetworkBasics();
-          addNotification({
-            title: "Interface Restarted",
-            message: "Network interface has been restarted successfully",
-            type: "success",
-            duration: 3000,
-          });
-          return true;
-        } else {
-          throw new Error("Invalid response status from server");
-        }
-      } else {
-        // ✅ Enhanced HTTP error handling
-        const errorData = (await response
-          .json()
-          .catch(() => ({}))) as ErrorResponse;
-        throw new Error(
-          errorData.message ||
-            `Failed to restart interface: ${response.status}`,
-        );
-      }
+      return true;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to restart interface";
+      const errorMessage = err instanceof Error ? err.message : "Failed to restart interface";
       console.error("Error restarting interface:", err);
       setError(errorMessage);
       addNotification({
