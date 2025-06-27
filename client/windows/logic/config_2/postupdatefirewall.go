@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"os/exec"
+	"regexp"
 	"strings"
 )
 
@@ -179,19 +180,44 @@ func deleteWindowsFirewallRule(req UpdateFirewallRequest) (bool, string) {
 		ruleName = fmt.Sprintf("SMS-Rule-%s-%s", strings.ToUpper(req.Protocol), req.Port)
 	}
 
-	// ✅ Fixed: Build PowerShell command with proper output handling
-	psCmd := fmt.Sprintf(`
-	try {
-		$rules = Get-NetFirewallRule -DisplayName "%s" -ErrorAction SilentlyContinue
-		if ($rules) {
-			Remove-NetFirewallRule -DisplayName "%s" -Confirm:$false -ErrorAction Stop
-			Write-Output "SUCCESS: Firewall rule deleted successfully"
-		} else {
-			Write-Output "SUCCESS: Rule not found (already deleted)"
-		}
-	} catch {
-		Write-Output "ERROR: $($_.Exception.Message)"
-	}`, ruleName, ruleName)
+	// ✅ Check if ruleName is a GUID
+	isGUID := false
+	guidRegex := regexp.MustCompile(`^{?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}}?$`)
+	if guidRegex.MatchString(ruleName) {
+		isGUID = true
+	}
+
+	// ✅ Build PowerShell command based on identifier type
+	var psCmd string
+	if isGUID {
+		// Use -Name parameter for GUID
+		psCmd = fmt.Sprintf(`
+		try {
+			$rule = Get-NetFirewallRule -Name "%s" -ErrorAction SilentlyContinue
+			if ($rule) {
+				Remove-NetFirewallRule -Name "%s" -Confirm:$false -ErrorAction Stop
+				Write-Output "SUCCESS: Firewall rule deleted by Name"
+			} else {
+				Write-Output "SUCCESS: Rule not found (already deleted)"
+			}
+		} catch {
+			Write-Output "ERROR: $($_.Exception.Message)"
+		}`, ruleName, ruleName)
+	} else {
+		// Use -DisplayName parameter for friendly names
+		psCmd = fmt.Sprintf(`
+		try {
+			$rule = Get-NetFirewallRule -DisplayName "%s" -ErrorAction SilentlyContinue
+			if ($rule) {
+				Remove-NetFirewallRule -DisplayName "%s" -Confirm:$false -ErrorAction Stop
+				Write-Output "SUCCESS: Firewall rule deleted by DisplayName"
+			} else {
+				Write-Output "SUCCESS: Rule not found (already deleted)"
+			}
+		} catch {
+			Write-Output "ERROR: $($_.Exception.Message)"
+		}`, ruleName, ruleName)
+	}
 
 	// Execute PowerShell command
 	cmd := exec.Command("powershell", "-Command", psCmd)
@@ -213,7 +239,7 @@ func deleteWindowsFirewallRule(req UpdateFirewallRequest) (bool, string) {
 		}
 	}
 
-	return true, ""
+	return false, "Unknown error occurred"
 }
 
 // ✅ New helper function to verify rule creation
