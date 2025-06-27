@@ -1,414 +1,593 @@
 /* components/server/config2/FirewallTable.css */
 .firewall-table-card {
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-    border-radius: 16px;
-    padding: 24px;
-    border: 1px solid #475569;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-    margin-top: 24px;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  border-radius: 16px;
+  padding: 24px;
+  border: 1px solid #475569;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  margin-top: 24px;
+}
+
+.firewall-table-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.firewall-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #475569;
+}
+
+.firewall-table-title-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.firewall-table-icon-wrapper {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
+}
+
+.firewall-table-icon {
+  color: white;
+  font-size: 20px;
+}
+
+.firewall-table-title {
+  color: #e2e8f0;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+  font-family: "Inter", sans-serif;
+}
+
+.firewall-table-description {
+  color: #94a3b8;
+  font-size: 14px;
+  margin: 0;
+  font-family: "Inter", sans-serif;
+}
+
+.firewall-table-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.firewall-status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.firewall-status-active {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+}
+
+.firewall-status-inactive {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+}
+
+.firewall-status-icon {
+  font-size: 10px;
+}
+
+.firewall-table-add-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: white;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+  box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
+}
+
+.firewall-table-add-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669, #047857);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+}
+
+.firewall-table-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.firewall-table-add-icon {
+  font-size: 12px;
+}
+
+.firewall-table-content {
+  width: 100%;
+}
+
+.firewall-chain-selector {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.firewall-chain-label {
+  color: #e2e8f0;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+}
+
+.firewall-chain-select {
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #e2e8f0;
+  border: 2px solid #475569;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: "Inter", sans-serif;
+  min-width: 200px;
+}
+
+.firewall-chain-select:focus {
+  outline: none;
+  border-color: #ef4444;
+}
+
+.firewall-table-loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: #94a3b8;
+  font-family: "Inter", sans-serif;
+}
+
+.firewall-table-loading-spinner {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.firewall-table-loading-spinner .spinning {
+  font-size: 24px;
+  color: #ef4444;
+}
+
+.firewall-table-error {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 40px 20px;
+  color: #ef4444;
+  font-family: "Inter", sans-serif;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 8px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.firewall-table-error-icon {
+  font-size: 24px;
+}
+
+.firewall-table-error-content h4 {
+  margin: 0 0 8px 0;
+  color: #ef4444;
+}
+
+.firewall-table-error-content p {
+  margin: 0;
+  color: #94a3b8;
+}
+
+.firewall-table-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  color: #64748b;
+  font-family: "Inter", sans-serif;
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 8px;
+  border: 1px dashed #475569;
+}
+
+.firewall-table-empty-icon {
+  font-size: 32px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+/* ✅ Enhanced table container with horizontal scroll */
+.firewall-table-container {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  position: relative;
+}
+
+.firewall-table-wrapper {
+  overflow-x: auto;
+  overflow-y: visible;
+  max-width: 100%;
+  /* ✅ Custom scrollbar styling */
+  scrollbar-width: thin;
+  scrollbar-color: #475569 rgba(15, 23, 42, 0.3);
+}
+
+/* ✅ Webkit scrollbar styling */
+.firewall-table-wrapper::-webkit-scrollbar {
+  height: 8px;
+}
+
+.firewall-table-wrapper::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.3);
+  border-radius: 4px;
+}
+
+.firewall-table-wrapper::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+.firewall-table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+.firewall-table {
+  width: 100%;
+  min-width: 1200px; /* ✅ Minimum width for Windows table */
+  border-collapse: collapse;
+  color: #e2e8f0;
+  font-family: "Inter", sans-serif;
+}
+
+.firewall-table thead {
+  background: rgba(30, 41, 59, 0.8);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.firewall-table thead th {
+  padding: 16px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #475569;
+  white-space: nowrap; /* ✅ Prevent header text wrapping */
+  min-width: 120px; /* ✅ Minimum column width */
+}
+
+/* ✅ Specific column widths for Windows table */
+.firewall-table thead th:nth-child(1) { min-width: 150px; } /* Name */
+.firewall-table thead th:nth-child(2) { min-width: 200px; } /* Display Name */
+.firewall-table thead th:nth-child(3) { min-width: 100px; } /* Direction */
+.firewall-table thead th:nth-child(4) { min-width: 100px; } /* Action */
+.firewall-table thead th:nth-child(5) { min-width: 120px; } /* Enabled */
+.firewall-table thead th:nth-child(6) { min-width: 100px; } /* Profile */
+.firewall-table thead th:nth-child(7) { min-width: 80px; }  /* Actions */
+
+.firewall-table tbody td {
+  padding: 16px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  font-size: 14px;
+  vertical-align: middle;
+  white-space: nowrap; /* ✅ Prevent cell content wrapping */
+}
+
+.firewall-table-row {
+  transition: background-color 0.2s ease;
+}
+
+.firewall-table-row:hover {
+  background: rgba(239, 68, 68, 0.05);
+}
+
+/* ✅ Windows-specific cell styling */
+.firewall-rule-name,
+.firewall-display-name {
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.firewall-display-name {
+  max-width: 250px;
+}
+
+.firewall-profile {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ✅ Direction badge styling */
+.firewall-direction-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-family: "Inter", sans-serif;
+  display: inline-block;
+  min-width: 60px;
+  text-align: center;
+}
+
+.firewall-direction-badge.inbound {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.firewall-direction-badge.outbound {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+/* ✅ Toggle button styling */
+.firewall-toggle-btn {
+  background: none;
+  border: 2px solid;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: "Inter", sans-serif;
+  min-width: 90px;
+  justify-content: center;
+}
+
+.firewall-toggle-btn.enabled {
+  border-color: #22c55e;
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.1);
+}
+
+.firewall-toggle-btn.disabled {
+  border-color: #ef4444;
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.firewall-toggle-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+
+.firewall-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.firewall-rule-number,
+.firewall-protocol,
+.firewall-source,
+.firewall-destination {
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+}
+
+.firewall-target-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-family: "Inter", sans-serif;
+  display: inline-block;
+  min-width: 60px;
+  text-align: center;
+}
+
+.firewall-target-accept {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.firewall-target-drop {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.firewall-target-reject {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.firewall-target-default {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3b82f6;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.firewall-options-text {
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.firewall-table-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.firewall-table-delete-btn {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  border: none;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  min-width: 36px;
+  height: 36px;
+}
+
+.firewall-table-delete-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #dc2626, #b91c1c);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+}
+
+.firewall-table-delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.firewall-chain-badge {
+  padding: 4px 8px;
+  background: rgba(139, 92, 246, 0.2);
+  color: #8b5cf6;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-family: "Inter", sans-serif;
+  display: inline-block;
+  min-width: 60px;
+  text-align: center;
+}
+
+.firewall-port {
+  font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3b82f6;
+}
+
+/* ✅ Loading indicator */
+.firewall-table-updating {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 8px;
+  margin-top: 16px;
+  color: #3b82f6;
+  font-family: "Inter", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ✅ Enhanced responsive design */
+@media (max-width: 1024px) {
+  .firewall-table {
+    min-width: 1000px;
   }
   
-  .firewall-table-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
-  }
-  
+  .firewall-table thead th:nth-child(2) { min-width: 180px; }
+}
+
+@media (max-width: 768px) {
   .firewall-table-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    padding-bottom: 16px;
-    border-bottom: 1px solid #475569;
-  }
-  
-  .firewall-table-title-section {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-  }
-  
-  .firewall-table-icon-wrapper {
-    width: 48px;
-    height: 48px;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.3);
-  }
-  
-  .firewall-table-icon {
-    color: white;
-    font-size: 20px;
-  }
-  
-  .firewall-table-title {
-    color: #e2e8f0;
-    font-size: 18px;
-    font-weight: 600;
-    margin: 0 0 4px 0;
-    font-family: "Inter", sans-serif;
-  }
-  
-  .firewall-table-description {
-    color: #94a3b8;
-    font-size: 14px;
-    margin: 0;
-    font-family: "Inter", sans-serif;
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
   }
   
   .firewall-table-controls {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
-  
-  .firewall-status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  
-  .firewall-status-active {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.3);
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: "Inter", sans-serif;
-  }
-  
-  .firewall-status-inactive {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 12px;
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: "Inter", sans-serif;
-  }
-  
-  .firewall-status-icon {
-    font-size: 10px;
-  }
-  
-  .firewall-table-add-btn {
-    background: linear-gradient(135deg, #10b981, #059669);
-    color: white;
-    border: none;
-    padding: 10px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: "Inter", sans-serif;
-    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.3);
-  }
-  
-  .firewall-table-add-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #059669, #047857);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
-  }
-  
-  .firewall-table-add-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-  
-  .firewall-table-add-icon {
-    font-size: 12px;
-  }
-  
-  .firewall-table-content {
-    width: 100%;
+    align-self: flex-end;
   }
   
   .firewall-chain-selector {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-bottom: 20px;
-    padding: 16px;
-    background: rgba(15, 23, 42, 0.3);
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-  
-  .firewall-chain-label {
-    color: #e2e8f0;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: "Inter", sans-serif;
-  }
-  
-  .firewall-chain-select {
-    padding: 8px 12px;
-    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-    color: #e2e8f0;
-    border: 2px solid #475569;
-    border-radius: 6px;
-    font-size: 14px;
-    font-family: "Inter", sans-serif;
-    min-width: 200px;
-  }
-  
-  .firewall-chain-select:focus {
-    outline: none;
-    border-color: #ef4444;
-  }
-  
-  .firewall-chain-policy {
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: "Inter", sans-serif;
-  }
-  
-  .firewall-policy-accept {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.3);
-  }
-  
-  .firewall-policy-drop {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-  }
-  
-  .firewall-policy-reject {
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-    border: 1px solid rgba(245, 158, 11, 0.3);
-  }
-  
-  .firewall-table-loading {
-    text-align: center;
-    padding: 40px 20px;
-    color: #94a3b8;
-    font-family: "Inter", sans-serif;
-  }
-  
-  .firewall-table-empty {
-    display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-    color: #64748b;
-    font-family: "Inter", sans-serif;
-    background: rgba(15, 23, 42, 0.3);
-    border-radius: 8px;
-    border: 1px dashed #475569;
-  }
-  
-  .firewall-table-empty-icon {
-    font-size: 32px;
-    margin-bottom: 12px;
-    opacity: 0.5;
-  }
-  
-  .firewall-table-container {
-    background: rgba(15, 23, 42, 0.3);
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    gap: 12px;
+    align-items: flex-start;
   }
   
   .firewall-table {
-    width: 100%;
-    border-collapse: collapse;
-    color: #e2e8f0;
-    font-family: "Inter", sans-serif;
+    min-width: 900px;
   }
   
-  .firewall-table thead {
-    background: rgba(30, 41, 59, 0.8);
-  }
-  
-  .firewall-table thead th {
-    padding: 16px 12px;
-    text-align: left;
-    font-weight: 600;
-    font-size: 14px;
-    color: #94a3b8;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border-bottom: 1px solid #475569;
-  }
-  
-  .firewall-table tbody td {
-    padding: 16px 12px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    font-size: 14px;
-    vertical-align: middle;
-  }
-  
-  .firewall-table-row {
-    transition: background-color 0.2s ease;
-  }
-  
-  .firewall-table-row:hover {
-    background: rgba(239, 68, 68, 0.05);
-  }
-  
-  .firewall-rule-number,
-  .firewall-protocol,
-  .firewall-source,
-  .firewall-destination {
-    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-    font-size: 13px;
-  }
-  
-  .firewall-target-badge {
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-family: "Inter", sans-serif;
-    display: inline-block;
-    min-width: 60px;
-    text-align: center;
-  }
-  
-  .firewall-target-accept {
-    background: rgba(34, 197, 94, 0.2);
-    color: #22c55e;
-    border: 1px solid rgba(34, 197, 94, 0.3);
-  }
-  
-  .firewall-target-drop {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.3);
-  }
-  
-  .firewall-target-reject {
-    background: rgba(245, 158, 11, 0.2);
-    color: #f59e0b;
-    border: 1px solid rgba(245, 158, 11, 0.3);
-  }
-  
-  .firewall-target-default {
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-    border: 1px solid rgba(59, 130, 246, 0.3);
-  }
-  
-  .firewall-options-text {
-    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-    font-size: 12px;
-    color: #94a3b8;
-  }
-  
-  .firewall-table-delete-btn {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    color: white;
-    border: none;
-    padding: 8px 10px;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
-  }
-  
-  .firewall-table-delete-btn:hover:not(:disabled) {
-    background: linear-gradient(135deg, #dc2626, #b91c1c);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-  }
-  
-  .firewall-table-delete-btn:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-    transform: none;
-    box-shadow: none;
-  }
-  
-  /* Responsive Design */
-  @media (max-width: 768px) {
-    .firewall-table-header {
-      flex-direction: column;
-      gap: 16px;
-      align-items: flex-start;
-    }
-    
-    .firewall-table-controls {
-      align-self: flex-end;
-    }
-    
-    .firewall-chain-selector {
-      flex-direction: column;
-      gap: 12px;
-      align-items: flex-start;
-    }
-    
-    .firewall-table-container {
-      overflow-x: auto;
-    }
-    
-    .firewall-table {
-      min-width: 800px;
-    }
-  }
-  
+  .firewall-table thead th:nth-child(1) { min-width: 120px; }
+  .firewall-table thead th:nth-child(2) { min-width: 150px; }
+}
 
-  .firewall-all-chains-indicator {
-    padding: 4px 12px;
-    background: rgba(59, 130, 246, 0.2);
-    color: #3b82f6;
-    border: 1px solid rgba(59, 130, 246, 0.3);
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 600;
-    font-family: "Inter", sans-serif;
+@media (max-width: 480px) {
+  .firewall-table-card {
+    padding: 16px;
   }
   
-  .firewall-chain-badge {
-    padding: 4px 8px;
-    background: rgba(139, 92, 246, 0.2);
-    color: #8b5cf6;
-    border: 1px solid rgba(139, 92, 246, 0.3);
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    font-family: "Inter", sans-serif;
-    display: inline-block;
-    min-width: 60px;
-    text-align: center;
+  .firewall-table {
+    min-width: 800px;
   }
-
-
-  .firewall-port {
-    font-family: "JetBrains Mono", "Fira Code", "Consolas", monospace;
-    font-size: 13px;
-    font-weight: 600;
-    color: #3b82f6;
-  }
+}
