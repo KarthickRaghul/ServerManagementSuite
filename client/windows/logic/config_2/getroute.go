@@ -1,6 +1,8 @@
 package config_2
 
 import (
+	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -19,7 +21,7 @@ type RouteEntry struct {
 	Metric      string `json:"metric"`
 	Ref         string `json:"ref"`
 	Use         string `json:"use"`
-	Iface       string `json:"iface"`
+	Iface       string `json:"iface"` // Now shows interface name (e.g., Ethernet)
 }
 
 // HandleRouteTable handles requests to get the routing table on Windows
@@ -50,29 +52,28 @@ func HandleRouteTable(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(routes)
 }
 
-// getWindowsRoutingTable parses output from 'route print' on Windows
+// getWindowsRoutingTable parses output from 'route print' on Windows and normalizes iface names
 func getWindowsRoutingTable() ([]RouteEntry, error) {
 	out, err := exec.Command("route", "print").Output()
 	if err != nil {
 		return nil, fmt.Errorf("route print failed: %w", err)
 	}
 
+	ifaceMap, _ := getInterfaceNameMap()
+
 	lines := strings.Split(string(out), "\n")
 	routes := []RouteEntry{}
-
-	// Start parsing from "IPv4 Route Table"
 	inIPv4Section := false
+
 	for i := 0; i < len(lines); i++ {
 		line := strings.TrimSpace(lines[i])
 
-		// Detect start of IPv4 table
 		if strings.Contains(line, "IPv4 Route Table") {
 			inIPv4Section = true
 			continue
 		}
 		if inIPv4Section && strings.Contains(line, "Active Routes:") {
-			// Skip header line and column headers
-			i += 2
+			i += 2 // skip header and column line
 			for ; i < len(lines); i++ {
 				line = strings.TrimSpace(lines[i])
 				if line == "" || strings.Contains(line, "Persistent Routes") {
@@ -84,20 +85,24 @@ func getWindowsRoutingTable() ([]RouteEntry, error) {
 					continue
 				}
 
-				// Build RouteEntry with default values for missing fields
+				ifaceIP := fields[3]
+				ifaceName := ifaceIP
+				if name, ok := ifaceMap[ifaceIP]; ok {
+					ifaceName = name
+				}
+
 				route := RouteEntry{
 					Destination: fields[0],
 					Genmask:     fields[1],
 					Gateway:     fields[2],
-					Iface:       fields[3],
+					Iface:       ifaceName,
 					Metric:      fields[4],
 					Flags:       "U",
 					Ref:         "0",
 					Use:         "0",
 				}
 
-				// Set flag G for Gateway 0.0.0.0 or non-direct
-				if route.Gateway != "0.0.0.0" {
+				if route.Gateway != "0.0.0.0" && route.Gateway != "On-link" {
 					route.Flags += "G"
 				}
 
@@ -114,4 +119,34 @@ func getWindowsRoutingTable() ([]RouteEntry, error) {
 func splitByWhitespace(s string) []string {
 	re := regexp.MustCompile(`\s+`)
 	return re.Split(strings.TrimSpace(s), -1)
+}
+
+// getInterfaceNameMap returns a map[ipAddress] = interfaceName from PowerShell
+func getInterfaceNameMap() (map[string]string, error) {
+	cmd := exec.Command("powershell", "-Command", "Get-NetIPAddress | Select-Object -Property IPAddress, InterfaceAlias | ConvertTo-Csv -NoTypeInformation")
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	err := cmd.Run()
+	if err != nil {
+		return nil, err
+	}
+
+	reader := csv.NewReader(&out)
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+
+	ifaceMap := make(map[string]string)
+	for _, record := range records[1:] { // Skip header
+		if len(record) >= 2 {
+			ip := strings.TrimSpace(record[0])
+			iface := strings.TrimSpace(record[1])
+			if ip != "" && iface != "" {
+				ifaceMap[ip] = iface
+			}
+		}
+	}
+	return ifaceMap, nil
 }
