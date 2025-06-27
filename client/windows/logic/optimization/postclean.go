@@ -8,83 +8,74 @@ import (
 	"path/filepath"
 )
 
-// cleanDir tries to remove all files/subfolders in a directory (but not the dir itself)
-func cleanDir(path string) error {
-	dir, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer dir.Close()
+type CleanResult struct {
+	Cleaned []string
+	Failed  []string
+}
 
-	names, err := dir.Readdirnames(-1)
+func cleanDir(path string) CleanResult {
+	result := CleanResult{}
+
+	entries, err := os.ReadDir(path)
 	if err != nil {
-		return err
+		result.Failed = append(result.Failed, fmt.Sprintf("%s (read error: %v)", path, err))
+		return result
 	}
 
-	for _, name := range names {
-		fullpath := filepath.Join(path, name)
-		err = os.RemoveAll(fullpath)
+	for _, entry := range entries {
+		fullpath := filepath.Join(path, entry.Name())
+		err := os.RemoveAll(fullpath)
 		if err != nil {
-			return err
+			result.Failed = append(result.Failed, fmt.Sprintf("%s (%v)", fullpath, err))
+		} else {
+			result.Cleaned = append(result.Cleaned, fullpath)
 		}
 	}
-	return nil
+
+	return result
 }
 
 func HandleFileClean(w http.ResponseWriter, r *http.Request) {
-	// Check for POST method
 	if r.Method != http.MethodPost {
 		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Set content type
 	w.Header().Set("Content-Type", "application/json")
 
-	// Windows common temp/cache directories
-	tempDir := os.TempDir()                   // e.g., C:\Users\You\AppData\Local\Temp
-	localAppData := os.Getenv("LOCALAPPDATA") // e.g., C:\Users\You\AppData\Local
+	tempDir := os.TempDir()
+	localAppData := os.Getenv("LOCALAPPDATA")
 	userTemp := filepath.Join(localAppData, "Temp")
 
 	dirs := []string{tempDir, userTemp}
-	var cleaned []string
-	var failed []string
+	var totalCleaned, totalFailed []string
 
 	for _, dir := range dirs {
-		err := cleanDir(dir)
-		if err == nil {
-			cleaned = append(cleaned, dir)
-		} else {
-			failed = append(failed, fmt.Sprintf("%s (%v)", dir, err))
-		}
+		result := cleanDir(dir)
+		totalCleaned = append(totalCleaned, result.Cleaned...)
+		totalFailed = append(totalFailed, result.Failed...)
 	}
 
-	// Handle partial success
-	if len(failed) > 0 && len(cleaned) > 0 {
-		resp := map[string]interface{}{
-			"status":  "partial",
-			"message": fmt.Sprintf("Cleaned: %v. Failed: %v", cleaned, failed),
-		}
+	switch {
+	case len(totalFailed) == 0:
+		// All cleaned
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(resp)
-		return
-	} 
-
-	// Handle complete failure
-	if len(failed) > 0 && len(cleaned) == 0 {
-		sendError(w, fmt.Sprintf("Failed to clean all directories: %v", failed), http.StatusInternalServerError)
-		return
+		json.NewEncoder(w).Encode(map[string]string{
+			"status": "success",
+		})
+	case len(totalCleaned) > 0:
+		// Partial
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "partial",
+			"message": fmt.Sprintf("Cleaned: %v. Failed: %v", totalCleaned, totalFailed),
+		})
+	default:
+		// Full failure
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"status":  "failed",
+			"message": fmt.Sprintf("Failed to clean any files: %v", totalFailed),
+		})
 	}
-
-	// Complete success
-	sendPostSuccess(w)
-}
-
-
-func sendPostSuccess(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusOK)
-	response := map[string]string{
-		"status": "success",
-	}
-	json.NewEncoder(w).Encode(response)
 }

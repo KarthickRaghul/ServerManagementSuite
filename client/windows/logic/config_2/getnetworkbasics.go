@@ -9,13 +9,14 @@ import (
 	"strings"
 )
 
-// InterfaceInfo represents information about a network interface
+// InterfaceInfo represents network interface details
 type InterfaceInfo struct {
 	Mode   string `json:"mode"`
 	Status string `json:"status"`
+	Power  string `json:"power"`
 }
 
-// NetworkConfigResponse represents the response format
+// NetworkConfigResponse mirrors Linux structure
 type NetworkConfigResponse struct {
 	IPMethod  string                   `json:"ip_method"`
 	IPAddress string                   `json:"ip_address"`
@@ -26,94 +27,87 @@ type NetworkConfigResponse struct {
 	Interface map[string]InterfaceInfo `json:"interface"`
 }
 
-// HandleNetworkConfig handles the network config request on Windows
+// HandleNetworkConfig handles Windows network config request
 func HandleNetworkConfig(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
-		http.Error(w, "Only GET allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "Only GET method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 
+	ip, iface, subnet, gateway := getIPAndGateway()
+	dnsServers := getDNSServers()
+	uptime := getSystemUptimeWindows()
+
 	response := NetworkConfigResponse{
 		IPMethod:  "static",
-		IPAddress: "",
-		Gateway:   "",
-		Subnet:    "",
-		DNS:       "",
-		Uptime:    "",
+		IPAddress: ip,
+		Gateway:   gateway,
+		Subnet:    subnet,
+		DNS:       strings.Join(dnsServers, ", "),
+		Uptime:    uptime,
 		Interface: make(map[string]InterfaceInfo),
 	}
 
-	ip, ifaceName, subnet, gateway := getIPAndGateway()
-	response.IPAddress = ip
-	response.Gateway = gateway
-	response.Subnet = subnet
 	if ip != "" {
 		response.IPMethod = "dynamic"
 	}
 
 	ifaces, err := net.Interfaces()
 	if err == nil {
-		count := 1
-		for _, iface := range ifaces {
-			if (iface.Flags&net.FlagLoopback) != 0 || strings.Contains(iface.Name, "Loopback") {
+		index := 1
+		for _, ifaceObj := range ifaces {
+			if (ifaceObj.Flags&net.FlagLoopback) != 0 || strings.Contains(ifaceObj.Name, "Loopback") {
 				continue
 			}
 			status := "inactive"
-			if iface.Name == ifaceName {
+			if ifaceObj.Name == iface {
 				status = "active"
 			}
-			response.Interface[fmt.Sprintf("%d", count)] = InterfaceInfo{
-				Mode:   iface.Name,
-				Status: status,
+			power := "off"
+			if ifaceObj.Flags&net.FlagUp != 0 {
+				power = "on"
 			}
-			count++
+			response.Interface[fmt.Sprintf("%d", index)] = InterfaceInfo{
+				Mode:   ifaceObj.Name,
+				Status: status,
+				Power:  power,
+			}
+			index++
 		}
 	}
-
-	dnsServers := getDNSServers()
-	response.DNS = strings.Join(dnsServers, ", ")
-
-	response.Uptime = getSystemUptimeWindows()
 
 	fmt.Println("Sending Windows network configuration response...")
 	json.NewEncoder(w).Encode(response)
 }
 
-// getIPAndGateway returns the IP, interface name, subnet, and gateway
-func getIPAndGateway() (string, string, string, string) {
-	cmd := exec.Command("powershell", "(Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null } | Select-Object -First 1).IPv4Address.IPAddress")
-	out, err := cmd.Output()
+// Get IP, subnet, gateway, interface name
+func getIPAndGateway() (ip, iface, subnet, gateway string) {
+	script := `
+	$ipconfig = Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null } | Select-Object -First 1
+	$ip = $ipconfig.IPv4Address.IPAddress
+	$iface = $ipconfig.InterfaceAlias
+	$prefix = $ipconfig.IPv4Address.PrefixLength
+	$gw = ($ipconfig.IPv4DefaultGateway.NextHop)
+	Write-Output "$ip|$iface|$prefix|$gw"
+	`
+	cmd := exec.Command("powershell", "-Command", script)
+	output, err := cmd.Output()
 	if err != nil {
-		return "", "", "", ""
-	}
-	ip := strings.TrimSpace(string(out))
-
-	cmd2 := exec.Command("powershell", "Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null } | Select-Object -First 1 -ExpandProperty InterfaceAlias")
-	ifaceOut, err := cmd2.Output()
-	if err != nil {
-		return ip, "", "", ""
-	}
-	iface := strings.TrimSpace(string(ifaceOut))
-
-	cmd3 := exec.Command("powershell", "Get-NetIPConfiguration | Where-Object { $_.IPv4DefaultGateway -ne $null } | Select-Object -First 1 | ForEach-Object { $_.IPv4Address.PrefixLength }")
-	subnetPrefix, err := cmd3.Output()
-	subnet := "255.255.255.0"
-	if err == nil {
-		subnet = prefixToSubnet(strings.TrimSpace(string(subnetPrefix)))
+		return
 	}
 
-	cmd4 := exec.Command("powershell", "Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Select-Object -First 1 -ExpandProperty NextHop")
-	gatewayOut, err := cmd4.Output()
-	gateway := strings.TrimSpace(string(gatewayOut))
-	if err != nil {
-		gateway = ""
+	parts := strings.Split(strings.TrimSpace(string(output)), "|")
+	if len(parts) == 4 {
+		ip = strings.TrimSpace(parts[0])
+		iface = strings.TrimSpace(parts[1])
+		subnet = prefixToSubnet(parts[2])
+		gateway = strings.TrimSpace(parts[3])
 	}
-
-	return ip, iface, subnet, gateway
+	return
 }
 
-// Convert prefix length to subnet
+// Convert CIDR prefix to subnet mask
 func prefixToSubnet(prefix string) string {
 	var bits int
 	fmt.Sscanf(prefix, "%d", &bits)
@@ -125,7 +119,7 @@ func prefixToSubnet(prefix string) string {
 		mask&0xFF)
 }
 
-// getDNSServers returns DNS servers from Windows
+// Get DNS servers
 func getDNSServers() []string {
 	cmd := exec.Command("powershell", "Get-DnsClientServerAddress -AddressFamily IPv4 | ForEach-Object { $_.ServerAddresses }")
 	output, err := cmd.Output()
@@ -143,17 +137,17 @@ func getDNSServers() []string {
 	return servers
 }
 
-// getSystemUptimeWindows returns system uptime using PowerShell
+// Get system uptime
 func getSystemUptimeWindows() string {
-	cmd := exec.Command("powershell", "-Command", `
-		$uptime = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
-		$uptimeSpan = (Get-Date) - $uptime
-		"{0} days, {1} hours, {2} minutes" -f $uptimeSpan.Days, $uptimeSpan.Hours, $uptimeSpan.Minutes
-	`)
-
-	out, err := cmd.Output()
+	script := `
+	$boot = (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+	$uptime = (Get-Date) - $boot
+	"{0}d {1}h {2}m {3}s" -f $uptime.Days, $uptime.Hours, $uptime.Minutes, $uptime.Seconds
+	`
+	cmd := exec.Command("powershell", "-Command", script)
+	output, err := cmd.Output()
 	if err != nil {
-		return "Unable to determine uptime"
+		return "unknown"
 	}
-	return strings.TrimSpace(string(out))
+	return strings.TrimSpace(string(output))
 }

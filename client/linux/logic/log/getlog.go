@@ -23,7 +23,6 @@ type LogFilterRequest struct {
 	Time string `json:"time"` // Format: "HH:MM:SS"
 }
 
-// Standard error response structure
 type ErrorResponse struct {
 	Status  string `json:"status"`
 	Message string `json:"message"`
@@ -41,42 +40,85 @@ func parseLogLevel(message string) string {
 	}
 }
 
-func parseApplication(line string) string {
-	// Parse from ISO format: "2025-06-10T08:00:05+05:30 ROG-G15 kernel: message"
-	parts := strings.Fields(line)
-	if len(parts) >= 3 {
-		// Skip timestamp and hostname, get service name
-		servicePart := parts[2]
-		// Remove brackets and process info if present
-		if strings.Contains(servicePart, "[") {
-			servicePart = strings.Split(servicePart, "[")[0]
-		}
-		servicePart = strings.TrimSuffix(servicePart, ":")
-		return servicePart
+// validateDateTime validates and parses date/time strings
+func validateDateTime(dateStr, timeStr string) (time.Time, time.Time, bool, error) {
+	now := time.Now()
+
+	// Default to today if no date provided
+	targetDate := dateStr
+	if targetDate == "" {
+		targetDate = now.Format("2006-01-02")
 	}
-	return "unknown"
+
+	// Validate date format
+	parsedDate, err := time.Parse("2006-01-02", targetDate)
+	if err != nil {
+		return time.Time{}, time.Time{}, false, fmt.Errorf("invalid date format. Expected YYYY-MM-DD, got: %s", targetDate)
+	}
+
+	// Default to start of day if no time provided
+	targetTime := timeStr
+	if targetTime == "" {
+		targetTime = "00:00:00"
+	}
+
+	// Validate time format
+	_, err = time.Parse("15:04:05", targetTime)
+	if err != nil {
+		return time.Time{}, time.Time{}, false, fmt.Errorf("invalid time format. Expected HH:MM:SS, got: %s", targetTime)
+	}
+
+	// Create start time
+	startTime := time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(),
+		0, 0, 0, 0, time.Local)
+
+	if timeStr != "" {
+		// Parse the specific time
+		timeParts := strings.Split(targetTime, ":")
+		hour, _ := strconv.Atoi(timeParts[0])
+		minute, _ := strconv.Atoi(timeParts[1])
+		second, _ := strconv.Atoi(timeParts[2])
+
+		startTime = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(),
+			hour, minute, second, 0, time.Local)
+	}
+
+	// End time logic
+	var endTime time.Time
+	var useEndTime bool
+
+	if timeStr == "" {
+		// If only date provided, use end of day to limit to that specific date
+		endTime = time.Date(parsedDate.Year(), parsedDate.Month(), parsedDate.Day(),
+			23, 59, 59, 0, time.Local)
+		useEndTime = true
+	} else {
+		// If specific time provided, add 30 minutes for the time window
+		endTime = startTime.Add(30 * time.Minute)
+		useEndTime = true
+	}
+
+	return startTime, endTime, useEndTime, nil
 }
 
 func HandleLog(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
-	// Support both GET and POST methods
 	if r.Method != http.MethodGet && r.Method != http.MethodPost {
 		sendError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Get number of lines from query parameter
+	// Default number of lines
 	numLines := 100
 	if n := r.URL.Query().Get("lines"); n != "" {
-		if parsed, err := strconv.Atoi(n); err == nil && parsed > 0 {
+		if parsed, err := strconv.Atoi(n); err == nil && parsed > 0 && parsed <= 10000 {
 			numLines = parsed
 		}
 	}
 
 	log.Printf("🔍 [CLIENT-LOG] Method: %s, Lines: %d", r.Method, numLines)
 
-	// Parse date/time filter from request body (for POST requests)
 	var filter LogFilterRequest
 	if r.Method == http.MethodPost && r.Body != nil {
 		if err := json.NewDecoder(r.Body).Decode(&filter); err != nil {
@@ -87,142 +129,152 @@ func HandleLog(w http.ResponseWriter, r *http.Request) {
 		log.Printf("🔍 [CLIENT-LOG] Received filter: %+v", filter)
 	}
 
-	// Build journalctl arguments based on your working command
-	var args []string
+	args := []string{"--no-pager", "--output=json"}
 
-	if filter.Date != "" {
-		// Use the exact format that works
-		since := filter.Date + " 00:00:00"
-		until := filter.Date + " 23:59:59"
+	// Handle date/time filtering
+	if filter.Date != "" || filter.Time != "" {
+		startTime, endTime, _, err := validateDateTime(filter.Date, filter.Time)
+		if err != nil {
+			log.Printf("❌ [CLIENT-LOG] DateTime validation error: %v", err)
+			sendError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		// Format start and end time for journalctl
+		since := startTime.Format("2006-01-02 15:04:05")
+		until := endTime.Format("2006-01-02 15:04:05")
+		args = append(args, "--since", since, "--until", until)
 
 		if filter.Time != "" {
-			// If time is specified, start from that time
-			since = fmt.Sprintf("%s %s", filter.Date, filter.Time)
+			log.Printf("🔍 [CLIENT-LOG] Using 30-minute time window: %s to %s (will limit to first %d logs)", since, until, numLines)
+		} else {
+			log.Printf("🔍 [CLIENT-LOG] Using date range filter: %s to %s (will limit to %d logs)", since, until, numLines)
 		}
-
-		args = []string{
-			"--since", since,
-			"--until", until,
-			"--no-pager",
-			"--output=short-iso",
-		}
-		log.Printf("🔍 [CLIENT-LOG] Using date range: %s to %s", since, until)
-
-	} else if filter.Time != "" {
-		// Only time provided - use today's date with specified time
-		today := time.Now().Format("2006-01-02")
-		since := fmt.Sprintf("%s %s", today, filter.Time)
-		args = []string{
-			"-n", fmt.Sprintf("%d", numLines),
-			"--since", since,
-			"--no-pager",
-			"--output=short-iso",
-		}
-		log.Printf("🔍 [CLIENT-LOG] Using time filter: %s", since)
-
 	} else {
-		// No date/time filter - get recent logs
-		args = []string{
-			"-n", fmt.Sprintf("%d", numLines),
-			"--no-pager",
-			"--output=short-iso",
-		}
-		log.Printf("🔍 [CLIENT-LOG] Using recent logs filter")
+		log.Printf("🔍 [CLIENT-LOG] No filter provided. Using recent logs only")
+		// When no filter is provided, get logs from last 24 hours
+		since := time.Now().Add(-24 * time.Hour).Format("2006-01-02 15:04:05")
+		args = append(args, "--since", since)
+	}
+
+	// Always get logs in chronological order (oldest first) when using time filters
+	// This ensures we get the FIRST N logs from the time window, not the last N
+	if filter.Date != "" || filter.Time != "" {
+		args = append(args, "--reverse")
+		log.Printf("🔍 [CLIENT-LOG] Getting logs in chronological order from time window")
+	} else {
+		// For no filter, get most recent logs (newest first)
+		args = append(args, "-n", fmt.Sprintf("%d", numLines))
+		log.Printf("🔍 [CLIENT-LOG] Getting last %d recent logs", numLines)
 	}
 
 	log.Printf("🔍 [CLIENT-LOG] Executing: journalctl %s", strings.Join(args, " "))
 
-	// Execute journalctl command
 	cmd := exec.Command("journalctl", args...)
-	output, err := cmd.CombinedOutput()
+	output, err := cmd.Output()
 	if err != nil {
-		log.Printf("❌ [CLIENT-LOG] journalctl error: %v, output: %s", err, string(output))
+		log.Printf("❌ [CLIENT-LOG] journalctl error: %v", err)
+
+		// Check if it's a journalctl-specific error
+		if exitError, ok := err.(*exec.ExitError); ok {
+			stderr := string(exitError.Stderr)
+			if strings.Contains(stderr, "Invalid time") || strings.Contains(stderr, "time") {
+				sendError(w, "Invalid date/time format for system logs", http.StatusBadRequest)
+				return
+			}
+		}
+
 		sendError(w, "Error fetching logs: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	log.Printf("✅ [CLIENT-LOG] journalctl executed successfully, output length: %d", len(output))
+	if len(output) == 0 {
+		sendError(w, "No logs found for the specified criteria", http.StatusNotFound)
+		return
+	}
 
-	// Parse journalctl output in ISO format
-	lines := strings.Split(string(output), "\n")
+	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
 	var entries []LogEntry
 
-	for _, line := range lines {
-		if len(line) < 20 {
+	// Process logs and limit to requested number
+	processedCount := 0
+	for i, line := range lines {
+		// Stop when we reach the requested number of entries
+		if processedCount >= numLines {
+			break
+		}
+
+		if strings.TrimSpace(line) == "" {
 			continue
 		}
 
-		// Parse ISO format: "2025-06-10T08:00:05+05:30 ROG-G15 kernel: message"
-		// Extract timestamp (first 25 characters include timezone)
-		if len(line) < 25 {
+		var raw map[string]interface{}
+		if err := json.Unmarshal([]byte(line), &raw); err != nil {
+			log.Printf("⚠️ [CLIENT-LOG] Failed to parse log line %d: %v", i, err)
 			continue
 		}
 
-		timestampStr := line[:25]            // "2025-06-10T08:00:05+05:30"
-		rest := strings.TrimSpace(line[26:]) // Everything after timestamp
+		// Extract timestamp
+		tsStr, ok := raw["__REALTIME_TIMESTAMP"].(string)
+		if !ok {
+			continue
+		}
 
-		// Parse timestamp
-		t, err := time.Parse("2006-01-02T15:04:05-07:00", timestampStr)
+		tsInt, err := strconv.ParseInt(tsStr, 10, 64)
 		if err != nil {
-			log.Printf("⚠️ [CLIENT-LOG] Failed to parse timestamp '%s': %v", timestampStr, err)
-			t = time.Now()
-		}
-
-		// Parse the rest: "ROG-G15 kernel: message"
-		msgParts := strings.SplitN(rest, ": ", 2)
-		if len(msgParts) < 2 {
 			continue
 		}
 
-		application := parseApplication(line)
-		message := msgParts[1]
-		level := parseLogLevel(message)
+		timestamp := time.UnixMicro(tsInt).Format(time.RFC3339)
 
-		entry := LogEntry{
-			Timestamp:   t.Format(time.RFC3339),
-			Level:       level,
-			Application: application,
-			Message:     message,
+		// Extract message
+		msg, _ := raw["MESSAGE"].(string)
+		if msg == "" {
+			continue // Skip entries without messages
 		}
-		entries = append(entries, entry)
+
+		// Extract application name
+		app, _ := raw["SYSLOG_IDENTIFIER"].(string)
+		if app == "" {
+			app, _ = raw["_COMM"].(string)
+		}
+		if app == "" {
+			app, _ = raw["_SYSTEMD_UNIT"].(string)
+		}
+		if app == "" {
+			app = "unknown"
+		}
+
+		level := parseLogLevel(msg)
+
+		entries = append(entries, LogEntry{
+			Timestamp:   timestamp,
+			Level:       level,
+			Application: app,
+			Message:     msg,
+		})
+
+		processedCount++
 	}
 
-	// Apply line limit if date filter was used and we have too many entries
-	if filter.Date != "" && len(entries) > numLines {
-		// Take the most recent entries
-		entries = entries[len(entries)-numLines:]
-	}
-
-	// ✅ Check if time filter is applied and no logs found
-	if filter.Time != "" && len(entries) == 0 {
-		log.Printf("❌ [CLIENT-LOG] No logs found after the specified time: %s", filter.Time)
-		sendError(w, "No logs found after the specified time", http.StatusNotFound)
+	if len(entries) == 0 {
+		sendError(w, "No valid log entries found", http.StatusNotFound)
 		return
 	}
 
-	// ✅ Check if date filter is applied and no logs found
-	if filter.Date != "" && len(entries) == 0 {
-		log.Printf("❌ [CLIENT-LOG] No logs found for the specified date: %s", filter.Date)
-		sendError(w, "No logs found for the specified date", http.StatusNotFound)
-		return
-	}
+	log.Printf("✅ [CLIENT-LOG] Parsed %d log entries from time window", len(entries))
 
-	log.Printf("✅ [CLIENT-LOG] Parsed %d log entries", len(entries))
-
-	// Return JSON response (keep success format unchanged)
 	if err := json.NewEncoder(w).Encode(entries); err != nil {
 		log.Printf("❌ [CLIENT-LOG] Failed to encode response: %v", err)
 		sendError(w, "Failed to encode response", http.StatusInternalServerError)
-		return
 	}
 }
 
-// sendError sends standardized error response
 func sendError(w http.ResponseWriter, message string, statusCode int) {
 	w.WriteHeader(statusCode)
-	errorResp := ErrorResponse{
+	json.NewEncoder(w).Encode(ErrorResponse{
 		Status:  "failed",
 		Message: message,
-	}
-	json.NewEncoder(w).Encode(errorResp)
+	})
 }
+
