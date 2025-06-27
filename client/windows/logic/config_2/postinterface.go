@@ -16,45 +16,44 @@ type UpdateInterfaceRequest struct {
 
 // HandleUpdateInterface handles the POST request to update interface status (Windows version)
 func HandleUpdateInterface(w http.ResponseWriter, r *http.Request) {
+	// Check for POST method - same as Linux
 	if r.Method != http.MethodPost {
-		http.Error(w, "Only POST allowed", http.StatusMethodNotAllowed)
+		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Set content type
 	w.Header().Set("Content-Type", "application/json")
 
+	// Parse request body
 	var request UpdateInterfaceRequest
 	err := json.NewDecoder(r.Body).Decode(&request)
 	if err != nil {
-		sendError1(w, "Failed to parse request body", err)
+		sendError(w, "Invalid JSON input: "+err.Error(), http.StatusBadRequest)
 		return
 	}
 
+	// Validate interface name
 	if request.Interface == "" {
-		sendError1(w, "Interface name is required", fmt.Errorf("missing interface name"))
+		sendError(w, "Interface name is required", http.StatusBadRequest)
 		return
 	}
 
+	// Validate status
 	if request.Status != "enable" && request.Status != "disable" {
-		sendError1(w, "Status must be 'enable' or 'disable'", fmt.Errorf("invalid status: %s", request.Status))
+		sendError(w, "Status must be 'enable' or 'disable'", http.StatusBadRequest)
 		return
 	}
 
+	// Update interface status
 	err = updateInterfaceStatusWindows(request.Interface, request.Status)
 	if err != nil {
-		sendError1(w, fmt.Sprintf("Failed to %s interface %s", request.Status, request.Interface), err)
+		sendError(w, fmt.Sprintf("Failed to %s interface %s: %v", request.Status, request.Interface, err), http.StatusInternalServerError)
 		return
 	}
 
-	response := map[string]string{
-		"status":    "success",
-		"message":   fmt.Sprintf("Interface %s %sd successfully", request.Interface, request.Status),
-		"timestamp": "2025-05-30 14:39:25",
-		"user":      "kishore-001",
-	}
-
-	fmt.Printf("Interface %s %sd by user %s\n", request.Interface, request.Status, "kishore-001")
-	json.NewEncoder(w).Encode(response)
+	// Send standard success response - exactly like Linux
+	sendPostSuccess(w)
 }
 
 // updateInterfaceStatusWindows enables or disables a network interface using PowerShell
@@ -64,14 +63,27 @@ func updateInterfaceStatusWindows(interfaceName, status string) error {
 		action = "Enable-NetAdapter"
 	}
 
-	// Construct PowerShell command
-	psCmd := fmt.Sprintf(`%s -Name "%s" -Confirm:$false`, action, interfaceName)
-	cmd := exec.Command("powershell", "-Command", psCmd)
+	// Enhanced PowerShell command with error handling
+	psCmd := fmt.Sprintf(`
+	try {
+		%s -Name "%s" -Confirm:$false
+		Write-Output "SUCCESS: Interface %s %sd"
+	} catch {
+		Write-Output "ERROR: $($_.Exception.Message)"
+	}
+	`, action, interfaceName, interfaceName, status)
 
+	cmd := exec.Command("powershell", "-Command", psCmd)
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return fmt.Errorf("PowerShell command failed: %v\nOutput: %s", err, strings.TrimSpace(string(output)))
+		return fmt.Errorf("command execution failed: %v, output: %s", err, string(output))
 	}
 
-	return nil
+	result := strings.TrimSpace(string(output))
+	if strings.HasPrefix(result, "SUCCESS") {
+		fmt.Printf("✅ Interface %s %sd successfully\n", interfaceName, status)
+		return nil
+	} else {
+		return fmt.Errorf("PowerShell error: %s", result)
+	}
 }
