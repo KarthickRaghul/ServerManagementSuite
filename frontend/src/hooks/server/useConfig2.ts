@@ -332,9 +332,8 @@ export const useConfig2 = () => {
   };
 
   // ✅ Enhanced Network Update with better error handling
-  const updateNetwork = async (
-    networkData: NetworkUpdateData,
-  ): Promise<boolean> => {
+  // Enhanced updateNetwork function that doesn't wait for response on IP changes
+  const updateNetwork = async (networkData: NetworkUpdateData): Promise<boolean> => {
     if (!activeDevice) {
       addNotification({
         title: "Network Update Error",
@@ -344,12 +343,13 @@ export const useConfig2 = () => {
       });
       return false;
     }
-
+  
     setLoading((prev) => ({ ...prev, updating: true }));
     setError(null);
-
+  
     try {
-      const response = await AuthService.makeAuthenticatedRequest(
+      // Send the request but do not wait for response
+      AuthService.makeAuthenticatedRequest(
         `${BACKEND_URL}/api/admin/server/config2/postnetwork`,
         {
           method: "POST",
@@ -361,40 +361,21 @@ export const useConfig2 = () => {
             ...networkData,
           }),
         },
-      );
-
-      if (response.ok) {
-        const data: StandardResponse = await response.json();
-
-        // ✅ Check for standardized error response
-        if (data.status === "failed") {
-          throw new Error(data.message || "Network update failed");
-        }
-
-        if (data.status === "success") {
-          await fetchNetworkBasics();
-          addNotification({
-            title: "Network Updated",
-            message: "Network configuration has been updated successfully",
-            type: "success",
-            duration: 3000,
-          });
-          return true;
-        } else {
-          throw new Error("Invalid response status from server");
-        }
-      } else {
-        // ✅ Enhanced HTTP error handling
-        const errorData = (await response
-          .json()
-          .catch(() => ({}))) as ErrorResponse;
-        throw new Error(
-          errorData.message || `Failed to update network: ${response.status}`,
-        );
-      }
+      ).catch(() => {
+        // Ignore errors since we do not wait for response
+      });
+  
+      // Show immediate notification
+      addNotification({
+        title: "Network Update Initiated",
+        message: "Network update command sent. Please re-add the device if IP address changed.",
+        type: "info",
+        duration: 5000,
+      });
+  
+      return true;
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to update network";
+      const errorMessage = err instanceof Error ? err.message : "Failed to update network";
       console.error("Error updating network:", err);
       setError(errorMessage);
       addNotification({
@@ -408,6 +389,8 @@ export const useConfig2 = () => {
       setLoading((prev) => ({ ...prev, updating: false }));
     }
   };
+  
+
 
   // ✅ Enhanced Interface Update with better error handling
   const updateInterface = async (

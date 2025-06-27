@@ -24,7 +24,7 @@ func HandleRestartInterfaces(w http.ResponseWriter, r *http.Request) {
 
 	interfaces, err := net.Interfaces()
 	if err != nil {
-		sendError(w, "Failed to get network interfaces", err)
+		sendError(w, "Failed to get network interfaces", http.StatusInternalServerError)
 		return
 	}
 
@@ -86,11 +86,3 @@ func restartInterfaceWindows(interfaceName string) error {
 }
 
 // sendError sends a JSON error response
-func sendError(w http.ResponseWriter, message string, err error) {
-	w.WriteHeader(http.StatusBadRequest)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":  "error",
-		"message": message,
-		"details": err.Error(),
-	})
-}

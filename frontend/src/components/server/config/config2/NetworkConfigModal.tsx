@@ -8,6 +8,7 @@ import {
   FaServer,
 } from "react-icons/fa";
 import "./NetworkConfigModal.css";
+import { useNotification } from "../../../../context/NotificationContext";
 
 interface NetworkBasics {
   ip_method: string;
@@ -55,6 +56,7 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
   });
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { addNotification } = useNotification();
 
   useEffect(() => {
     if (currentConfig && isOpen) {
@@ -108,9 +110,9 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
+  
     setIsSubmitting(true);
-
+  
     const networkData: {
       method: string;
       ip?: string;
@@ -120,7 +122,7 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
     } = {
       method: formData.method,
     };
-
+  
     if (formData.method === "static") {
       networkData.ip = formData.ip.trim();
       networkData.subnet = formData.subnet.trim();
@@ -130,16 +132,34 @@ const NetworkConfigModal: React.FC<NetworkConfigModalProps> = ({
       }
     }
 
+
     try {
+      // ✅ Check if this is an IP change
+      const isIPChange = formData.method === "static" && 
+                        formData.ip.trim() !== currentConfig?.ip_address;
+  
       const success = await onSubmit(networkData);
+      
       if (success) {
         setErrors({});
-        onClose(); // ✅ Close modal on success
+        
+        // ✅ For IP changes, show warning and close modal
+        if (isIPChange) {
+          addNotification({
+            title: "IP Change Initiated",
+            message: "IP address change sent. Connection will be lost shortly.",
+            type: "info",
+            duration: 5000,
+          });
+        }
+        
+        onClose(); // Close modal for all successful operations
       }
     } finally {
       setIsSubmitting(false);
     }
   };
+  
 
   const handleBackdropClick = (e: React.MouseEvent) => {
     if (e.target === e.currentTarget && !isSubmitting) {
