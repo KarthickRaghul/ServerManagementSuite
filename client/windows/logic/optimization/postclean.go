@@ -8,6 +8,34 @@ import (
 	"path/filepath"
 )
 
+// Standard response structures matching other handlers
+type SuccessResponse struct {
+	Status string `json:"status"`
+}
+
+type PartialResponse struct {
+	Status  string `json:"status"`
+	Message string `json:"message"`
+}
+
+// Standard success response function
+func sendPostSuccess(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusOK)
+	response := SuccessResponse{
+		Status: "success",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
+// Partial success response function
+func sendPartialResponse(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusOK)
+	response := PartialResponse{
+		Status: "partial",
+	}
+	json.NewEncoder(w).Encode(response)
+}
+
 type CleanResult struct {
 	Cleaned []string
 	Failed  []string
@@ -36,13 +64,16 @@ func cleanDir(path string) CleanResult {
 }
 
 func HandleFileClean(w http.ResponseWriter, r *http.Request) {
+	// Check for POST method
 	if r.Method != http.MethodPost {
 		sendError(w, "Only POST method allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
+	// Set content type
 	w.Header().Set("Content-Type", "application/json")
 
+	// Windows temp directories
 	tempDir := os.TempDir()
 	localAppData := os.Getenv("LOCALAPPDATA")
 	userTemp := filepath.Join(localAppData, "Temp")
@@ -56,26 +87,16 @@ func HandleFileClean(w http.ResponseWriter, r *http.Request) {
 		totalFailed = append(totalFailed, result.Failed...)
 	}
 
+	// ✅ Updated response logic with standard format
 	switch {
 	case len(totalFailed) == 0:
-		// All cleaned
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{
-			"status": "success",
-		})
+		// Complete success - all files cleaned
+		sendPostSuccess(w)
 	case len(totalCleaned) > 0:
-		// Partial
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status":  "partial",
-			"message": fmt.Sprintf("The Data are Cleaned Partial because file are open"),
-		})
+		// Partial success - some files cleaned, some failed
+		sendPartialResponse(w)
 	default:
-		// Full failure
-		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"status":  "failed",
-			"message": fmt.Sprintf("Failed to clean any files: %v", totalFailed),
-		})
+		// Complete failure - no files cleaned
+		sendError(w, "Failed to clean any files. All directories may be protected or in use", http.StatusInternalServerError)
 	}
 }
