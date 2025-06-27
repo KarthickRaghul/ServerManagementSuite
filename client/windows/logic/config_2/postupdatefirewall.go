@@ -73,7 +73,7 @@ func HandleUpdateFirewall(w http.ResponseWriter, r *http.Request) {
 	sendPostSuccess(w)
 }
 
-// Add Windows firewall rule with enhanced logic
+// ✅ Fixed: Add Windows firewall rule with proper output handling
 func addWindowsFirewallRule(req UpdateFirewallRequest) (bool, string) {
 	// Determine rule name - use provided name or generate one
 	ruleName := req.Name
@@ -109,15 +109,39 @@ func addWindowsFirewallRule(req UpdateFirewallRequest) (bool, string) {
 		port = req.Port
 	}
 
-	// Build PowerShell command
+	// ✅ Fixed: Build PowerShell command with proper output suppression
 	psCmd := fmt.Sprintf(`
 	try {
-		New-NetFirewallRule -DisplayName "%s" -Direction %s -Action %s -Protocol %s -LocalPort %s -Profile %s -Enabled True
-		Write-Output "SUCCESS: Firewall rule added"
+		$rule = New-NetFirewallRule -DisplayName "%s" -Direction %s -Action %s -Protocol %s -LocalPort %s -Profile %s -Enabled True`,
+		ruleName, direction, action, strings.ToUpper(req.Protocol), port, profile)
+
+	// ✅ Add optional parameters if provided
+	if req.RemotePort != "" {
+		psCmd += fmt.Sprintf(` -RemotePort "%s"`, req.RemotePort)
+	}
+	if req.LocalAddress != "" && req.LocalAddress != "Any" {
+		psCmd += fmt.Sprintf(` -LocalAddress "%s"`, req.LocalAddress)
+	}
+	if req.RemoteAddress != "" && req.RemoteAddress != "Any" {
+		psCmd += fmt.Sprintf(` -RemoteAddress "%s"`, req.RemoteAddress)
+	}
+	if req.Program != "" {
+		psCmd += fmt.Sprintf(` -Program "%s"`, req.Program)
+	}
+	if req.Service != "" {
+		psCmd += fmt.Sprintf(` -Service "%s"`, req.Service)
+	}
+
+	// ✅ Complete the PowerShell command with proper success indication
+	psCmd += `
+		if ($rule) {
+			Write-Output "SUCCESS: Firewall rule added successfully"
+		} else {
+			Write-Output "ERROR: Failed to create firewall rule"
+		}
 	} catch {
 		Write-Output "ERROR: $($_.Exception.Message)"
-	}
-	`, ruleName, direction, action, strings.ToUpper(req.Protocol), port, profile)
+	}`
 
 	// Execute PowerShell command
 	cmd := exec.Command("powershell", "-Command", psCmd)
@@ -127,14 +151,23 @@ func addWindowsFirewallRule(req UpdateFirewallRequest) (bool, string) {
 	}
 
 	result := strings.TrimSpace(string(output))
-	if strings.HasPrefix(result, "SUCCESS") {
-		return true, ""
-	} else {
-		return false, result
+	lines := strings.Split(result, "\n")
+
+	// ✅ Check the last line for SUCCESS/ERROR (ignore verbose object output)
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if strings.HasPrefix(line, "SUCCESS") {
+			return true, ""
+		} else if strings.HasPrefix(line, "ERROR") {
+			return false, line
+		}
 	}
+
+	// ✅ If no explicit SUCCESS/ERROR found, check if rule was created
+	return verifyRuleExists(ruleName)
 }
 
-// Delete Windows firewall rule
+// ✅ Fixed: Delete Windows firewall rule with proper output handling
 func deleteWindowsFirewallRule(req UpdateFirewallRequest) (bool, string) {
 	// Determine rule name to delete
 	ruleName := req.Name
@@ -146,19 +179,19 @@ func deleteWindowsFirewallRule(req UpdateFirewallRequest) (bool, string) {
 		ruleName = fmt.Sprintf("SMS-Rule-%s-%s", strings.ToUpper(req.Protocol), req.Port)
 	}
 
-	// Build PowerShell command to remove rule
+	// ✅ Fixed: Build PowerShell command with proper output handling
 	psCmd := fmt.Sprintf(`
 	try {
-		Remove-NetFirewallRule -DisplayName "%s" -ErrorAction Stop
-		Write-Output "SUCCESS: Firewall rule deleted"
-	} catch {
-		if ($_.Exception.Message -like "*No MSFT_NetFirewallRule objects found*") {
-			Write-Output "SUCCESS: Rule not found (already deleted)"
+		$rules = Get-NetFirewallRule -DisplayName "%s" -ErrorAction SilentlyContinue
+		if ($rules) {
+			Remove-NetFirewallRule -DisplayName "%s" -Confirm:$false -ErrorAction Stop
+			Write-Output "SUCCESS: Firewall rule deleted successfully"
 		} else {
-			Write-Output "ERROR: $($_.Exception.Message)"
+			Write-Output "SUCCESS: Rule not found (already deleted)"
 		}
-	}
-	`, ruleName)
+	} catch {
+		Write-Output "ERROR: $($_.Exception.Message)"
+	}`, ruleName, ruleName)
 
 	// Execute PowerShell command
 	cmd := exec.Command("powershell", "-Command", psCmd)
@@ -168,19 +201,45 @@ func deleteWindowsFirewallRule(req UpdateFirewallRequest) (bool, string) {
 	}
 
 	result := strings.TrimSpace(string(output))
-	if strings.HasPrefix(result, "SUCCESS") {
+	lines := strings.Split(result, "\n")
+
+	// ✅ Check the last line for SUCCESS/ERROR
+	for i := len(lines) - 1; i >= 0; i-- {
+		line := strings.TrimSpace(lines[i])
+		if strings.HasPrefix(line, "SUCCESS") {
+			return true, ""
+		} else if strings.HasPrefix(line, "ERROR") {
+			return false, line
+		}
+	}
+
+	return true, ""
+}
+
+// ✅ New helper function to verify rule creation
+func verifyRuleExists(ruleName string) (bool, string) {
+	psCmd := fmt.Sprintf(`
+	try {
+		$rule = Get-NetFirewallRule -DisplayName "%s" -ErrorAction SilentlyContinue
+		if ($rule) {
+			Write-Output "SUCCESS: Rule verified to exist"
+		} else {
+			Write-Output "ERROR: Rule not found after creation"
+		}
+	} catch {
+		Write-Output "ERROR: $($_.Exception.Message)"
+	}`, ruleName)
+
+	cmd := exec.Command("powershell", "-Command", psCmd)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return false, fmt.Sprintf("Verification failed: %v", err)
+	}
+
+	result := strings.TrimSpace(string(output))
+	if strings.Contains(result, "SUCCESS") {
 		return true, ""
 	} else {
 		return false, result
 	}
 }
-
-// getCurrentUsername gets the current Windows username
-func getCurrentUsername() string {
-	out, err := exec.Command("whoami").Output()
-	if err != nil {
-		return "unknown"
-	}
-	return strings.TrimSpace(string(out))
-}
-

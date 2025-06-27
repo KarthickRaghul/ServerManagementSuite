@@ -6,8 +6,6 @@ import {
   FaPlus,
   FaLock,
   FaUnlock,
-  FaToggleOn,
-  FaToggleOff,
   FaSpinner,
   FaExclamationTriangle,
 } from "react-icons/fa";
@@ -125,26 +123,7 @@ const FirewallTable: React.FC = () => {
   };
 
   // ✅ Windows rule toggle functionality
-  const handleToggleRule = async (rule: WindowsFirewallRule) => {
-    if (firewallType === "windows") {
-      const newEnabled = rule.Enabled === "True" ? "False" : "True";
-      try {
-        const success = await updateFirewallRule({
-          action: "toggle",
-          name: rule.Name,
-          enabled: newEnabled,
-        });
 
-        if (success) {
-          // Firewall rules will be automatically refreshed by the hook
-          return;
-        }
-      } catch (err) {
-        // Error notification is already handled by the hook
-        console.error("Failed to toggle firewall rule:", err);
-      }
-    }
-  };
 
   const extractPortFromOptions = (options: string): string => {
     const dptMatch = options.match(/dpt:(\d+)/);
@@ -217,21 +196,7 @@ const FirewallTable: React.FC = () => {
                   </span>
                 </td>
                 <td>
-                  <button
-                    className={`firewall-toggle-btn ${rule.Enabled === "True" ? "enabled" : "disabled"}`}
-                    onClick={() => handleToggleRule(rule)}
-                    disabled={loading.updating}
-                    title={`${rule.Enabled === "True" ? "Disable" : "Enable"} rule`}
-                  >
-                    {loading.updating ? (
-                      <FaSpinner className="spinning" />
-                    ) : rule.Enabled === "True" ? (
-                      <FaToggleOn />
-                    ) : (
-                      <FaToggleOff />
-                    )}
-                    {rule.Enabled === "True" ? "Enabled" : "Disabled"}
-                  </button>
+                {rule.Enabled === "True" ? "Enabled" : "Disabled"}
                 </td>
                 <td className="firewall-profile">{rule.Profile}</td>
                 <td className="firewall-table-actions">
