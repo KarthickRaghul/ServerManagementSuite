@@ -137,6 +137,7 @@ const ResourceOptimization: React.FC = () => {
               onClick={handleRefreshData}
               disabled={metricsLoading || resourceLoading}
             >
+              {" "}
               <FaSync
                 className={metricsLoading || resourceLoading ? "spinning" : ""}
               />
@@ -178,14 +179,6 @@ const ResourceOptimization: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Error Banner */}
-      {(metricsError || resourceError) && (healthData || cleanupInfo) && (
-        <div className="resource-error-banner">
-          <FaExclamationTriangle />
-          <p>Warning: {metricsError || resourceError}</p>
-        </div>
-      )}
 
       {/* Metrics Section */}
       <div className="resource-metrics-container">

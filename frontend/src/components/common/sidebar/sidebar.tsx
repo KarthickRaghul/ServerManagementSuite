@@ -319,24 +319,6 @@ const Sidebar = () => {
           </div>
         ))}
 
-        {/* ✅ Fix 10: Enhanced error indicator */}
-        {error && (
-          <div className="metrics-error">
-            <FaExclamationTriangle className="error-icon" />
-            <div className="error-content">
-              <span className="error-title">Metrics Error</span>
-              <span className="error-message">{error}</span>
-              <button
-                className="error-retry-btn"
-                onClick={handleRefresh}
-                disabled={refreshing || loading}
-              >
-                Retry
-              </button>
-            </div>
-          </div>
-        )}
-
         {/* ✅ Fix 11: No device selected state */}
         {!activeDevice && (
           <div className="no-device-message">

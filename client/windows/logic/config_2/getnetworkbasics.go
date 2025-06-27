@@ -3,6 +3,7 @@ package config_2
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os/exec"
@@ -27,6 +28,12 @@ type NetworkConfigResponse struct {
 	Interface map[string]InterfaceInfo `json:"interface"`
 }
 
+// InterfaceControlRequest for enabling/disabling interfaces
+type InterfaceControlRequest struct {
+	InterfaceID string `json:"interface_id"`
+	Action      string `json:"action"` // "enable" or "disable"
+}
+
 // HandleNetworkConfig handles Windows network config request
 func HandleNetworkConfig(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
@@ -35,7 +42,7 @@ func HandleNetworkConfig(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "application/json")
 
-	ip, iface, subnet, gateway := getIPAndGateway()
+	ip, _, subnet, gateway := getIPAndGateway()
 	dnsServers := getDNSServers()
 	uptime := getSystemUptimeWindows()
 
@@ -53,32 +60,165 @@ func HandleNetworkConfig(w http.ResponseWriter, r *http.Request) {
 		response.IPMethod = "dynamic"
 	}
 
-	ifaces, err := net.Interfaces()
-	if err == nil {
-		index := 1
-		for _, ifaceObj := range ifaces {
-			if (ifaceObj.Flags&net.FlagLoopback) != 0 || strings.Contains(ifaceObj.Name, "Loopback") {
+	// Get all network adapters (including disabled ones) using PowerShell
+	allInterfaces := getAllNetworkAdaptersComplete()
+
+	response.Interface = allInterfaces
+
+	fmt.Println("Sending Windows network configuration response...")
+	json.NewEncoder(w).Encode(response)
+}
+
+// HandleInterfaceControl handles enabling/disabling network interfaces
+func HandleInterfaceControl(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Only POST method allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req InterfaceControlRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	success := false
+	message := ""
+
+	switch req.Action {
+	case "enable":
+		success, message = enableNetworkInterface(req.InterfaceID)
+	case "disable":
+		success, message = disableNetworkInterface(req.InterfaceID)
+	default:
+		http.Error(w, "Invalid action. Use 'enable' or 'disable'", http.StatusBadRequest)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success": success,
+		"message": message,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+// Get all network adapters including disabled ones - maintains same format
+func getAllNetworkAdaptersComplete() map[string]InterfaceInfo {
+	script := `
+	Get-NetAdapter | ForEach-Object {
+		$status = if ($_.Status -eq "Up") { "active" } else { "inactive" }
+		$power = if ($_.AdminStatus -eq "Up") { "on" } else { "off" }
+		Write-Output "$($_.Name)|$status|$power"
+	}
+	`
+
+	cmd := exec.Command("powershell", "-Command", script)
+	output, err := cmd.Output()
+	if err != nil {
+		log.Printf("Error getting network adapters: %v", err)
+		return make(map[string]InterfaceInfo)
+	}
+
+	interfaces := make(map[string]InterfaceInfo)
+	lines := strings.Split(string(output), "\n")
+	index := 1
+
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
+
+		parts := strings.Split(line, "|")
+		if len(parts) >= 3 {
+			// Skip loopback and virtual adapters
+			interfaceName := strings.TrimSpace(parts[0])
+			if strings.Contains(strings.ToLower(interfaceName), "loopback") {
 				continue
 			}
-			status := "inactive"
-			if ifaceObj.Name == iface {
-				status = "active"
+
+			interfaceInfo := InterfaceInfo{
+				Mode:   interfaceName,
+				Status: strings.TrimSpace(parts[1]),
+				Power:  strings.TrimSpace(parts[2]),
 			}
-			power := "off"
-			if ifaceObj.Flags&net.FlagUp != 0 {
-				power = "on"
-			}
-			response.Interface[fmt.Sprintf("%d", index)] = InterfaceInfo{
-				Mode:   ifaceObj.Name,
-				Status: status,
-				Power:  power,
-			}
+			interfaces[fmt.Sprintf("%d", index)] = interfaceInfo
 			index++
 		}
 	}
 
-	fmt.Println("Sending Windows network configuration response...")
-	json.NewEncoder(w).Encode(response)
+	return interfaces
+}
+
+// Enable network interface by name or device ID
+func enableNetworkInterface(interfaceID string) (bool, string) {
+	// Try by interface name first
+	script := fmt.Sprintf(`
+	try {
+		$adapter = Get-NetAdapter | Where-Object { $_.Name -eq "%s" -or $_.DeviceID -eq "%s" } | Select-Object -First 1
+		if ($adapter) {
+			Enable-NetAdapter -Name $adapter.Name -Confirm:$false
+			"SUCCESS: Interface enabled"
+		} else {
+			"ERROR: Interface not found"
+		}
+	} catch {
+		"ERROR: $($_.Exception.Message)"
+	}
+	`, interfaceID, interfaceID)
+
+	cmd := exec.Command("powershell", "-Command", script)
+	output, err := cmd.Output()
+	if err != nil {
+		return false, fmt.Sprintf("Command execution failed: %v", err)
+	}
+
+	result := strings.TrimSpace(string(output))
+	success := strings.HasPrefix(result, "SUCCESS")
+
+	if success {
+		log.Printf("Successfully enabled interface: %s", interfaceID)
+	} else {
+		log.Printf("Failed to enable interface %s: %s", interfaceID, result)
+	}
+
+	return success, result
+}
+
+// Disable network interface by name or device ID
+func disableNetworkInterface(interfaceID string) (bool, string) {
+	script := fmt.Sprintf(`
+	try {
+		$adapter = Get-NetAdapter | Where-Object { $_.Name -eq "%s" -or $_.DeviceID -eq "%s" } | Select-Object -First 1
+		if ($adapter) {
+			Disable-NetAdapter -Name $adapter.Name -Confirm:$false
+			"SUCCESS: Interface disabled"
+		} else {
+			"ERROR: Interface not found"
+		}
+	} catch {
+		"ERROR: $($_.Exception.Message)"
+	}
+	`, interfaceID, interfaceID)
+
+	cmd := exec.Command("powershell", "-Command", script)
+	output, err := cmd.Output()
+	if err != nil {
+		return false, fmt.Sprintf("Command execution failed: %v", err)
+	}
+
+	result := strings.TrimSpace(string(output))
+	success := strings.HasPrefix(result, "SUCCESS")
+
+	if success {
+		log.Printf("Successfully disabled interface: %s", interfaceID)
+	} else {
+		log.Printf("Failed to disable interface %s: %s", interfaceID, result)
+	}
+
+	return success, result
 }
 
 // Get IP, subnet, gateway, interface name
@@ -151,3 +291,4 @@ func getSystemUptimeWindows() string {
 	}
 	return strings.TrimSpace(string(output))
 }
+

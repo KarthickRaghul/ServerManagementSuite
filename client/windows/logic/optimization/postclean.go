@@ -68,7 +68,7 @@ func HandleFileClean(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode(map[string]interface{}{
 			"status":  "partial",
-			"message": fmt.Sprintf("Cleaned: %v. Failed: %v", totalCleaned, totalFailed),
+			"message": fmt.Sprintf("The Data are Cleaned Partial because file are open"),
 		})
 	default:
 		// Full failure
