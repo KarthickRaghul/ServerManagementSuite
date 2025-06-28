@@ -75,7 +75,6 @@ const NetworkInterfaceManager: React.FC = () => {
       <div className="network-interface-manager-card">
         <div className="network-interface-manager-loading">
           <div className="network-interface-manager-loading-spinner">
-            <FaSpinner className="spinning" />
           </div>
           <p>Loading interface information...</p>
         </div>

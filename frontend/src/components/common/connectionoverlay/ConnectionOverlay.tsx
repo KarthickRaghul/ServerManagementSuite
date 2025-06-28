@@ -1,12 +1,15 @@
 // components/common/connectionoverlay/ConnectionOverlay.tsx
 import React from "react";
 import { useConnectionOverlay } from "../../../context/ConnectionOverlayContext";
-import { FaSpinner, FaExclamationTriangle, FaServer, FaCog, FaRedo } from "react-icons/fa";
+import { useRole } from "../../../hooks/auth/useRole";
+import { FaSpinner, FaExclamationTriangle, FaServer, FaCog, FaRedo, FaTimes, FaSignOutAlt } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import AuthService from "../../../auth/auth";
 import "./ConnectionOverlay.css";
 
 const ConnectionOverlay: React.FC = () => {
   const { state, hide, checkConnection } = useConnectionOverlay();
+  const { role, isAdmin } = useRole();
   const navigate = useNavigate();
 
   if (!state.visible) return null;
@@ -22,9 +25,35 @@ const ConnectionOverlay: React.FC = () => {
     hide();
   };
 
+  // ✅ NEW: Handle logout for viewers who can't access device management
+  const handleLogout = async () => {
+    try {
+      await AuthService.logout();
+      // This will redirect to login page
+    } catch (error) {
+      console.error("Logout failed:", error);
+      // Force redirect even if logout API fails
+      window.location.href = "/login";
+    }
+  };
+
+  // ✅ NEW: Force close overlay (for edge cases)
+  const handleForceClose = () => {
+    hide();
+  };
+
   return (
     <div className="conn-overlay-backdrop">
       <div className="conn-overlay-modal">
+        {/* ✅ NEW: Close button (top-right) */}
+        <button 
+          className="conn-overlay-close-btn"
+          onClick={handleForceClose}
+          title="Close overlay"
+        >
+          <FaTimes />
+        </button>
+
         {state.loading ? (
           <>
             <FaSpinner className="conn-overlay-spinner spinning" />
@@ -61,14 +90,38 @@ const ConnectionOverlay: React.FC = () => {
                 <FaRedo className="conn-overlay-btn-icon" />
                 Retry Connection
               </button>
-              <button
-                className="conn-overlay-btn conn-overlay-btn-config"
-                onClick={handleGoToConfig}
-              >
-                <FaCog className="conn-overlay-btn-icon" />
-                Go to Device Management
-              </button>
+              
+              {/* ✅ Role-based action buttons */}
+              {isAdmin ? (
+                <button
+                  className="conn-overlay-btn conn-overlay-btn-config"
+                  onClick={handleGoToConfig}
+                >
+                  <FaCog className="conn-overlay-btn-icon" />
+                  Go to Device Management
+                </button>
+              ) : (
+                // ✅ NEW: Logout option for viewers
+                <button
+                  className="conn-overlay-btn conn-overlay-btn-logout"
+                  onClick={handleLogout}
+                >
+                  <FaSignOutAlt className="conn-overlay-btn-icon" />
+                  Logout
+                </button>
+              )}
             </div>
+-
+            {/* ✅ NEW: Additional help text for viewers */}
+            {!isAdmin && (
+              <div className="conn-overlay-viewer-help">
+                <p className="conn-overlay-help-text">
+                  <strong>Note:</strong> As a viewer, you cannot manage devices. 
+                  Please contact your administrator to fix server connection issues, 
+                  or logout to connect to a different server.
+                </p>
+              </div>
+            )}
           </>
         ) : (
           <>

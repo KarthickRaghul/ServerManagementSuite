@@ -49,7 +49,6 @@ type SuccessResponse struct {
 	Status string `json:"status"`
 }
 
-
 // sendPostSuccess sends successful POST response
 func sendPostSuccess(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
@@ -58,7 +57,6 @@ func sendPostSuccess(w http.ResponseWriter) {
 	}
 	json.NewEncoder(w).Encode(response)
 }
-
 
 // HandleFirewallRules handles requests to get the firewall rules
 func HandleFirewallRules(w http.ResponseWriter, r *http.Request) {
@@ -105,14 +103,14 @@ func sendError(w http.ResponseWriter, message string, statusCode int) {
 }
 
 // getFirewallRules retrieves firewall rules from the system
+
 func getFirewallRules() (*FirewallResponse, error) {
-	// Check which firewall system is active
 	response := &FirewallResponse{
 		Chains: []FirewallChain{},
 		Active: false,
 	}
 
-	// Try UFW first (Ubuntu/Debian default)
+	// Try UFW
 	ufwRules, ufwActive, ufwErr := getUFWRules()
 	if ufwErr == nil && ufwActive {
 		response.Type = "ufw"
@@ -121,7 +119,7 @@ func getFirewallRules() (*FirewallResponse, error) {
 		return response, nil
 	}
 
-	// Try FirewallD (RHEL/CentOS/Fedora default)
+	// Try FirewallD
 	firewallDRules, firewallDActive, firewallDErr := getFirewallDRules()
 	if firewallDErr == nil && firewallDActive {
 		response.Type = "firewalld"
@@ -130,7 +128,7 @@ func getFirewallRules() (*FirewallResponse, error) {
 		return response, nil
 	}
 
-	// Fall back to plain iptables
+	// Try iptables
 	iptablesRules, iptablesErr := getIPTablesRules()
 	if iptablesErr == nil {
 		response.Type = "iptables"
@@ -139,7 +137,7 @@ func getFirewallRules() (*FirewallResponse, error) {
 		return response, nil
 	}
 
-	// If all methods failed, check if any firewalls are installed but inactive
+	// 🔧 If any firewall tool is available but inactive, return it
 	if ufwErr == nil {
 		response.Type = "ufw"
 		response.Chains = ufwRules
@@ -154,12 +152,8 @@ func getFirewallRules() (*FirewallResponse, error) {
 		return response, nil
 	}
 
-	// If we can't find any firewall information
-	if ufwErr != nil && firewallDErr != nil && iptablesErr != nil {
-		return nil, fmt.Errorf("no firewall system found or accessible")
-	}
-
-	return response, nil
+	// 🔧 Always return a valid (but empty) structure even on total failure
+	return response, fmt.Errorf("no firewall system found or accessible")
 }
 
 // getIPTablesRules gets rules directly from iptables command
@@ -550,4 +544,3 @@ func getFirewallDRules() ([]FirewallChain, bool, error) {
 
 	return chains, isActive, nil
 }
-

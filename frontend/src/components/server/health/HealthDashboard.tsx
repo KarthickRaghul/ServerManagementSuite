@@ -82,7 +82,6 @@ const HealthDashboard: React.FC = () => {
       <div className="health-dashboard">
         <div className="health-dashboard-loading">
           <div className="health-dashboard-loading-spinner">
-            <FaSpinner className="spinning" />
           </div>
           <p>Loading system health metrics...</p>
         </div>

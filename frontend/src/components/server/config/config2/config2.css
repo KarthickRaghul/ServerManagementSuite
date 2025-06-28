@@ -6,9 +6,61 @@
   font-family: "Inter", sans-serif;
 }
 
-.network-config2-header {
-  margin-bottom: 32px;
-}
+  .network-config2-header {
+    margin-bottom: 32px;
+  }
+
+  .network-config2-header-content {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+
+  .network-config2-refresh-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background-color: #1e293b; /* dark blue background */
+    color: #e2e8f0; /* light text */
+    border: 1px solid #334155; /* subtle border */
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  .network-config2-refresh-btn:hover:not(:disabled) {
+    background-color: #334155;
+    border-color: #475569;
+  }
+  
+  .network-config2-refresh-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Spinner animation */
+  .spinning {
+    animation: spin 1s linear infinite;
+  }
+  
+  @keyframes spin {
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* Icon and text inside button */
+  .refresh-icon {
+    font-size: 16px;
+  }
+  
+  .refresh-text {
+    display: inline-block;
+    font-family: "Inter", sans-serif;
+  }
 
 .network-config2-title {
   font-size: 28px;

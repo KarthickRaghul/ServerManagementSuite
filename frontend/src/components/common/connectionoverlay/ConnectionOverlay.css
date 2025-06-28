@@ -238,3 +238,87 @@
     }
   }
   
+
+  /* components/common/connectionoverlay/ConnectionOverlay.css - Add these styles */
+
+/* ✅ Close button styling */
+.conn-overlay-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  color: #94a3b8;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.conn-overlay-close-btn:hover {
+  color: #e2e8f0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ✅ Logout button styling */
+.conn-overlay-btn-logout {
+  background: linear-gradient(135deg, #f97316, #ea580c) !important;
+  border: 1px solid #f97316 !important;
+}
+
+.conn-overlay-btn-logout:hover {
+  background: linear-gradient(135deg, #ea580c, #dc2626) !important;
+  border-color: #ea580c !important;
+}
+
+/* ✅ Viewer help text styling */
+.conn-overlay-viewer-help {
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 8px;
+}
+
+.conn-overlay-help-text {
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.5;
+  margin: 0;
+  text-align: left;
+}
+
+.conn-overlay-help-text strong {
+  color: #3b82f6;
+}
+
+/* ✅ Modal positioning adjustment for close button */
+.conn-overlay-modal {
+  position: relative;
+  padding-top: 48px; /* Extra space for close button */
+}
+
+/* ✅ Responsive adjustments */
+@media (max-width: 768px) {
+  .conn-overlay-close-btn {
+    top: 12px;
+    right: 12px;
+    font-size: 18px;
+    padding: 6px;
+  }
+
+  .conn-overlay-modal {
+    padding-top: 44px;
+  }
+
+  .conn-overlay-viewer-help {
+    margin-top: 16px;
+    padding: 12px;
+  }
+
+  .conn-overlay-help-text {
+    font-size: 13px;
+  }
+}

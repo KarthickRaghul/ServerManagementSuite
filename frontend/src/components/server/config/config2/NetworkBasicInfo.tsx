@@ -45,7 +45,6 @@ const NetworkBasicInfo: React.FC = () => {
       <div className="network-basic-info-card">
         <div className="network-basic-info-loading">
           <div className="network-basic-info-loading-spinner">
-            <FaSpinner className="spinning" />
           </div>
           <p>Loading network information...</p>
         </div>

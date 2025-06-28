@@ -139,6 +139,7 @@ export const useConfig2 = () => {
     null,
   );
   const [routeTable, setRouteTable] = useState<RouteEntry[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   const { showInterfaceRestartOverlay, showNetworkConfigOverlay } = useNetworkOperation();
   const [firewallData, setFirewallData] = useState<FirewallData | null>(null);
   const [loading, setLoading] = useState<LoadingStates>({
@@ -150,6 +151,35 @@ export const useConfig2 = () => {
   const [error, setError] = useState<string | null>(null);
   const { activeDevice } = useAppContext();
   const { addNotification } = useNotification();
+
+
+  const refreshAllData = async () => {
+    if (!activeDevice) {
+      addNotification({
+        title: "Refresh Error",
+        message: "No active device selected",
+        type: "error",
+        duration: 5000,
+      });
+      return;
+    }
+
+    try {
+      // ✅ Increment refresh trigger to force component re-render
+      setRefreshTrigger(prev => prev + 1);
+
+      // Execute all fetch functions simultaneously
+      await Promise.all([
+        fetchNetworkBasics(),
+        fetchRouteTable(),
+        fetchFirewallRules(),
+      ]);
+
+    } catch (error) {
+      console.error("Error in refreshAllData:", error);
+      throw error; // Re-throw to let component handle notification
+    }
+  };
 
   // ✅ Enhanced Fetch Network Basics with better error handling
   const fetchNetworkBasics = async () => {
@@ -278,10 +308,10 @@ export const useConfig2 = () => {
   // ✅ Enhanced Fetch Firewall Rules with better error handling
   const fetchFirewallRules = async () => {
     if (!activeDevice) return;
-
+  
     setLoading((prev) => ({ ...prev, firewallData: true }));
     setError(null);
-
+  
     try {
       const response = await AuthService.makeAuthenticatedRequest(
         `${BACKEND_URL}/api/admin/server/config2/getfirewall`,
@@ -293,18 +323,16 @@ export const useConfig2 = () => {
           body: JSON.stringify({ host: activeDevice.ip }),
         },
       );
-
+  
       if (response.ok) {
         const data = await response.json();
-
-        // ✅ Check for standardized error response
+  
         if (data.status === "failed") {
           throw new Error(data.message || "Failed to fetch firewall rules");
         }
-
+  
         setFirewallData(data);
       } else {
-        // ✅ Enhanced HTTP error handling
         const errorData = (await response
           .json()
           .catch(() => ({}))) as ErrorResponse;
@@ -318,16 +346,14 @@ export const useConfig2 = () => {
         err instanceof Error ? err.message : "Failed to fetch firewall rules";
       console.error("Error fetching firewall rules:", err);
       setError(errorMessage);
-
-      // ✅ Only show notification for non-network errors
-      if (!(err instanceof Error && err.message.includes("Failed to reach"))) {
-        addNotification({
-          title: "Firewall Fetch Error",
-          message: errorMessage,
-          type: "error",
-          duration: 5000,
-        });
-      }
+  
+      // ✅ FIXED: Always show firewall errors (remove suppression)
+      addNotification({
+        title: "Firewall Fetch Error",
+        message: errorMessage,
+        type: "error",
+        duration: 5000,
+      });
     } finally {
       setLoading((prev) => ({ ...prev, firewallData: false }));
     }
@@ -684,17 +710,6 @@ export const useConfig2 = () => {
     }
   };
 
-  // ✅ Enhanced data refresh function
-  const refreshAllData = async () => {
-    if (activeDevice) {
-      await Promise.all([
-        fetchNetworkBasics(),
-        fetchRouteTable(),
-        fetchFirewallRules(),
-      ]);
-    }
-  };
-
   // ✅ Enhanced useEffect with cleanup
   useEffect(() => {
     if (activeDevice) {
@@ -722,6 +737,7 @@ export const useConfig2 = () => {
     restartInterface,
     updateRoute,
     updateFirewallRule,
-    refreshAllData, // ✅ Added refresh function
+    refreshAllData, 
+    refreshTrigger,// ✅ Added refresh function
   };
 };

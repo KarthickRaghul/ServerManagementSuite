@@ -113,7 +113,6 @@ const ResourceOptimization: React.FC = () => {
       <div className="resource-dashboard">
         <div className="resource-dashboard-loading">
           <div className="resource-dashboard-loading-spinner">
-            <FaSpinner className="spinning" />
           </div>
           <p>Loading resource optimization data...</p>
         </div>
