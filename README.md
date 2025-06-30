@@ -75,18 +75,17 @@ ServerSecurityTool/backend/.env
 Add the following content:
 
 ```env
-DATABASE_URL=postgres://postgres:password@localhost:8500/SSMS?sslmode=disable
-CLIENT_PORT=2210
-CLIENT_PROTOCOL=http
-JWT_SECRET=vanakamdamapla
-SERVER_PORT=8000
-LOG_LEVEL=info
-
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USERNAME=servermanagementcit@gmail.com
-SMTP_PASSWORD=tgekktudhggxwpok
-SMTP_FROM=SMS Alerts <servermanagementcit@gmail.com>
+DATABASE_URL=
+CLIENT_PORT=
+CLIENT_PROTOCOL=
+JWT_SECRET=
+SERVER_PORT=
+LOG_LEVEL=
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USERNAME=
+SMTP_PASSWORD=
+SMTP_FROM=
 ```
 
 #### 📘 Breakdown of Important Environment Variables:
