@@ -140,7 +140,8 @@ export const useConfig2 = () => {
   );
   const [routeTable, setRouteTable] = useState<RouteEntry[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const { showInterfaceRestartOverlay, showNetworkConfigOverlay } = useNetworkOperation();
+  const { showInterfaceRestartOverlay, showNetworkConfigOverlay } =
+    useNetworkOperation();
   const [firewallData, setFirewallData] = useState<FirewallData | null>(null);
   const [loading, setLoading] = useState<LoadingStates>({
     networkBasics: false,
@@ -151,7 +152,6 @@ export const useConfig2 = () => {
   const [error, setError] = useState<string | null>(null);
   const { activeDevice } = useAppContext();
   const { addNotification } = useNotification();
-
 
   const refreshAllData = async () => {
     if (!activeDevice) {
@@ -166,7 +166,7 @@ export const useConfig2 = () => {
 
     try {
       // ✅ Increment refresh trigger to force component re-render
-      setRefreshTrigger(prev => prev + 1);
+      setRefreshTrigger((prev) => prev + 1);
 
       // Execute all fetch functions simultaneously
       await Promise.all([
@@ -174,7 +174,6 @@ export const useConfig2 = () => {
         fetchRouteTable(),
         fetchFirewallRules(),
       ]);
-
     } catch (error) {
       console.error("Error in refreshAllData:", error);
       throw error; // Re-throw to let component handle notification
@@ -308,10 +307,10 @@ export const useConfig2 = () => {
   // ✅ Enhanced Fetch Firewall Rules with better error handling
   const fetchFirewallRules = async () => {
     if (!activeDevice) return;
-  
+
     setLoading((prev) => ({ ...prev, firewallData: true }));
     setError(null);
-  
+
     try {
       const response = await AuthService.makeAuthenticatedRequest(
         `${BACKEND_URL}/api/admin/server/config2/getfirewall`,
@@ -323,14 +322,14 @@ export const useConfig2 = () => {
           body: JSON.stringify({ host: activeDevice.ip }),
         },
       );
-  
+
       if (response.ok) {
         const data = await response.json();
-  
+
         if (data.status === "failed") {
           throw new Error(data.message || "Failed to fetch firewall rules");
         }
-  
+
         setFirewallData(data);
       } else {
         const errorData = (await response
@@ -346,14 +345,6 @@ export const useConfig2 = () => {
         err instanceof Error ? err.message : "Failed to fetch firewall rules";
       console.error("Error fetching firewall rules:", err);
       setError(errorMessage);
-  
-      // ✅ FIXED: Always show firewall errors (remove suppression)
-      addNotification({
-        title: "Firewall Fetch Error",
-        message: errorMessage,
-        type: "error",
-        duration: 5000,
-      });
     } finally {
       setLoading((prev) => ({ ...prev, firewallData: false }));
     }
@@ -361,7 +352,9 @@ export const useConfig2 = () => {
 
   // ✅ Enhanced Network Update with better error handling
   // Enhanced updateNetwork function that doesn't wait for response on IP changes
-  const updateNetwork = async (networkData: NetworkUpdateData): Promise<boolean> => {
+  const updateNetwork = async (
+    networkData: NetworkUpdateData,
+  ): Promise<boolean> => {
     if (!activeDevice) {
       addNotification({
         title: "Network Update Error",
@@ -398,7 +391,8 @@ export const useConfig2 = () => {
 
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to update network";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to update network";
       console.error("Error updating network:", err);
       setError(errorMessage);
       addNotification({
@@ -412,8 +406,6 @@ export const useConfig2 = () => {
       setLoading((prev) => ({ ...prev, updating: false }));
     }
   };
-  
-
 
   // ✅ Enhanced Interface Update with better error handling
   const updateInterface = async (
@@ -530,7 +522,8 @@ export const useConfig2 = () => {
 
       return true;
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to restart interface";
+      const errorMessage =
+        err instanceof Error ? err.message : "Failed to restart interface";
       console.error("Error restarting interface:", err);
       setError(errorMessage);
       addNotification({
@@ -737,7 +730,7 @@ export const useConfig2 = () => {
     restartInterface,
     updateRoute,
     updateFirewallRule,
-    refreshAllData, 
-    refreshTrigger,// ✅ Added refresh function
+    refreshAllData,
+    refreshTrigger, // ✅ Added refresh function
   };
 };

@@ -33,8 +33,7 @@ interface RouteUpdateData {
 
 const RouteTable: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
-  const { routeTable, loading, error, updateRoute, fetchRouteTable } =
-    useConfig2();
+  const { routeTable, loading, error, updateRoute } = useConfig2();
 
   const handleAddRoute = async (routeData: RouteUpdateData) => {
     try {

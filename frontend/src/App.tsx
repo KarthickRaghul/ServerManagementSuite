@@ -19,7 +19,6 @@ import NotificationContainer from "./components/common/notification/Notification
 import ConnectionOverlay from "./components/common/connectionoverlay/ConnectionOverlay";
 import NetworkOperationOverlay from "./components/common/networkoperation/NetworkOperationOverlay";
 import "./App.css";
-import React from "react";
 
 export default function App() {
   return (

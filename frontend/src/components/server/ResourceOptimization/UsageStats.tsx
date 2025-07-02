@@ -1,31 +1,36 @@
 // components/server/ResourceOptimization/UsageStats.tsx
-import React from 'react';
-import './usageStats.css';
+import React from "react";
+import "./usageStats.css";
 
 interface UsageStatsProps {
   label: string;
   value: number;
-  type: 'memory' | 'cpu' | 'disk';
+  type: "memory" | "cpu" | "disk";
   loading?: boolean;
 }
 
-const UsageStats: React.FC<UsageStatsProps> = ({ label, value, type, loading = false }) => {
+const UsageStats: React.FC<UsageStatsProps> = ({
+  label,
+  value,
+  type,
+  loading = false,
+}) => {
   const getCircleColor = (type: string, value: number) => {
-    if (value > 80) return '#ef4444'; // Red for high usage
-    if (value > 60) return '#f59e0b'; // Orange for medium usage
-    return '#22c55e'; // Green for low usage
+    if (value > 80) return "#ef4444"; // Red for high usage
+    if (value > 60) return "#f59e0b"; // Orange for medium usage
+    return "#22c55e"; // Green for low usage
   };
 
   const getGradientColor = (type: string) => {
     switch (type) {
-      case 'memory':
-        return 'linear-gradient(135deg, #8b5cf6, #a855f7)';
-      case 'cpu':
-        return 'linear-gradient(135deg, #3b82f6, #60a5fa)';
-      case 'disk':
-        return 'linear-gradient(135deg, #f59e0b, #fbbf24)';
+      case "memory":
+        return "linear-gradient(135deg, #8b5cf6, #a855f7)";
+      case "cpu":
+        return "linear-gradient(135deg, #3b82f6, #60a5fa)";
+      case "disk":
+        return "linear-gradient(135deg, #f59e0b, #fbbf24)";
       default:
-        return 'linear-gradient(135deg, #22c55e, #4ade80)';
+        return "linear-gradient(135deg, #22c55e, #4ade80)";
     }
   };
 
@@ -35,7 +40,7 @@ const UsageStats: React.FC<UsageStatsProps> = ({ label, value, type, loading = f
   if (loading) {
     return (
       <div className="resource-usage-stat">
-        <div 
+        <div
           className="resource-usage-circle loading"
           style={{ background: gradientColor }}
         >
@@ -50,11 +55,11 @@ const UsageStats: React.FC<UsageStatsProps> = ({ label, value, type, loading = f
 
   return (
     <div className="resource-usage-stat">
-      <div 
+      <div
         className="resource-usage-circle"
         style={{
           background: gradientColor,
-          boxShadow: `0 8px 20px ${circleColor}40`
+          boxShadow: `0 8px 20px ${circleColor}40`,
         }}
       >
         <div className="resource-usage-inner">

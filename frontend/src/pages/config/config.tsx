@@ -1,9 +1,8 @@
 // pages/config/config.tsx
 import React from "react";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Sidebar from "../../components/common/sidebar/sidebar";
 import Header from "../../components/common/header/header";
-import { useAppContext } from "../../context/AppContext";
 
 // Server Components
 import ServerConfig1 from "../../components/server/config/config1/config1";
@@ -13,12 +12,6 @@ import "./config.css";
 
 function Config() {
   const [activeTab, setActiveTab] = useState<"general" | "advanced">("general");
-  const { activeMode } = useAppContext();
-
-  // Reset tab when mode changes (optional)
-  useEffect(() => {
-    setActiveTab("general");
-  }, [activeMode]);
 
   const handleTabClick = (tab: "general" | "advanced") => {
     setActiveTab(tab);
@@ -38,13 +31,15 @@ function Config() {
                     className={`config-main-feature-tab ${activeTab === "general" ? "config-main-feature-tab-active" : ""}`}
                     onClick={() => handleTabClick("general")}
                   >
-                    <span className="config-main-tab-icon">⚙️</span> General Features
+                    <span className="config-main-tab-icon">⚙️</span> General
+                    Features
                   </button>
                   <button
                     className={`config-main-feature-tab ${activeTab === "advanced" ? "config-main-feature-tab-active" : ""}`}
                     onClick={() => handleTabClick("advanced")}
                   >
-                    <span className="config-main-tab-icon">🛡️</span> Advanced Features
+                    <span className="config-main-tab-icon">🛡️</span> Advanced
+                    Features
                   </button>
                 </div>
               </div>

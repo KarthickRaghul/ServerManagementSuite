@@ -16,7 +16,7 @@ import {
 } from "../../../utils/metricsUtils";
 import { useEffect, useState } from "react";
 // ✅ Fix 4: Remove unused React import
-import { FaSync, FaExclamationTriangle } from "react-icons/fa";
+import { FaSync } from "react-icons/fa";
 
 interface Metric {
   icon: string;
