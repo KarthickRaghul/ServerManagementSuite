@@ -10,6 +10,7 @@ print_help() {
   echo "  ./setup.sh start      or  -s     Run the full setup (build, env, docker)"
   echo "  ./setup.sh clean      or  -c     Clean up all containers, volumes, and images"
   echo "  ./setup.sh help       or  -h     Show this help message"
+  echo "  ./setup.sh exit       or  -e     This will stop the running containers"
   echo ""
   exit 0
 }
@@ -29,6 +30,12 @@ clean | -c)
   docker rmi servermanagementsuite-backend servermanagementsuite-frontend -f || true
 
   echo "✅ Cleanup complete. Re-run './setup.sh start' to start fresh."
+  exit 0
+  ;;
+exit | -e)
+  echo "🛑 Stopping running containers..."
+  docker compose stop
+  echo "✅ Containers stopped. You can resume later with 'docker compose start'."
   exit 0
   ;;
 help | -h | "" | *)
