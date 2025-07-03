@@ -8,6 +8,7 @@ function Show-Help {
     Write-Host "  ./setup.ps1 start   or  ./setup.ps1 -s    → Start setup"
     Write-Host "  ./setup.ps1 clean   or  ./setup.ps1 -c    → Clean Docker"
     Write-Host "  ./setup.ps1 help    or  ./setup.ps1 -h    → Show this help message`n"
+    Write-Host "  ./setup.ps1 exit    or  ./setup.ps1 -e     → Stop running containers (non-destructive)"
     exit
 }
 
@@ -25,6 +26,20 @@ if ($Mode -in @("clean", "-c", "--clean")) {
     Write-Host "✅ Cleanup complete. Re-run ./setup.ps1 to start fresh."
     exit
 }
+
+# ──────────────────────────────────────────────
+# Stop containers only (non-destructive)
+# ──────────────────────────────────────────────
+if ($Mode -in @("exit", "-e", "--exit")) {
+    Write-Host "🛑 Stopping running containers..."
+    docker compose stop
+
+    Write-Host "✅ Containers stopped. Resume later with:"
+    Write-Host "   docker compose start"
+    exit
+}
+
+
 
 if (-not ($Mode -in @("start", "-s", "--start"))) {
     Write-Host "❌ Unknown argument: $Mode`n"
