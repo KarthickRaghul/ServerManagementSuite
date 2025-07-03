@@ -1,1 +1,3 @@
 client/linux/auth/token.hash
+./frontend/.env
+./backend/.env
