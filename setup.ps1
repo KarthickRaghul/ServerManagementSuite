@@ -1,77 +1,72 @@
-
-Param (
+﻿Param (
     [string]$Mode = "help"
 )
 
 function Show-Help {
-    Write-Host "`n📖 Usage:"
+    Write-Host ""
+    Write-Host "[Server Management Suite Setup Script]"
+    Write-Host ""
+    Write-Host "Usage:"
     Write-Host "  ./setup.ps1 start   or  ./setup.ps1 -s    → Start setup"
     Write-Host "  ./setup.ps1 clean   or  ./setup.ps1 -c    → Clean Docker"
-    Write-Host "  ./setup.ps1 help    or  ./setup.ps1 -h    → Show this help message`n"
-    Write-Host "  ./setup.ps1 exit    or  ./setup.ps1 -e     → Stop running containers (non-destructive)"
-    exit
+    Write-Host "  ./setup.ps1 exit    or  ./setup.ps1 -e    → Stop containers"
+    Write-Host "  ./setup.ps1 help    or  ./setup.ps1 -h    → Show this help"
+    Write-Host ""
+    exit 0
 }
 
-if ($Mode -in @("help", "-h", "--help", "", $null)) {
-    Show-Help
-}
-
-if ($Mode -in @("clean", "-c", "--clean")) {
-    Write-Host "🧹 Cleaning up Docker containers and volumes..."
+if ($Mode -eq "start" -or $Mode -eq "-s") {
+    Write-Host "[*] Starting Server Management Suite Setup"
+} elseif ($Mode -eq "clean" -or $Mode -eq "-c") {
+    Write-Host "[*] Cleaning up Docker containers and volumes..."
     docker compose down -v --remove-orphans
 
-    Write-Host "🗑️  Removing old images (optional)..."
-    docker rmi servermanagementsuite-backend servermanagementsuite-frontend -f | Out-Null
-
-    Write-Host "✅ Cleanup complete. Re-run ./setup.ps1 to start fresh."
-    exit
-}
-
-# ──────────────────────────────────────────────
-# Stop containers only (non-destructive)
-# ──────────────────────────────────────────────
-if ($Mode -in @("exit", "-e", "--exit")) {
-    Write-Host "🛑 Stopping running containers..."
+    Write-Host "[*] Removing old images..."
+    docker rmi servermanagementsuite-backend servermanagementsuite-frontend -f 2>$null
+    Write-Host "[✓] Cleanup complete. Re-run './setup.ps1 start' to start fresh."
+    exit 0
+} elseif ($Mode -eq "exit" -or $Mode -eq "-e") {
+    Write-Host "[*] Stopping running containers..."
     docker compose stop
-
-    Write-Host "✅ Containers stopped. Resume later with:"
-    Write-Host "   docker compose start"
-    exit
-}
-
-
-
-if (-not ($Mode -in @("start", "-s", "--start"))) {
-    Write-Host "❌ Unknown argument: $Mode`n"
+    Write-Host "[✓] Containers stopped. Resume later with 'docker compose start'"
+    exit 0
+} else {
     Show-Help
 }
 
-# ──────────────────────────────────────────────────────────────
-# 1. Detect Host IP (default route fallback)
-# ──────────────────────────────────────────────────────────────
-$defaultIP = (Get-NetRoute -DestinationPrefix 0.0.0.0/0 | Sort-Object RouteMetric | Select-Object -First 1 | Get-NetIPAddress).IPAddress
-if (-not $defaultIP) {
-    $defaultIP = "127.0.0.1"
+# ───────────────────────────
+# Detect IP (fallback)
+# ───────────────────────────
+$DEFAULT_IP = (Get-NetIPAddress -AddressFamily IPv4 `
+              | Where-Object { $_.InterfaceAlias -notlike "*Loopback*" -and $_.IPAddress -notlike "169.*" } `
+              | Select-Object -First 1 -ExpandProperty IPAddress)
+
+$DEFAULT_DB_PORT = 9001
+$DEFAULT_BACKEND_PORT = 9000
+
+$HOST_IP = Read-Host "Enter host IP (default: $DEFAULT_IP)"
+if ([string]::IsNullOrWhiteSpace($HOST_IP)) { $HOST_IP = $DEFAULT_IP }
+
+while ([string]::IsNullOrWhiteSpace($HOST_IP)) {
+    Write-Host "IP cannot be empty."
+    $HOST_IP = Read-Host "Enter host IP (default: $DEFAULT_IP)"
+    if ([string]::IsNullOrWhiteSpace($HOST_IP)) { $HOST_IP = $DEFAULT_IP }
 }
 
-# ──────────────────────────────────────────────────────────────
-# 2. Prompt for IP and ports
-# ──────────────────────────────────────────────────────────────
-$hostIP = Read-Host "🌐 Enter host IP (default: $defaultIP)"
-if (-not $hostIP) { $hostIP = $defaultIP }
+$DB_PORT = Read-Host "Enter DATABASE port (default: $DEFAULT_DB_PORT)"
+if (-not ($DB_PORT -match '^\d+$')) { $DB_PORT = $DEFAULT_DB_PORT }
 
-$dbPort = Read-Host "🛢️  Enter DATABASE port (default: 9001)"
-if (-not $dbPort) { $dbPort = 9001 }
+$BACKEND_PORT = Read-Host "Enter BACKEND port (default: $DEFAULT_BACKEND_PORT)"
+if (-not ($BACKEND_PORT -match '^\d+$')) { $BACKEND_PORT = $DEFAULT_BACKEND_PORT }
 
-$backendPort = Read-Host "🖥️  Enter BACKEND port (default: 9000)"
-if (-not $backendPort) { $backendPort = 9000 }
+# ───────────────────────────
+# Generate backend .env
+# ───────────────────────────
+$BACKEND_ENV_FILE = "./backend/.env"
+Write-Host "[*] Generating backend .env at $BACKEND_ENV_FILE"
+New-Item -Path "./backend" -ItemType Directory -Force | Out-Null
 
-# ──────────────────────────────────────────────────────────────
-# 3. Create .env files
-# ──────────────────────────────────────────────────────────────
-$backendEnvPath = "./backend/.env"
-Write-Host "⚙️  Writing backend .env to $backendEnvPath"
-@"
+$backendEnvContent = @"
 DATABASE_URL=postgres://admin:admin@sms-db:5432/smsdb?sslmode=disable
 CLIENT_PORT=2210
 CLIENT_PROTOCOL=http
@@ -83,35 +78,51 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USERNAME=servermanagementcit@gmail.com
 SMTP_PASSWORD=tgekktudhggxwpok
-SMTP_FROM=SMS Alerts <servermanagementcit@gmail.com>
-"@ | Out-File -Encoding UTF8 $backendEnvPath -Force
+SMTP_FROM='SMS Alerts <servermanagementcit@gmail.com>'
+"@
 
-$frontendEnvPath = "./frontend/.env"
-Write-Host "⚙️  Writing frontend .env to $frontendEnvPath"
-"VITE_BACKEND_URL=http://$hostIP:$backendPort" | Out-File -Encoding UTF8 $frontendEnvPath -Force
+$backendEnvContent | Set-Content -Path $BACKEND_ENV_FILE
+Write-Host "[✓] Backend .env created"
 
-# ──────────────────────────────────────────────────────────────
-# 4. Start Docker containers
-# ──────────────────────────────────────────────────────────────
-Write-Host "🚀 Starting Docker containers..."
-$env:DB_PORT = "$dbPort"
-$env:BACKEND_PORT = "$backendPort"
+# ───────────────────────────
+# Generate frontend .env
+# ───────────────────────────
+$FRONTEND_ENV_FILE = "./frontend/.env"
+Write-Host "[*] Generating frontend .env at $FRONTEND_ENV_FILE"
+New-Item -Path "./frontend" -ItemType Directory -Force | Out-Null
+
+"VITE_BACKEND_URL=http://${HOST_IP}:${BACKEND_PORT}" | Set-Content -Path $FRONTEND_ENV_FILE
+Write-Host "[✓] Frontend .env created"
+
+# ───────────────────────────
+# Export env vars
+# ───────────────────────────
+$env:DB_PORT = $DB_PORT
+$env:BACKEND_PORT = $BACKEND_PORT
+
+# ───────────────────────────
+# Start Docker
+# ───────────────────────────
+Write-Host "[*] Starting Docker containers..."
 docker compose up -d --build
 
-# ──────────────────────────────────────────────────────────────
-# 5. Wait for DB & Init
-# ──────────────────────────────────────────────────────────────
-Write-Host "⏳ Waiting for database to be ready..."
+# ───────────────────────────
+# Wait and Init DB
+# ───────────────────────────
+Write-Host "[*] Waiting for DB to be ready..."
 Start-Sleep -Seconds 8
 
-Write-Host "🛠️  Initializing backend database..."
-if (docker exec sms-backend ./dbinit) {
-    Write-Host "`n🎉 System setup complete!"
-    Write-Host "🔗 Frontend:    http://$hostIP"
-    Write-Host "🖥️  Backend API: http://$hostIP:$backendPort"
-    Write-Host "🛢️  PostgreSQL:  Port $dbPort"
+Write-Host "[*] Initializing backend database..."
+$dockerExecResult = docker exec sms-backend ./dbinit
+$initSuccess = $LASTEXITCODE -eq 0
+
+if ($initSuccess) {
+    Write-Host ""
+    Write-Host "[✓] System setup complete!"
+    Write-Host "Frontend:    http://${HOST_IP}"
+    Write-Host "Backend API: http://${HOST_IP}:${BACKEND_PORT}"
+    Write-Host "PostgreSQL:  Port ${DB_PORT}"
 } else {
-    Write-Host "❌ DB initialization failed."
+    Write-Host "[X] DB initialization failed."
     exit 1
 }
-
