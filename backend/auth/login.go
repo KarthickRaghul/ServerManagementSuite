@@ -1,10 +1,10 @@
 package auth
 
 import (
-	db "github.com/kishore-001/ServerManagementSuite/backend/db/gen/general"
 	"context"
 	"database/sql"
 	"encoding/json"
+	db "github.com/kishore-001/ServerManagementSuite/backend/db/gen/general"
 	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"time"
@@ -92,8 +92,8 @@ func HandleLogin(dbQueries *db.Queries) http.HandlerFunc {
 			Value:    refreshToken,
 			Path:     "/",
 			HttpOnly: true,
-			Secure:   true,
-			SameSite: http.SameSiteStrictMode,
+			Secure:   false,
+			SameSite: http.SameSiteLaxMode,
 			MaxAge:   7 * 24 * 60 * 60,
 		})
 
