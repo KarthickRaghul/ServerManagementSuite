@@ -34,24 +34,43 @@ if ($Mode -eq "start" -or $Mode -eq "-s") {
     Show-Help
 }
 
-# ───────────────────────────
-# Detect IP (fallback)
-# ───────────────────────────
-$DEFAULT_IP = (Get-NetIPAddress -AddressFamily IPv4 `
-              | Where-Object { $_.InterfaceAlias -notlike "*Loopback*" -and $_.IPAddress -notlike "169.*" } `
-              | Select-Object -First 1 -ExpandProperty IPAddress)
+# ───────────────────────────────
+# Select or Enter Host IP
+# ───────────────────────────────
+$ipOptions = Get-NetIPAddress -AddressFamily IPv4 |
+    Where-Object { $_.IPAddress -notlike '169.*' -and $_.InterfaceAlias -notmatch 'Loopback|Virtual|vEthernet|WSL|Hyper-V|VPN|Docker' }
 
+if ($ipOptions.Count -eq 0) {
+    Write-Host "[X] No valid host IPs found automatically. Please enter manually."
+    $HOST_IP = Read-Host "Enter Host IP"
+} else {
+    $i = 0
+    Write-Host "`nAvailable Network Interfaces:"
+    $ipOptions | ForEach-Object {
+        Write-Host "$i) $($_.IPAddress)  ($($_.InterfaceAlias))"
+        $i++
+    }
+
+    Write-Host "m) Manually enter IP"
+
+    $choice = Read-Host "Select IP (default 0 or enter 'm' to input manually)"
+    if ([string]::IsNullOrWhiteSpace($choice)) { $choice = 0 }
+
+    if ($choice -eq 'm') {
+        $HOST_IP = Read-Host "Enter Host IP manually"
+    } elseif ($choice -match '^\d+$' -and [int]$choice -lt $ipOptions.Count) {
+        $HOST_IP = $ipOptions[$choice].IPAddress
+    } else {
+        Write-Host "[X] Invalid choice. Exiting."
+        exit 1
+    }
+}
+
+# ───────────────────────────────
+# Read Ports
+# ───────────────────────────────
 $DEFAULT_DB_PORT = 9001
 $DEFAULT_BACKEND_PORT = 9000
-
-$HOST_IP = Read-Host "Enter host IP (default: $DEFAULT_IP)"
-if ([string]::IsNullOrWhiteSpace($HOST_IP)) { $HOST_IP = $DEFAULT_IP }
-
-while ([string]::IsNullOrWhiteSpace($HOST_IP)) {
-    Write-Host "IP cannot be empty."
-    $HOST_IP = Read-Host "Enter host IP (default: $DEFAULT_IP)"
-    if ([string]::IsNullOrWhiteSpace($HOST_IP)) { $HOST_IP = $DEFAULT_IP }
-}
 
 $DB_PORT = Read-Host "Enter DATABASE port (default: $DEFAULT_DB_PORT)"
 if (-not ($DB_PORT -match '^\d+$')) { $DB_PORT = $DEFAULT_DB_PORT }
@@ -59,9 +78,9 @@ if (-not ($DB_PORT -match '^\d+$')) { $DB_PORT = $DEFAULT_DB_PORT }
 $BACKEND_PORT = Read-Host "Enter BACKEND port (default: $DEFAULT_BACKEND_PORT)"
 if (-not ($BACKEND_PORT -match '^\d+$')) { $BACKEND_PORT = $DEFAULT_BACKEND_PORT }
 
-# ───────────────────────────
+# ───────────────────────────────
 # Generate backend .env
-# ───────────────────────────
+# ───────────────────────────────
 $BACKEND_ENV_FILE = "./backend/.env"
 Write-Host "[*] Generating backend .env at $BACKEND_ENV_FILE"
 New-Item -Path "./backend" -ItemType Directory -Force | Out-Null
@@ -84,9 +103,9 @@ SMTP_FROM='SMS Alerts <servermanagementcit@gmail.com>'
 $backendEnvContent | Set-Content -Path $BACKEND_ENV_FILE
 Write-Host "[✓] Backend .env created"
 
-# ───────────────────────────
+# ───────────────────────────────
 # Generate frontend .env
-# ───────────────────────────
+# ───────────────────────────────
 $FRONTEND_ENV_FILE = "./frontend/.env"
 Write-Host "[*] Generating frontend .env at $FRONTEND_ENV_FILE"
 New-Item -Path "./frontend" -ItemType Directory -Force | Out-Null
@@ -94,21 +113,21 @@ New-Item -Path "./frontend" -ItemType Directory -Force | Out-Null
 "VITE_BACKEND_URL=http://${HOST_IP}:${BACKEND_PORT}" | Set-Content -Path $FRONTEND_ENV_FILE
 Write-Host "[✓] Frontend .env created"
 
-# ───────────────────────────
-# Export env vars
-# ───────────────────────────
+# ───────────────────────────────
+# Export ports as env vars (optional for Compose)
+# ───────────────────────────────
 $env:DB_PORT = $DB_PORT
 $env:BACKEND_PORT = $BACKEND_PORT
 
-# ───────────────────────────
+# ───────────────────────────────
 # Start Docker
-# ───────────────────────────
+# ───────────────────────────────
 Write-Host "[*] Starting Docker containers..."
 docker compose up -d --build
 
-# ───────────────────────────
+# ───────────────────────────────
 # Wait and Init DB
-# ───────────────────────────
+# ───────────────────────────────
 Write-Host "[*] Waiting for DB to be ready..."
 Start-Sleep -Seconds 8
 
