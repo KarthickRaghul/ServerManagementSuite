@@ -7,10 +7,10 @@ function Show-Help {
     Write-Host "[Server Management Suite Setup Script]"
     Write-Host ""
     Write-Host "Usage:"
-    Write-Host "  ./setup.ps1 start   or  ./setup.ps1 -s    → Start setup"
-    Write-Host "  ./setup.ps1 clean   or  ./setup.ps1 -c    → Clean Docker"
-    Write-Host "  ./setup.ps1 exit    or  ./setup.ps1 -e    → Stop containers"
-    Write-Host "  ./setup.ps1 help    or  ./setup.ps1 -h    → Show this help"
+    Write-Host "  ./setup.ps1 start       → Start setup"
+    Write-Host "  ./setup.ps1 clean       → Clean Docker"
+    Write-Host "  ./setup.ps1 exit        → Stop containers"
+    Write-Host "  ./setup.ps1 help        → Show this help"
     Write-Host ""
     exit 0
 }
@@ -37,8 +37,10 @@ if ($Mode -eq "start" -or $Mode -eq "-s") {
 # ───────────────────────────────
 # Select or Enter Host IP
 # ───────────────────────────────
-$ipOptions = Get-NetIPAddress -AddressFamily IPv4 |
-    Where-Object { $_.IPAddress -notlike '169.*' -and $_.InterfaceAlias -notmatch 'Loopback|Virtual|vEthernet|WSL|Hyper-V|VPN|Docker' }
+$ipOptions = @(Get-NetIPAddress -AddressFamily IPv4 | Where-Object {
+    $_.IPAddress -notlike '169.*' -and $_.InterfaceAlias -notmatch 'Loopback|Virtual|vEthernet|WSL|Hyper-V|VPN|Docker'
+})
+
 
 if ($ipOptions.Count -eq 0) {
     Write-Host "[X] No valid host IPs found automatically. Please enter manually."
@@ -54,12 +56,18 @@ if ($ipOptions.Count -eq 0) {
     Write-Host "m) Manually enter IP"
 
     $choice = Read-Host "Select IP (default 0 or enter 'm' to input manually)"
-    if ([string]::IsNullOrWhiteSpace($choice)) { $choice = 0 }
+    if ([string]::IsNullOrWhiteSpace($choice)) { $choice = "0" }
 
     if ($choice -eq 'm') {
         $HOST_IP = Read-Host "Enter Host IP manually"
-    } elseif ($choice -match '^\d+$' -and [int]$choice -lt $ipOptions.Count) {
-        $HOST_IP = $ipOptions[$choice].IPAddress
+    } elseif ($choice -match '^\d+$') {
+        $index = [int]$choice
+        if ($index -ge 0 -and $index -lt $ipOptions.Count) {
+            $HOST_IP = $ipOptions[$index].IPAddress
+        } else {
+            Write-Host "[X] Invalid index selected. Exiting."
+            exit 1
+        }
     } else {
         Write-Host "[X] Invalid choice. Exiting."
         exit 1
