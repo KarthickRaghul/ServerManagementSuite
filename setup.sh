@@ -44,22 +44,59 @@ help | -h | "" | *)
 esac
 
 # ──────────────────────────────────────────────
-# 1. Detect Host IP (with fallback mechanism)
+# 1. Detect Host IPs and Let User Choose
 # ──────────────────────────────────────────────
-if [[ -z "$DEFAULT_IP" ]]; then
-  DEFAULT_IP=$(ip route get 1.1.1.1 | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+
+# Get all non-loopback IPv4 addresses
+mapfile -t IP_LIST < <(ip -4 addr show | awk '/inet / {print $2}' | cut -d/ -f1 | grep -v '^127\.')
+
+# Fallback to localhost if nothing found
+if [[ ${#IP_LIST[@]} -eq 0 ]]; then
+  IP_LIST=("127.0.0.1")
 fi
+
+# Detect the default/active interface IP
+DEFAULT_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if ($i=="src") print $(i+1)}')
+if [[ -z "$DEFAULT_IP" ]]; then
+  DEFAULT_IP="${IP_LIST[0]}"
+fi
+
+# Find index of DEFAULT_IP in IP_LIST
+DEFAULT_IDX=1
+for idx in "${!IP_LIST[@]}"; do
+  if [[ "${IP_LIST[$idx]}" == "$DEFAULT_IP" ]]; then
+    DEFAULT_IDX=$((idx + 1))
+    break
+  fi
+done
+
+echo ""
+echo "🌐 Available host IP addresses:"
+for i in "${!IP_LIST[@]}"; do
+  n=$((i + 1))
+  if [[ "$n" -eq "$DEFAULT_IDX" ]]; then
+    echo "  $n) ${IP_LIST[$i]}   (default/active)"
+  else
+    echo "  $n) ${IP_LIST[$i]}"
+  fi
+done
+
+read -p "Select host IP [1-${#IP_LIST[@]}] (default: $DEFAULT_IDX): " IP_CHOICE
+IP_CHOICE=${IP_CHOICE:-$DEFAULT_IDX}
+
+# Validate input
+while ! [[ "$IP_CHOICE" =~ ^[0-9]+$ ]] || ((IP_CHOICE < 1 || IP_CHOICE > ${#IP_LIST[@]})); do
+  echo "❌ Invalid choice."
+  read -p "Select host IP [1-${#IP_LIST[@]}] (default: $DEFAULT_IDX): " IP_CHOICE
+  IP_CHOICE=${IP_CHOICE:-$DEFAULT_IDX}
+done
+
+HOST_IP="${IP_LIST[$((IP_CHOICE - 1))]}"
+echo "✅ Using IP: $HOST_IP"
+echo ""
 
 DEFAULT_DB_PORT=9001
 DEFAULT_BACKEND_PORT=9000
-
-read -p "🌐 Enter host IP (default: $DEFAULT_IP): " HOST_IP
-HOST_IP=${HOST_IP:-$DEFAULT_IP}
-while [[ -z "$HOST_IP" ]]; do
-  echo "❌ IP cannot be empty."
-  read -p "🌐 Enter host IP (default: $DEFAULT_IP): " HOST_IP
-  HOST_IP=${HOST_IP:-$DEFAULT_IP}
-done
 
 read -p "🛢️  Enter DATABASE port (default: $DEFAULT_DB_PORT): " DB_PORT
 DB_PORT=${DB_PORT:-$DEFAULT_DB_PORT}
