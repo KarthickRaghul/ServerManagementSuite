@@ -1,13 +1,10 @@
 # Server Management Suite (SMS)
-
-A centralized, secure, and scalable platform for managing Linux servers across institutional networks, data centers, and enterprises.
+A centralized, secure, and scalable platform for managing Linux and Windows servers across institutional networks, data centers, and enterprises.
 
 ---
 
 ## 🧭 Overview
-
 **Server Management Suite (SMS)** is an all-in-one server management solution designed to simplify and centralize the administration of multiple Linux-based and Windows-based servers. Through a modern web interface, SMS allows system administrators to:
-
 - Monitor server health in real time
 - Configure system and network settings remotely
 - Manage users and roles
@@ -18,420 +15,218 @@ Built with a modular architecture and robust security, SMS is ideal for universi
 
 ---
 
-## 🚀 Quick Start (Recommended)
+## 📦 Installation
+The **Server Management Suite (SMS)** can be deployed using two primary methods:
+1. **Docker-based Deployment** (Recommended for most users)
+2. **Manual Setup** (Traditional DevOps installation for more control or debugging)
 
-### Docker Deployment (Easiest Method)
+We will first explore the Docker method and then explain the manual approach.
 
-**Prerequisites:**
-- Docker and Docker Compose installed on your system
-- Git installed
+## 🐳 Docker Setup (Recommended)
+This is the easiest and fastest method to get SMS running on any machine.
 
-**Steps:**
+### ✅ Prerequisites
+**For Windows:**
+* Git for Windows
+* Docker Desktop
+* Windows Subsystem for Linux (WSL2)
+* Enable Virtualization and Hyper-V in BIOS & Windows Features
 
-1. **Clone the Repository**
-   ```bash
-   git clone https://github.com/KarthickRaghul/ServerManagementSuite
-   cd ServerManagementSuite
-   ```
+**For Linux:**
+* `git`
+* `docker` and `docker-compose` (`docker compose` v2 CLI)
 
-2. **Configure Environment**
-   ```bash
-   cp .env.example .env
-   # Edit .env file with your configuration
-   ```
+### ⚙️ Setup Instructions
+We provide platform-specific setup scripts:
+* For **Linux**: Run `./setup.sh`
+* For **Windows (PowerShell)**: Run `./setup.ps1`
 
-3. **Run Setup Script**
-   
-   #### 🐧 On Linux:
-   ```bash
-   chmod +x setup.sh
-   ./setup.sh
-   ```
-   
-   #### 🪟 On Windows (PowerShell as Administrator):
-   ```powershell
-   .\setup.ps1
-   ```
-
-4. **Start Services**
-   ```bash
-   docker-compose up -d
-   ```
-
-✅ **That's it!** Your SMS is now running at `http://localhost:3000`
-
-The setup scripts will:
-- Validate Docker installation
-- Configure environment variables
-- Build Docker images for backend, frontend, and database
-- Initialize the PostgreSQL database
-- Start all services automatically
-
----
-
-## 🐳 Docker Architecture
-
-SMS uses three Docker containers:
-
-| Container | Image | Purpose |
-|-----------|-------|---------|
-| **sms-backend** | `sms-backend:latest` | Go API server with JWT auth |
-| **sms-frontend** | `sms-frontend:latest` | React dashboard with Vite |
-| **sms-database** | `postgres:15` | PostgreSQL database |
-
-**Docker Compose Features:**
-- Automatic service dependency management
-- Volume persistence for database data
-- Network isolation and security
-- Health checks for all services
-- Auto-restart policies
-
----
-
-## ⚙️ Manual Installation (Advanced)
-
-For users who prefer manual setup or need customization beyond Docker:
-
-### 1. Clone the Repository
-
+To use the script:
 ```bash
-git clone https://github.com/KarthickRaghul/ServerManagementSuite
+./setup.sh start      # Start setup
+./setup.sh clean      # Remove containers, volumes, images
+./setup.sh help       # Show help menu
 ```
 
----
+Equivalent commands apply for PowerShell on Windows.
 
-### 2. Install Dependencies
+The script:
+* Lets you select a host IP
+* Prompts for backend and DB ports
+* Generates `.env` files for both frontend and backend
+* Builds Docker images
+* Initializes the PostgreSQL database
+* Launches frontend/backend services
 
-#### Install Vite
+Once setup completes, your system is live.
 
-**🪟 On Windows (CMD or PowerShell):**
-```cmd
-npm install -g vite
-```
+## ⚙️ Manual Setup (For DevOps / Debugging)
 
-**🐧 On Linux:**
+### ✅ Prerequisites
+* PostgreSQL (v15+)
+* Go (v1.20+)
+* sqlc
+* Node.js (v18+)
+* Git
+
+### Setup Steps
 ```bash
-sudo npm install -g vite
+git clone https://github.com/kishore-001/ServerManagementSuite.git
+cd ServerManagementSuite
 ```
 
-#### Install Go
-- Download from: https://golang.org/dl/
-- Follow installation instructions for your OS
-
----
-
-### 3. Install PostgreSQL
-
-#### 🪟 On Windows:
-
-1. Download the installer from: [https://www.postgresql.org/download/windows/](https://www.postgresql.org/download/windows/)
-2. Run the installer and follow the setup wizard
-3. Set the port (e.g., `8500`) and credentials during installation
-4. Ensure `pgAdmin` and PostgreSQL service are running
-
-#### 🐧 On Linux (Debian/Ubuntu):
-
+### 📂 Frontend Setup
 ```bash
-sudo apt update
-sudo apt install postgresql postgresql-contrib
+cd frontend
+npm install
 ```
 
-> Optional: Change the default port or authentication settings by editing `/etc/postgresql/<version>/main/postgresql.conf` and `pg_hba.conf`.
-
----
-
-### 4. Set Up the Environment File
-
-Create a `.env` file inside the backend directory:
-
+Create `.env` file in `/frontend`:
 ```
-ServerSecurityTool/backend/.env
+VITE_BACKEND_URL=http://<your_backend_ip>:9000
 ```
 
-Add the following content:
+Build the frontend:
+```bash
+npm run build
+```
 
-```env
-DATABASE_URL=postgres://postgres:password@localhost:8500/SSMS?sslmode=disable
-CLIENT_PORT=8080
+### 🔌 Backend Setup
+```bash
+cd backend
+cd db
+sqlc generate
+cd ..
+```
+
+Create `.env` in `/backend`:
+```
+DATABASE_URL=postgres://<user>:<pass>@<host>:<port>/<db>?sslmode=disable
+CLIENT_PORT=2210
 CLIENT_PROTOCOL=http
-JWT_SECRET=your-super-secret-jwt-key-here
+JWT_SECRET=vanakamdamapla
 SERVER_PORT=8000
 LOG_LEVEL=info
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USERNAME=your-email@gmail.com
-SMTP_PASSWORD=your-app-password
-SMTP_FROM=SMS Alert System <your-email@gmail.com>
+SMTP_USERNAME=servermanagementcit@gmail.com
+SMTP_PASSWORD=tgekktudhggxwpok
+SMTP_FROM=SMS Alerts <servermanagementcit@gmail.com>
 ```
 
-#### 📘 Environment Variables Breakdown:
-
-- **DATABASE_URL** → PostgreSQL connection string
-  - **postgres** → PostgreSQL username
-  - **password** → PostgreSQL password
-  - **localhost** → Database host (can be IP if remote)
-  - **8500** → PostgreSQL port
-  - **SSMS** → Database name
-  - **sslmode=disable** → Disables SSL for local/dev use
-
-- **CLIENT_PORT** → Port used by client agents to connect
-- **CLIENT_PROTOCOL** → Communication protocol (http/https)
-- **JWT_SECRET** → Secret key for JWT token signing
-- **SERVER_PORT** → Port used by the backend server
-- **LOG_LEVEL** → Logging level (info, debug, warn, error)
-
-- **SMTP_HOST** → Mail server host
-- **SMTP_PORT** → Mail server port (587 for TLS)
-- **SMTP_USERNAME** → Email address for SMTP auth
-- **SMTP_PASSWORD** → SMTP password or app password
-- **SMTP_FROM** → Display name and sender email for alerts
-
----
-
-### 5. Run the Backend
-
-#### 🪟 On Windows (PowerShell as Administrator):
-
-```powershell
-cd ServerSecurityTool/backend
-go mod download
-go run main.go
-```
-
-> ⚠️ Make sure to **Run PowerShell as Administrator** to allow access to system resources.
-
-#### 🐧 On Linux:
-
+Build backend:
 ```bash
-cd ServerSecurityTool/backend
-go mod download
-sudo go run main.go
+go build -o server main.go
 ```
 
----
-
-### 6. Run the Frontend
-
-In a new terminal window:
-
+### 🗃️ PostgreSQL Setup
+1. Install PostgreSQL and run:
 ```bash
-cd ServerSecurityTool/frontend
-npm install
-npm run dev -- --host
+sudo systemctl start postgresql  # for linux
+```
+or download PostgreSQL from the installer
+
+Create user and database:
+```sql
+CREATE USER admin WITH PASSWORD 'admin';
+CREATE DATABASE smsdb;
+GRANT ALL PRIVILEGES ON DATABASE smsdb TO admin;
 ```
 
-> This will launch the frontend and make it accessible over the local network.
+Grant permissions on public schema:
+```sql
+GRANT ALL ON SCHEMA public TO admin;
+```
 
----
-
-## 💻 Client Setup
-
-The client tool collects system metrics and sends data to the backend.
-
----
-
-### Option 1: Clone Client on Server Machine
-
+Confirm DB connection (CLI or Go):
 ```bash
-git clone https://github.com/KarthickRaghul/ServerManagementSuite/tree/main/client
-cd client
+psql -U admin -d smsdb -h localhost -p 9001
 ```
 
-Run the client:
-
-#### 🪟 On Windows:
-
-```powershell
-go run windows\main.go
+Sample DB URL:
+```
+postgres://admin:admin@sms-db:5432/smsdb?sslmode=disable
 ```
 
-> Run in PowerShell **as Administrator**.
-
-#### 🐧 On Linux:
-
+Initialize DB structure:
 ```bash
-sudo go run linux\main.go
+go run temp/dbinit.go
 ```
 
----
+## 🖥️ Server Controller Setup (Formerly "Client")
 
-### Option 2: Build on Any Machine and Copy to Server
+The Server Controller runs on each target server and communicates with the backend.
 
-1. Build the client:
+### ✅ Prerequisites
+* Go (1.20+)
+* Git
 
+### 🐧 For Linux Servers
 ```bash
-go build -o client_tool main.go
-```
-
-2. Copy the compiled binary to your server via SCP, USB, or file transfer.
-
-3. Run on the server:
-
-#### 🐧 Linux:
-
-```bash
-sudo ./client_tool
-```
-
-#### 🪟 Windows:
-
-```powershell
-.\client_tool.exe
-```
-
----
-
-## 🔧 Docker Commands Reference
-
-### Basic Operations
-
-```bash
-# Start all services
-docker-compose up -d
-
-# Stop all services
-docker-compose down
-
-# View logs
-docker-compose logs -f
-
-# Restart a specific service
-docker-compose restart sms-backend
-
-# Rebuild images
-docker-compose build
-
-# View running containers
-docker-compose ps
-```
-
-### Development Commands
-
-```bash
-# Run with live reload (development)
-docker-compose -f docker-compose.dev.yml up
-
-# Access database directly
-docker exec -it sms-database psql -U postgres -d SSMS
-
-# View backend logs
-docker logs sms-backend -f
-
-# Shell into backend container
-docker exec -it sms-backend /bin/sh
-```
-
----
-
-## 🔑 Key Features
-
-- **Centralized Dashboard:** Manage all servers from a unified portal—no more individual SSH sessions
-- **Real-time Monitoring:** Live metrics for CPU, memory, disk, and network I/O, updated every 30 seconds with historical graphs
-- **Configuration Management:** Remotely edit hostnames, network interfaces, firewall rules, and more
-- **Alert System:** Automated notifications for resource thresholds (CPU, RAM, disk, network), with severity levels
-- **Role-Based Access Control:** Admin (full access) and Viewer (read-only) roles, with UI tailored to each
-- **Secure Communication:** JWT authentication, access tokens, input validation, and encrypted protocols (HTTPS)
-- **Modular Architecture:** Easily extensible for new features and scalable to large server fleets
-- **Containerized Deployment:** Docker support for easy deployment and scaling
-
----
-
-## 📐 System Architecture
-
-| Component | Technology      | Role                                         |
-|-----------|----------------|----------------------------------------------|
-| Frontend  | React + Vite   | User dashboard, real-time monitoring         |
-| Backend   | Go + PostgreSQL| API, logic, authentication, data storage     |
-| Client    | Go             | Runs on each server, collects metrics, executes commands |
-| Database  | PostgreSQL     | Persistent storage for users, devices, alerts, logs |
-
-**Communication:** All interactions secured via JWT, HTTPS, and access tokens
-**Deployment:** Containerized with Docker for consistency and scalability
-
----
-
-## 📦 Modules & Capabilities
-
-- **Configuration Management:** Register/remove devices, execute commands, manage SSH keys, update server info
-- **Network Configuration:** Interface management, routing, firewall, service restart
-- **Health Monitoring:** CPU, RAM, disk, network I/O with visualizations and thresholds
-- **Alert System:** Auto-detection, severity levels, filtering, admin actions
-- **Log Management:** Aggregated logs, real-time streaming, filters, search
-- **Resource Optimization:** Service/process management, cleanup utilities, performance suggestions
-- **User Management:** Add/delete users, assign roles, profile updates
-
----
-
-## 🔒 Security
-
-- **JWT Authentication:** Secure login and API access
-- **Role-Based Access:** Admins and viewers with granular permissions
-- **Input & Command Validation:** Prevents injection and misuse
-- **Internal Network Deployment:** Designed for secure LAN environments
-- **Password Hashing & Audit Logging:** Protects credentials and tracks sensitive actions
-- **Container Security:** Isolated services with minimal attack surface
-
----
-
-## ⚙️ Configuration
-
-Environment variables are managed via `.env` files for backend, frontend, and client agents. Sensitive data (secrets, DB credentials) should be kept secure and excluded from version control.
-
-**Docker Environment:**
-- Environment variables are automatically loaded from `.env` file
-- Database credentials are managed through Docker secrets
-- SSL certificates can be mounted as volumes
-
----
-
-## 🚀 Deployment Strategy
-
-### Production Deployment
-
-1. **Docker Deployment (Recommended)**
-   - Deploy on a central server within your secure network
-   - Use `docker-compose.prod.yml` for production settings
-   - Configure reverse proxy (nginx) for SSL termination
-   - Set up backup strategies for database volumes
-
-2. **Manual Deployment**
-   - Install dependencies on production server
-   - Configure systemd services for auto-start
-   - Set up log rotation and monitoring
-   - Configure firewall rules
-
-3. **Client Distribution**
-   - Distribute the client agent to each Linux or Windows server
-   - Use configuration management tools (Ansible, Puppet) for scale
-   - Set up monitoring for client connectivity
-
----
-
-## 🎯 Conclusion
-
-SMS empowers IT teams to manage, monitor, and secure large-scale Linux server environments from a single, intuitive interface. With Docker support, deployment is now simpler than ever, while the manual installation option provides flexibility for advanced users. Its modular, secure, and extensible design makes it a practical choice for institutions and enterprises seeking operational excellence.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please submit issues or pull requests for new features, bug fixes, or documentation improvements.
-
-**Development Setup:**
-```bash
-# Clone and setup for development
-git clone https://github.com/KarthickRaghul/ServerManagementSuite
+git clone https://github.com/kishore-001/ServerManagementSuite.git
 cd ServerManagementSuite
-docker-compose -f docker-compose.dev.yml up
+go mod tidy
+go build -o controller main.go
+./controller
 ```
 
+### 🪟 For Windows Servers
+```bash
+git clone https://github.com/kishore-001/ServerManagementSuite.git
+cd ServerManagementSuite
+go mod tidy
+go build -o controller.exe main.go
+.\controller.exe
+```
+
+This runs on port 2210 by default.
+
+## 🔐 Token Setup
+
+On first run, the Server Controller will request a client token (generated from the frontend admin panel). If you want to reset or change the token:
+
+* **Linux**: Delete `client/linux/auth/token.hash`
+* **Windows**: Delete `client/windows/auth/token.hash`
+
+After deletion, re-run the controller and it will ask for a new token.
+
 ---
 
-## 📚 Additional Resources
+## ⚙️ Working of the System
+The **Server Management Suite (SMS)** operates as a centralized monitoring and management system for all registered servers and network devices. Once deployed, the backend service listens on the specified port (default: `9000`) and exposes API endpoints for the frontend and server controllers. The frontend interface provides an admin-only dashboard to monitor, configure, and control connected devices.
 
-- [Docker Documentation](https://docs.docker.com/)
-- [PostgreSQL Docker Guide](https://hub.docker.com/_/postgres)
-- [React + Vite Documentation](https://vitejs.dev/)
-- [Go Documentation](https://golang.org/doc/)
+Each server (Windows/Linux) runs a lightweight **server controller agent** that connects to the central backend. These agents continuously report device health, system logs, CPU/memory/disk/network statistics, and also accept configuration or command updates from the backend. Routers and firewalls (like Fortinet) are managed via SSH or SNMP integrations from the backend.
+
+The admin user can view health summaries, trigger backups, monitor real-time alerts, update configurations, and even restart specific services on the managed servers or network devices — all from a single dashboard. All communication between server controllers and the backend is authenticated using a secure token-based mechanism to prevent unauthorized access.
 
 ---
+
+## 🏗️ Architecture Overview
+The architecture of the Server Management Suite follows a **modular client-server model**. It has three main components:
+
+1. **Frontend Web Interface:** Built using React + Vite, this is the admin dashboard where users can manage devices, view alerts, and configure system settings. It connects directly to the backend via REST API.
+
+2. **Backend API Server:** A Go-based service that handles user authentication, API routing, database operations, and device coordination. It integrates with PostgreSQL for persistent data and provides endpoints for both the frontend and server controllers.
+
+3. **Server Controllers (Agents):** Lightweight Go programs running on each server or device. These send periodic health reports, logs, and accept backend-issued commands. They are authenticated using tokens generated by the backend.
+
+All components interact over HTTP, using ports defined during setup. The backend also manages token validation, alert generation, and logging of all activity.
+
+### 🔄 Data Flow Summary:
+1. Admin logs in to the **frontend** and registers devices.
+2. The **server controller** running on each device connects to the backend and authenticates using its token.
+3. The backend records health and performance metrics in the database.
+4. The admin can issue commands or configuration changes via frontend.
+5. The backend relays instructions securely to the correct agent.
+
+### 🖼️ Architecture Diagram (To Be Added)
+*[Architecture diagram will be provided]*
+
+---
+
+## ✅ Maintainers / Contact
+
+```
+Maintained by:
+- Kishore [@kishore-001](https://github.com/kishore-001)
+```
